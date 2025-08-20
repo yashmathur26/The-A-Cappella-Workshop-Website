@@ -633,14 +633,14 @@ export default function Account() {
                               </Button>
                             </div>
                           )}
-                          {registration.status === "deposit_paid" && registration.balanceDueCents > 0 && (
+                          {registration.status === "deposit_paid" && (registration.balanceDueCents ?? 0) > 0 && (
                             <div className="space-y-2">
                               <div className="text-right">
                                 <p className="text-orange-300 text-sm font-medium">
-                                  Balance Due: ${(registration.balanceDueCents / 100).toFixed(2)}
+                                  Balance Due: ${((registration.balanceDueCents ?? 0) / 100).toFixed(2)}
                                 </p>
                                 <p className="text-white/60 text-xs">
-                                  Paid: ${(registration.amountPaidCents / 100).toFixed(2)} deposit
+                                  Paid: ${((registration.amountPaidCents ?? 0) / 100).toFixed(2)} deposit
                                 </p>
                               </div>
                               <Button 
@@ -873,6 +873,60 @@ export default function Account() {
                   <LogOut className="w-4 h-4 mr-2" />
                   {logoutMutation.isPending ? "Signing Out..." : "Sign Out"}
                 </Button>
+              </CardContent>
+            </Card>
+            
+            {/* Email Management */}
+            <Card className="bg-black/20 backdrop-blur-lg border border-white/10">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center">
+                  <Mail className="w-5 h-5 mr-2 text-sky-custom" />
+                  Email Management
+                </CardTitle>
+                <CardDescription className="text-white/60">
+                  Manage additional email addresses for notifications and communication
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Primary Email Display */}
+                <div>
+                  <label className="text-white text-sm font-medium mb-2 block">Primary Email</label>
+                  <div className="flex items-center p-3 bg-white/5 rounded-lg border border-white/10">
+                    <Mail className="w-4 h-4 text-sky-custom mr-3" />
+                    <span className="text-white font-medium">{user?.email}</span>
+                    <Badge className="ml-auto bg-green-500/20 text-green-300 border-green-500/30">Primary</Badge>
+                  </div>
+                </div>
+
+                {/* Additional Emails Section */}
+                <div>
+                  <label className="text-white text-sm font-medium mb-2 block">Additional Emails</label>
+                  <div className="space-y-2 mb-3">
+                    {/* Placeholder for additional emails - would need backend support */}
+                    <div className="flex items-center p-3 bg-white/5 rounded-lg border border-white/10">
+                      <Mail className="w-4 h-4 text-white/60 mr-3" />
+                      <span className="text-white/60">No additional emails added</span>
+                    </div>
+                  </div>
+                  
+                  {/* Add Email Form */}
+                  <div className="flex space-x-2">
+                    <Input 
+                      placeholder="Enter additional email address"
+                      type="email"
+                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50 flex-1"
+                    />
+                    <Button 
+                      className="bg-sky-custom/20 border border-sky-custom/30 text-sky-200 hover:bg-sky-custom/30"
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Add Email
+                    </Button>
+                  </div>
+                  <p className="text-white/50 text-xs mt-2">
+                    Additional emails will receive camp notifications and updates
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
