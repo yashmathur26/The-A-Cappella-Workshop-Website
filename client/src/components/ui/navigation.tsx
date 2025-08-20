@@ -100,7 +100,7 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
               <div className="flex items-center space-x-4">
                 <Link href="/account" className="flex items-center space-x-2 text-white/80 hover:text-white">
                   <User size={18} />
-                  <span className="hidden sm:inline">{user?.email?.split('@')[0]}</span>
+                  <span className="hidden sm:inline">{user?.firstName} {user?.lastName}</span>
                 </Link>
                 <Button
                   onClick={() => logoutMutation.mutate()}

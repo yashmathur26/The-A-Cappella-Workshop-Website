@@ -259,7 +259,7 @@ export default function Account() {
         <div className="flex justify-between items-center mb-12">
           <div>
             <h1 className="text-4xl lg:text-5xl font-bold gradient-text mb-4">
-              Welcome Back, {user?.email?.split('@')[0]}!
+              Welcome Back, {user?.firstName} {user?.lastName}!
             </h1>
             <p className="text-white/80 text-lg">
               Manage your family's A Cappella Workshop experience
