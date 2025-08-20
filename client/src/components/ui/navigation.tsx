@@ -90,6 +90,12 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
                 {link.label}
               </Link>
             ))}
+            <Link
+              href="/camp-registration"
+              className="btn-gradient px-6 py-2 rounded-full text-white font-medium hover:text-white"
+            >
+              Register
+            </Link>
             {isAuthenticated ? (
               <div className="flex items-center space-x-4">
                 <Link href="/account" className="flex items-center space-x-2 text-white/80 hover:text-white">
@@ -107,20 +113,12 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
                 </Button>
               </div>
             ) : (
-              <div className="flex items-center space-x-3">
-                <Link
-                  href="/login"
-                  className="btn-gradient-secondary px-5 py-2 rounded-full text-white font-medium hover:text-white text-sm"
-                >
-                  Sign In
-                </Link>
-                <Link
-                  href="/camp-registration"
-                  className="btn-gradient px-6 py-2 rounded-full text-white font-medium hover:text-white"
-                >
-                  Register
-                </Link>
-              </div>
+              <Link
+                href="/login"
+                className="btn-gradient-secondary px-5 py-2 rounded-full text-white font-medium hover:text-white text-sm"
+              >
+                Sign In
+              </Link>
             )}
             <Link href="/register" className="relative">
               <ShoppingCart className="text-white/80 hover:text-white cursor-pointer" size={20} />
