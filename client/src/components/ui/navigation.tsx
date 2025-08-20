@@ -34,10 +34,13 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
   const logoutMutation = useLogout();
 
   useEffect(() => {
-    setCurrentCartCount(CartManager.getCartCount());
+    // Force a fresh cart count on mount
+    const count = CartManager.getCartCount();
+    setCurrentCartCount(count);
     
     const handleStorageChange = () => {
-      setCurrentCartCount(CartManager.getCartCount());
+      const freshCount = CartManager.getCartCount();
+      setCurrentCartCount(freshCount);
     };
 
     window.addEventListener('storage', handleStorageChange);

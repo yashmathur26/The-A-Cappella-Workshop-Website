@@ -13,7 +13,29 @@ export class CartManager {
   static getCart(): CartItem[] {
     if (typeof window === 'undefined') return [];
     const stored = localStorage.getItem(this.STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
+    if (!stored) return [];
+    
+    try {
+      const parsed = JSON.parse(stored);
+      // Migration: Check if old format (string array) and clear it
+      if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'string') {
+        localStorage.removeItem(this.STORAGE_KEY);
+        return [];
+      }
+      // Validate new format
+      if (Array.isArray(parsed) && parsed.every(item => 
+        item && typeof item === 'object' && 
+        'weekId' in item && 'paymentType' in item && 'price' in item
+      )) {
+        return parsed;
+      }
+      // Invalid format, clear it
+      localStorage.removeItem(this.STORAGE_KEY);
+      return [];
+    } catch {
+      localStorage.removeItem(this.STORAGE_KEY);
+      return [];
+    }
   }
 
   static setCart(items: CartItem[]): void {
