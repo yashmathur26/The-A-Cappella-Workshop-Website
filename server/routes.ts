@@ -553,7 +553,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           parentName,
           childName,
           promoCode: promoCode || '',
-          discount: discount.toString(),
+          isAdminDiscount: upperPromoCode === 'ADMIN' ? 'true' : 'false',
         },
       });
 
@@ -561,6 +561,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('Error creating checkout session:', error);
       res.status(500).json({ message: "Error creating checkout session: " + error.message });
+    }
+  });
+
+  // Payment status check endpoint
+  app.get("/api/payment-status/:sessionId", async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      
+      res.json({
+        status: session.payment_status,
+        sessionStatus: session.status,
+        paymentIntent: session.payment_intent
+      });
+    } catch (error: any) {
+      console.error('Error checking payment status:', error);
+      res.status(500).json({ message: "Error checking payment status: " + error.message });
     }
   });
 

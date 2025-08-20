@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { GradientButton } from '@/components/ui/gradient-button';
 import { CartManager, type CartItem } from '@/lib/cart';
@@ -10,7 +10,7 @@ import { PaymentOptions } from '@/components/PaymentOptions';
 import { useLocation } from 'wouter';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tag, X } from "lucide-react";
+import { Tag, X, AlertTriangle } from "lucide-react";
 
 export default function Register() {
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -22,6 +22,9 @@ export default function Register() {
   const [promoError, setPromoError] = useState("");
   const [parentName, setParentName] = useState("");
   const [childName, setChildName] = useState("");
+  const [paymentStatus, setPaymentStatus] = useState<'none' | 'pending' | 'completed' | 'incomplete'>('none');
+  const paymentWindowRef = useRef<Window | null>(null);
+  const statusCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
@@ -104,6 +107,8 @@ export default function Register() {
     
     // Go directly to Stripe checkout for both authenticated and guest users
     setIsLoading(true);
+    setPaymentStatus('pending');
+    
     try {
       const response = await apiRequest('POST', '/api/create-checkout-session', {
         cartItems: cart,
@@ -115,11 +120,21 @@ export default function Register() {
       const data = await response.json();
       
       if (data.url) {
-        window.open(data.url, '_blank', 'noopener,noreferrer');
+        // Extract session ID from URL for status checking
+        const urlParts = data.url.split('/');
+        const sessionId = urlParts[urlParts.length - 1].split('?')[0];
+        
+        // Open payment in new tab
+        paymentWindowRef.current = window.open(data.url, '_blank', 'noopener,noreferrer');
+        
+        // Start monitoring payment status
+        startPaymentMonitoring(sessionId);
+        
       } else {
         throw new Error('No checkout URL received');
       }
     } catch (error) {
+      setPaymentStatus('none');
       toast({
         title: "Payment Error",
         description: error instanceof Error ? error.message : "Failed to create checkout session",
@@ -128,6 +143,76 @@ export default function Register() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const startPaymentMonitoring = (sessionId: string) => {
+    let checkCount = 0;
+    const maxChecks = 60; // Check for 5 minutes (5 second intervals)
+    
+    statusCheckIntervalRef.current = setInterval(async () => {
+      checkCount++;
+      
+      try {
+        const response = await apiRequest('GET', `/api/payment-status/${sessionId}`);
+        const data = await response.json();
+        
+        if (data.status === 'paid') {
+          setPaymentStatus('completed');
+          clearInterval(statusCheckIntervalRef.current!);
+          
+          // Clear cart and show success
+          CartManager.clearCart();
+          toast({
+            title: "Payment Successful!",
+            description: "Your registration has been completed. You will receive a confirmation email shortly.",
+          });
+          
+          // Refresh the page after a short delay
+          setTimeout(() => {
+            window.location.reload();
+          }, 2000);
+          
+        } else if (data.sessionStatus === 'expired' || checkCount >= maxChecks) {
+          setPaymentStatus('incomplete');
+          clearInterval(statusCheckIntervalRef.current!);
+        }
+      } catch (error) {
+        if (checkCount >= maxChecks) {
+          setPaymentStatus('incomplete');
+          clearInterval(statusCheckIntervalRef.current!);
+        }
+      }
+    }, 5000); // Check every 5 seconds
+    
+    // Also listen for window focus to check immediately when user returns
+    const handleFocus = async () => {
+      if (paymentWindowRef.current?.closed) {
+        try {
+          const response = await apiRequest('GET', `/api/payment-status/${sessionId}`);
+          const data = await response.json();
+          
+          if (data.status === 'paid') {
+            setPaymentStatus('completed');
+            clearInterval(statusCheckIntervalRef.current!);
+            CartManager.clearCart();
+            toast({
+              title: "Payment Successful!",
+              description: "Your registration has been completed.",
+            });
+            setTimeout(() => window.location.reload(), 2000);
+          } else {
+            setPaymentStatus('incomplete');
+          }
+        } catch (error) {
+          setPaymentStatus('incomplete');
+        }
+        
+        window.removeEventListener('focus', handleFocus);
+        clearInterval(statusCheckIntervalRef.current!);
+      }
+    };
+    
+    window.addEventListener('focus', handleFocus);
   };
 
   const handleSignInFirst = () => {
