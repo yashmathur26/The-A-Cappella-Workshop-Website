@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Link } from 'wouter';
-import { Users, GraduationCap, Star } from 'lucide-react';
+import { Users, GraduationCap, Star, Phone, Mail, MapPin, Clock } from 'lucide-react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { GradientButton } from '@/components/ui/gradient-button';
 
@@ -100,6 +100,97 @@ export default function Home() {
             <div className="reveal-in">
               <h4 className="text-lg font-semibold text-sky-custom mb-2">Tuition</h4>
               <p className="text-teal-custom text-2xl font-bold">$500 per week</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Get in Touch Section */}
+      <section className="py-20">
+        <div className="max-w-6xl mx-auto px-6">
+          <h2 className="text-3xl lg:text-4xl font-bold text-center mb-12 reveal-in gradient-text">Get in Touch</h2>
+          
+          <div className="grid md:grid-cols-2 gap-8">
+            {/* Left Column - Contact Info */}
+            <div className="space-y-8">
+              <GlassCard className="p-6" hover>
+                <div className="flex items-start space-x-4">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-custom to-sky-custom flex items-center justify-center">
+                    <Phone className="text-white" size={20} />
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-semibold text-sky-custom mb-2">Phone</h4>
+                    <p className="text-white/90">(339) 223-4581</p>
+                    <p className="text-white/90">(555) 123-CAMP</p>
+                  </div>
+                </div>
+              </GlassCard>
+
+              <GlassCard className="p-6" hover>
+                <div className="flex items-start space-x-4">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-sky-custom to-teal-custom flex items-center justify-center">
+                    <Mail className="text-white" size={20} />
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-semibold text-sky-custom mb-2">Email</h4>
+                    <p className="text-white/90">theacappellaworkshop@gmail.com</p>
+                  </div>
+                </div>
+              </GlassCard>
+
+              <GlassCard className="p-6" hover>
+                <div className="flex items-start space-x-4">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-custom to-indigo-custom flex items-center justify-center">
+                    <MapPin className="text-white" size={20} />
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-semibold text-sky-custom mb-2">Address</h4>
+                    <p className="text-white/90">Temple Emunah</p>
+                    <p className="text-white/90">9 Piper Rd, Lexington, MA</p>
+                  </div>
+                </div>
+              </GlassCard>
+
+              <GlassCard className="p-6" hover>
+                <div className="flex items-start space-x-4">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-custom to-teal-custom flex items-center justify-center">
+                    <Clock className="text-white" size={20} />
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-semibold text-sky-custom mb-2">Camp Hours</h4>
+                    <p className="text-white/90">Monday - Friday: 9:00 AM - 4:00 PM</p>
+                    <p className="text-white/90">Weekend: Closed</p>
+                  </div>
+                </div>
+              </GlassCard>
+            </div>
+
+            {/* Right Column - Campus Info */}
+            <div className="space-y-8">
+              <GlassCard className="p-8 h-full">
+                <h3 className="text-2xl font-bold mb-6 text-teal-custom">Our Campus</h3>
+                <p className="text-white/90 mb-6">
+                  Located in the heart of Lexington, our state-of-the-art facility features professional recording studios, spacious rehearsal rooms, and beautiful outdoor performance spaces.
+                </p>
+                <ul className="space-y-3 text-white/80">
+                  <li className="flex items-center space-x-3">
+                    <div className="w-2 h-2 rounded-full bg-teal-custom"></div>
+                    <span>Free parking available</span>
+                  </li>
+                  <li className="flex items-center space-x-3">
+                    <div className="w-2 h-2 rounded-full bg-sky-custom"></div>
+                    <span>Accessible facilities</span>
+                  </li>
+                  <li className="flex items-center space-x-3">
+                    <div className="w-2 h-2 rounded-full bg-indigo-custom"></div>
+                    <span>Air-conditioned rooms</span>
+                  </li>
+                  <li className="flex items-center space-x-3">
+                    <div className="w-2 h-2 rounded-full bg-teal-custom"></div>
+                    <span>Professional audio equipment</span>
+                  </li>
+                </ul>
+              </GlassCard>
             </div>
           </div>
         </div>
