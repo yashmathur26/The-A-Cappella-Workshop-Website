@@ -499,12 +499,12 @@ export default function Account() {
                                   <div className="text-xs text-white/60">
                                     <div className="flex justify-between">
                                       <span>Paid:</span>
-                                      <span className="text-green-400">${((registration.amountPaidCents || 0) / 100).toFixed(2)}</span>
+                                      <span className="text-green-400">${((registration.amountPaidCents ?? 0) / 100).toFixed(2)}</span>
                                     </div>
-                                    {(registration.balanceDueCents || 0) > 0 && (
+                                    {(registration.balanceDueCents ?? 0) > 0 && (
                                       <div className="flex justify-between">
                                         <span>Balance Due:</span>
-                                        <span className="text-orange-400">${((registration.balanceDueCents || 0) / 100).toFixed(2)}</span>
+                                        <span className="text-orange-400">${((registration.balanceDueCents ?? 0) / 100).toFixed(2)}</span>
                                       </div>
                                     )}
                                   </div>
@@ -671,6 +671,67 @@ export default function Account() {
           <TabsContent value="settings" className="space-y-6">
             <h2 className="text-2xl font-bold text-white">Account Settings</h2>
             
+            {/* Payment Summary Card */}
+            <Card className="bg-black/20 backdrop-blur-lg border border-white/10">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center">
+                  <DollarSign className="w-5 h-5 mr-2 text-green-400" />
+                  Payment Summary
+                </CardTitle>
+                <CardDescription className="text-white/60">
+                  Your payment history and current balances
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-3 gap-6">
+                  <div className="text-center p-4 bg-green-500/10 rounded-lg border border-green-400/20">
+                    <DollarSign className="w-8 h-8 text-green-400 mx-auto mb-2" />
+                    <p className="text-2xl font-bold text-green-400">
+                      ${registrations.reduce((total, reg) => total + (reg.amountPaidCents ?? 0) / 100, 0).toFixed(2)}
+                    </p>
+                    <p className="text-white/60 text-sm">Total Paid</p>
+                  </div>
+                  
+                  <div className="text-center p-4 bg-blue-500/10 rounded-lg border border-blue-400/20">
+                    <CreditCard className="w-8 h-8 text-blue-400 mx-auto mb-2" />
+                    <p className="text-2xl font-bold text-blue-400">
+                      ${payments.reduce((total, payment) => total + payment.amountCents / 100, 0).toFixed(2)}
+                    </p>
+                    <p className="text-white/60 text-sm">Total Spend</p>
+                  </div>
+                  
+                  <div className="text-center p-4 bg-orange-500/10 rounded-lg border border-orange-400/20">
+                    <Clock className="w-8 h-8 text-orange-400 mx-auto mb-2" />
+                    <p className="text-2xl font-bold text-orange-400">
+                      ${registrations.reduce((total, reg) => total + (reg.balanceDueCents ?? 0) / 100, 0).toFixed(2)}
+                    </p>
+                    <p className="text-white/60 text-sm">Outstanding Balance</p>
+                  </div>
+                </div>
+
+                {/* Payment History */}
+                {payments.length > 0 && (
+                  <div className="mt-6">
+                    <h4 className="text-white font-semibold mb-3">Recent Payments</h4>
+                    <div className="space-y-2">
+                      {payments.slice(0, 5).map((payment) => (
+                        <div key={payment.id} className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
+                          <div>
+                            <p className="text-white text-sm font-medium">Payment via Stripe</p>
+                            <p className="text-white/60 text-xs">{new Date(payment.receivedAt).toLocaleDateString()}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-green-400 font-bold">${(payment.amountCents / 100).toFixed(2)}</p>
+                            <p className="text-white/60 text-xs capitalize">{payment.status}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             <Card className="bg-black/20 backdrop-blur-lg border border-white/10">
               <CardHeader>
                 <CardTitle className="text-white flex items-center">
