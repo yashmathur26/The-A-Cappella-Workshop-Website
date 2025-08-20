@@ -74,55 +74,79 @@ export default function Home() {
       </section>
 
       {/* Highlights Section */}
-      <section className="py-6">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="grid md:grid-cols-3 gap-8">
-            <GlassCard className="p-8 reveal-in animate-slide-up" hover>
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-custom to-sky-custom flex items-center justify-center mb-6 animate-float">
-                <Users className="text-white" size={32} />
+      <section className="py-16 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-indigo-custom/10 via-sky-custom/5 to-teal-custom/10"></div>
+        <div className="max-w-6xl mx-auto px-6 relative z-10">
+          <h2 className="text-3xl lg:text-4xl font-bold text-center mb-16 gradient-text">What Makes Us Special</h2>
+          <div className="grid md:grid-cols-3 gap-12">
+            <GlassCard className="p-10 reveal-in animate-slide-up relative group overflow-hidden" hover>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-custom/20 to-sky-custom/20 rounded-full -translate-y-16 translate-x-16 group-hover:scale-150 transition-transform duration-700"></div>
+              <div className="relative z-10">
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-custom to-sky-custom flex items-center justify-center mb-8 animate-float shadow-lg shadow-indigo-custom/30">
+                  <Users className="text-white" size={36} />
+                </div>
+                <h3 className="text-2xl font-bold mb-6 text-teal-custom group-hover:text-sky-custom transition-colors duration-300">Student-led small-group singing</h3>
+                <p className="text-white/90 leading-relaxed">Build confidence through harmony, blend, and teamwork in supportive peer groups.</p>
               </div>
-              <h3 className="text-2xl font-bold mb-4 text-teal-custom">Student-led small-group singing</h3>
-              <p className="text-white/80">Build confidence through harmony, blend, and teamwork in supportive peer groups.</p>
             </GlassCard>
             
-            <GlassCard className="p-8 reveal-in animate-slide-up" hover>
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-sky-custom to-teal-custom flex items-center justify-center mb-6 animate-pulse-soft">
-                <GraduationCap className="text-white" size={32} />
+            <GlassCard className="p-10 reveal-in animate-slide-up relative group overflow-hidden" hover>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-sky-custom/20 to-teal-custom/20 rounded-full -translate-y-16 translate-x-16 group-hover:scale-150 transition-transform duration-700"></div>
+              <div className="relative z-10">
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-sky-custom to-teal-custom flex items-center justify-center mb-8 animate-pulse-soft shadow-lg shadow-sky-custom/30">
+                  <GraduationCap className="text-white" size={36} />
+                </div>
+                <h3 className="text-2xl font-bold mb-6 text-sky-custom group-hover:text-teal-custom transition-colors duration-300">Skills that last</h3>
+                <p className="text-white/90 leading-relaxed">Beatboxing, arranging, music theory, and rehearsal strategies you'll use forever.</p>
               </div>
-              <h3 className="text-2xl font-bold mb-4 text-sky-custom">Skills that last</h3>
-              <p className="text-white/80">Beatboxing, arranging, music theory, and rehearsal strategies you'll use forever.</p>
             </GlassCard>
             
-            <GlassCard className="p-8 reveal-in animate-slide-up" hover>
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-teal-custom to-indigo-custom flex items-center justify-center mb-6 animate-float">
-                <Star className="text-white" size={32} />
+            <GlassCard className="p-10 reveal-in animate-slide-up relative group overflow-hidden" hover>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-teal-custom/20 to-indigo-custom/20 rounded-full -translate-y-16 translate-x-16 group-hover:scale-150 transition-transform duration-700"></div>
+              <div className="relative z-10">
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-teal-custom to-indigo-custom flex items-center justify-center mb-8 animate-float shadow-lg shadow-teal-custom/30">
+                  <Star className="text-white" size={36} />
+                </div>
+                <h3 className="text-2xl font-bold mb-6 text-indigo-custom group-hover:text-teal-custom transition-colors duration-300">End-of-week performance</h3>
+                <p className="text-white/90 leading-relaxed">Families invited Friday at 4:00 PM to celebrate your musical journey.</p>
               </div>
-              <h3 className="text-2xl font-bold mb-4 text-indigo-custom">End-of-week performance</h3>
-              <p className="text-white/80">Families invited Friday at 4:00 PM to celebrate your musical journey.</p>
             </GlassCard>
           </div>
         </div>
       </section>
 
       {/* Info Stripe */}
-      <section className="py-6 bg-black/20">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 text-center">
-            <div className="reveal-in">
-              <h4 className="text-lg font-semibold text-sky-custom mb-2">Dates (2026)</h4>
-              <p className="text-white/80">June 22–26 • July 27–31<br />Aug 3–7 • Aug 10–14 • Aug 17–21</p>
+      <section className="py-12 bg-black/30 backdrop-blur-sm border-y border-white/10 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-indigo-custom/5 to-teal-custom/5"></div>
+        <div className="max-w-6xl mx-auto px-6 relative z-10">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-12 text-center">
+            <div className="reveal-in group">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-sky-custom/20 to-indigo-custom/20 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                <span className="text-sky-custom font-bold text-lg">📅</span>
+              </div>
+              <h4 className="text-xl font-bold text-sky-custom mb-3 group-hover:text-teal-custom transition-colors duration-300">Dates (2026)</h4>
+              <p className="text-white/90 leading-relaxed">June 22–26 • July 27–31<br />Aug 3–7 • Aug 10–14 • Aug 17–21</p>
             </div>
-            <div className="reveal-in">
-              <h4 className="text-lg font-semibold text-sky-custom mb-2">Daily Schedule</h4>
-              <p className="text-white/80">9:00 AM – 4:00 PM</p>
+            <div className="reveal-in group">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-custom/20 to-sky-custom/20 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                <span className="text-teal-custom font-bold text-lg">⏰</span>
+              </div>
+              <h4 className="text-xl font-bold text-sky-custom mb-3 group-hover:text-teal-custom transition-colors duration-300">Daily Schedule</h4>
+              <p className="text-white/90 text-lg font-medium">9:00 AM – 4:00 PM</p>
             </div>
-            <div className="reveal-in">
-              <h4 className="text-lg font-semibold text-sky-custom mb-2">Location</h4>
-              <p className="text-white/80">Temple Emunah<br />9 Piper Rd, Lexington, MA</p>
+            <div className="reveal-in group">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-custom/20 to-teal-custom/20 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                <span className="text-indigo-custom font-bold text-lg">📍</span>
+              </div>
+              <h4 className="text-xl font-bold text-sky-custom mb-3 group-hover:text-teal-custom transition-colors duration-300">Location</h4>
+              <p className="text-white/90 leading-relaxed">Temple Emunah<br />9 Piper Rd, Lexington, MA</p>
             </div>
-            <div className="reveal-in">
-              <h4 className="text-lg font-semibold text-sky-custom mb-2">Tuition</h4>
-              <p className="text-teal-custom text-2xl font-bold">$500 per week</p>
+            <div className="reveal-in group">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-custom/20 to-indigo-custom/20 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                <span className="text-teal-custom font-bold text-lg">💰</span>
+              </div>
+              <h4 className="text-xl font-bold text-sky-custom mb-3 group-hover:text-teal-custom transition-colors duration-300">Tuition</h4>
+              <p className="text-teal-custom text-3xl font-bold group-hover:text-sky-custom transition-colors duration-300">$500 per week</p>
             </div>
           </div>
         </div>
