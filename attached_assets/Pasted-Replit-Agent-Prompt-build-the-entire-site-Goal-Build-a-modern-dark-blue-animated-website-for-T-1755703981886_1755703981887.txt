@@ -1,0 +1,328 @@
+Replit Agent Prompt (build the entire site)
+
+Goal: Build a modern, dark-blue, animated website for The A Cappella Workshop with pages Home, About Us, FAQ, Register, a cart to pick weeks, and Stripe Checkout with a verified webhook. Use a clean gradient look (blues), glassy cards, and smooth transitions. Keep code lightweight and organized.
+
+Tech / Structure
+
+Node.js + Express server.
+
+Static site in /public (HTML, CSS, JS).
+
+Files to create:
+
+index.js (Express server + Stripe endpoints)
+
+/public/index.html (Home)
+
+/public/about.html (About Us)
+
+/public/faq.html (FAQ)
+
+/public/register.html (Register + Form + Cart)
+
+/public/status.html (shows “Payment worked ✅” or “Try again”)
+
+/public/styles.css (single stylesheet, dark/blue palette, animations)
+
+/public/app.js (client logic: nav highlights, cart, checkout fetch, scroll animations)
+
+/public/assets/logo-placeholder.svg (simple gradient square with a music note)
+
+/public/assets/hero-1.jpg, /public/assets/gallery-*.jpg (use simple placeholders/gradients)
+
+Dependencies
+
+express
+
+stripe
+
+Environment variables (Replit Secrets, never hardcode):
+
+STRIPE_SECRET_KEY = sk_test_...
+
+STRIPE_WEBHOOK_SECRET = whsec_...
+
+Branding & Style
+
+Color palette: deep navy background #0b1220, gradient accents from indigo→sky→teal (#1e40af → #0ea5e9 → #14b8a6).
+
+Glassmorphism cards (semi-transparent white, blur, soft shadow).
+
+Typography: system fonts system-ui, -apple-system, Segoe UI, Roboto, Ubuntu.
+
+Buttons: pill shape, gradient fill, subtle scale/shine on hover.
+
+Animations: CSS transitions on hover; small fade/slide on scroll (implemented in app.js).
+
+Layout: max content width ~1080px, generous spacing, responsive mobile layout.
+
+Server (index.js)
+
+Serve static files from /public.
+
+Routes:
+
+GET / → index.html
+
+GET /about → about.html
+
+GET /faq → faq.html
+
+GET /register → register.html
+
+GET /status → status.html
+
+Stripe
+
+POST /create-checkout-session
+
+Body: { weeks: [ "June 22–26, 2026", "August 10–14, 2026", ... ] }
+
+Create a Checkout Session with one line_item per selected week, each unit_amount: 50000 (USD cents), product_data.name: "The A Cappella Workshop — <week label>".
+
+success_url: https://<host>/status?ok=1&session_id={CHECKOUT_SESSION_ID}
+
+cancel_url: https://<host>/status?ok=0
+
+Return { url: session.url }.
+
+POST /webhook
+
+Use express.raw({ type: "application/json" }) only on this route.
+
+Verify signature with STRIPE_WEBHOOK_SECRET.
+
+Log event.type. If checkout.session.completed, log session.id and payment_status.
+
+Respond { received: true } or 400 on error.
+
+Use express.json() for normal JSON routes (but not /webhook).
+
+Listen on process.env.PORT || 3000. Log the URL on startup.
+
+Important: Derive <host> with req.protocol + '://' + req.get('host').
+
+Client logic (/public/app.js)
+
+Nav: set active link based on location.pathname.
+
+Scroll animations: simple IntersectionObserver to add reveal-in class.
+
+Register page cart:
+
+A constant WEEKS array:
+
+const WEEKS = [
+  { id: "wk1", label: "June 22–26, 2026", price: 500, spots: 20 },
+  { id: "wk2", label: "July 27–31, 2026", price: 500, spots: 20 },
+  { id: "wk3", label: "August 3–7, 2026", price: 500, spots: 20 },
+  { id: "wk4", label: "August 10–14, 2026", price: 500, spots: 20 },
+  { id: "wk5", label: "August 17–21, 2026", price: 500, spots: 20 }
+];
+
+
+Render week cards from this array. Each card has date, $500, blurb, spots, and Add to Cart / Remove button with smooth state change.
+
+Maintain cart in localStorage (array of week ids).
+
+Right sidebar shows selected weeks, subtotal, and a Proceed to Payment button (disabled if empty).
+
+On click Proceed, fetch('/create-checkout-session', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ weeks: selectedWeekLabels }) }) → redirect to returned url.
+
+Status page reads ok and (optionally) session_id:
+
+If ok=1, show success banner “Payment worked ✅”.
+
+If ok=0, show “Payment canceled or failed — try again” + link back to Register.
+
+Styles (/public/styles.css)
+
+Implement:
+
+:root with colors; global reset; gradient background; glass cards with backdrop-filter: blur(8px);
+
+Reusable components: .btn, .btn-primary (gradient), .btn-ghost, .card, .pill, .grid, .section, .reveal-in animation.
+
+Header: sticky top, translucent background, subtle border, shadow on scroll.
+
+Hover states: translateY/scale for cards/buttons, underline-on-hover for nav links.
+
+Responsive: collapse nav on small screens; week cards stack; cart slides under.
+
+Content (exact copy to place into pages)
+Shared Header (all pages)
+
+Left: logo-placeholder.svg + brand The A Cappella Workshop (gradient text).
+
+Center/Right nav: Home · About Us · FAQ · Register
+
+CTA button Register (gradient pill).
+
+Small cart icon on Register page (SVG outline).
+
+Home (/public/index.html)
+
+Hero
+
+Headline: “Sing. Collaborate. Perform.”
+
+Subhead: “A modern a cappella camp for rising 6th–9th graders — running since 2015 in Lexington, MA.”
+
+Buttons: Register (primary) and Learn more (links to About).
+
+Background: deep blue gradient with soft light flare; optional subtle animated gradient.
+
+Highlights (3 cards)
+
+Student-led small-group singing — Build confidence through harmony, blend, and teamwork.
+
+Skills that last — Beatboxing, arranging, music theory, and rehearsal strategies.
+
+End-of-week performance — Families invited Friday at 4:00 PM.
+
+Info Stripe
+
+Dates (2026): June 22–26 · July 27–31 · Aug 3–7 · Aug 10–14 · Aug 17–21
+
+Daily schedule: 9:00 AM – 4:00 PM
+
+Location: Temple Emunah, 9 Piper Rd, Lexington, MA 02421
+
+Tuition: $500 per week
+
+Gallery placeholders
+
+3–6 image tiles with subtle hover zoom (use placeholder images).
+
+CTA
+
+“Ready to sing?” → Register Now
+
+About Us (/public/about.html)
+
+Section: What is The A Cappella Workshop?
+Running since 2015, The A Cappella Workshop is a summer program for middle-school singers who want to explore contemporary a cappella in a friendly, high-energy environment. We focus on student-led, small-group singing: learning how to listen, blend, arrange, keep time, and perform with confidence. Our sessions are welcoming to both beginners and experienced singers, and every week ends with a performance for family and friends.
+
+Section: How the week works
+The first day centers on group bonding, vocal range checks, and song selection — setting the foundation for a fun, successful week. From there, students rehearse repertoire for the Friday showcase, rotate through skill “tracks” (beatboxing, arranging, and music theory), and prepare short mock solos to receive supportive feedback from teachers.
+
+Section: Meet the Co-Presidents (with photos placeholders)
+
+Arjun Kumar — Co-President/Teacher
+Arjun is a freshman at Tufts University and is thrilled to return to the ’Shop as a teacher. At Lexington High School, he was a leader and arranger for Peanut Butter & Jelly (mixed voice a cappella). He also performed with Repertoire Orchestra, Concert Choir, and Madrigal Singers, participated in Singing Valentines, and performed in a student-led production. A former student and TA at the Workshop, Arjun is hyped to be back this summer!
+
+Yash Mathur — Co-President
+Yash is a freshman at the University of Massachusetts. At LHS, he sang in Peanut Butter & Jelly as the main arranger, performed with Madrigal Singers and Concert Choir, and took part in Singing Valentines during his junior and senior years. Yash can’t wait to welcome a new group of students to the Workshop this summer.
+
+Shuntavi Schuman-Olivier — Co-President/Teacher
+Shuntavi is a rising freshman at Tufts University. At LHS, she led the co-ed a cappella group Noteworthy, sang in honors choirs (Chamber Singers and Concert Choir), and participated in Singing Valentines. She has attended A Cappella Academy for the past two years and loves teaching music. She’s super excited for this summer!
+
+(Place each bio in a glass card with photo placeholders and subtle entrance animation.)
+
+FAQ (/public/faq.html)
+
+Create an accordion with five sections (only one open at a time).
+
+General Camp Information
+Who is the camp for?
+This camp is for rising 6th, 7th, 8th, and 9th graders who love to sing. Prior choir or singing experience is recommended, but beginners are absolutely welcome.
+
+Schedule & Logistics
+
+Where: Temple Emunah, 9 Piper Rd, Lexington, MA 02421
+
+When: Monday–Friday, 9:00 AM – 4:00 PM
+
+Welcome: A staff member will greet students at the main entrance each morning.
+
+Showcase: On Friday at 4:00 PM, friends and family are invited to a final performance.
+
+Curriculum & Experience
+Students spend the week learning how to sing contemporary a cappella. Day one focuses on bonding, vocal range checks, and song selection. Throughout the week, students rehearse for the showcase, rotate through beatboxing, arranging, and music theory tracks, and prepare short mock solos for supportive feedback. We’re always amazed by the growth students show by Friday!
+
+Registration & Payment
+
+Tuition: $500 per week.
+
+Deposit & balance: A $150 non-refundable deposit is required to secure a spot; the remaining $350 is due one week before the session begins.
+
+Refunds: Once a session starts, tuition is non-refundable.
+
+Families may enroll in one or multiple weeks.
+
+Supervision & Safety
+Each week is led by 2 teachers with 3–4 teaching assistants, all experienced members of the Lexington High School a cappella and choral programs. Students are supervised throughout the day in a positive, inclusive environment. During registration, families can share allergies or health needs; our staff carefully accommodates these to help every student feel comfortable and included.
+
+(Add a small footer note: “Still have questions? Email us!” with a mailto: link you can update.)
+
+Register (/public/register.html)
+
+Step 1 — Student Information Form
+Embed the Google Form in a responsive iframe (replace URL easily later):
+https://docs.google.com/forms/d/1qWkQo_KVcq3wb1aH1RTZ3tjbULNDvudW_oFXD3BdPZY/viewform
+Show a short note above: “Submit the form, then pick your week(s) below.”
+
+Step 2 — Choose Your Week(s)
+Render five week cards (from WEEKS array) like the screenshot you shared:
+
+Title: “Week X” + date range
+
+Price: $500
+
+Short line: “Learn, rehearse, and perform — perfect for beginners and returning singers.”
+
+Spots remaining (use the spots value)
+
+Button: Add to Cart (turns into Remove once selected)
+
+Cart (right sidebar on desktop, stacked on mobile)
+
+“Your Cart” with selected weeks listed and subtotal.
+
+Buttons: Proceed to Payment (primary) and Clear (ghost).
+
+Disable Proceed if cart is empty.
+
+Proceed to Payment flow
+
+Click → POST to /create-checkout-session with { weeks: [labels] }.
+
+On success, redirect to the url returned by the server (Stripe Checkout).
+
+On cancel or after success, the user lands on /status which shows the correct message.
+
+Status (/public/status.html)
+
+If ?ok=1: show a large success badge: “Payment worked ✅”, with links to Home and Register.
+
+If ?ok=0: show an error banner: “Payment canceled or failed — please try again.” with a button back to Register.
+
+Implementation notes
+
+Keep HTML semantic and minimal; reuse the same header/footer across pages.
+
+Add small scroll reveals: .reveal-in{opacity:0; transform: translateY(12px);} → .reveal-in.visible{opacity:1; transform:none; transition: 500ms ease;}.
+
+Buttons: gradient background with background: linear-gradient(90deg, #1e40af, #0ea5e9 60%, #14b8a6); and subtle box-shadow.
+
+Week cards: gradient border, hover lift, focus-visible outlines.
+
+All pages mobile-first; collapse nav to a simple menu on small screens.
+
+Put clear comments at the top of index.js showing how to:
+
+set Replit Secrets,
+
+update the Google Form URL,
+
+configure Stripe CLI forwarding: stripe listen --forward-to <your-repl-url>/webhook.
+
+Security
+
+Never log or embed secret keys in code.
+
+Use test keys while developing.
+
+Deliver this entire project exactly as specified. Once created, run it, confirm the Register page cart works, creating a Checkout Session with multiple weeks, and that /webhook logs checkout.session.completed after a successful test payment.
+
+If you want, I can also generate the actual files (HTML/CSS/JS + index.js) next so you can paste directly without the agent.
