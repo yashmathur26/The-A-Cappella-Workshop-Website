@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'wouter';
 import { ShoppingCart, Menu, X } from 'lucide-react';
 import { CartManager } from '@/lib/cart';
-import { CartPopup } from '@/components/ui/cart-popup';
 // Using a custom SVG logo that matches the microphone design
 const LogoSVG = () => (
   <svg viewBox="0 0 100 100" className="w-10 h-10" fill="none">
@@ -28,7 +27,6 @@ interface NavigationProps {
 export function Navigation({ cartCount = 0 }: NavigationProps) {
   const [location] = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isCartOpen, setIsCartOpen] = useState(false);
   const [currentCartCount, setCurrentCartCount] = useState(cartCount);
 
   useEffect(() => {
@@ -93,17 +91,14 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
             >
               Register
             </Link>
-            <button 
-              onClick={() => setIsCartOpen(true)}
-              className="relative group"
-            >
-              <ShoppingCart className="text-white/80 hover:text-teal-custom transition-colors cursor-pointer" size={20} />
+            <Link href="/register" className="relative">
+              <ShoppingCart className="text-white/80 hover:text-white cursor-pointer" size={20} />
               {currentCartCount > 0 && (
                 <span className="cart-badge absolute -top-2 -right-2 text-xs text-white rounded-full w-5 h-5 flex items-center justify-center">
                   {currentCartCount}
                 </span>
               )}
-            </button>
+            </Link>
           </div>
           
           {/* Mobile Menu Button */}
@@ -142,9 +137,6 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
           </div>
         )}
       </div>
-      
-      {/* Cart Popup */}
-      <CartPopup isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </nav>
   );
 }
