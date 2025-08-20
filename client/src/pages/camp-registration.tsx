@@ -44,6 +44,11 @@ export default function Register() {
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('cartUpdated', handleStorageChange);
+      
+      // Cleanup payment monitoring
+      if (statusCheckIntervalRef.current) {
+        clearInterval(statusCheckIntervalRef.current);
+      }
     };
   }, []);
 
@@ -249,6 +254,55 @@ export default function Register() {
       <div className="max-w-7xl mx-auto px-6 py-20">
         <h1 className="text-4xl lg:text-5xl font-bold text-center mb-8 gradient-text">Register for Summer 2026</h1>
         
+        {/* Payment Status Messages */}
+        {paymentStatus === 'pending' && (
+          <GlassCard className="p-6 mb-8">
+            <div className="text-center">
+              <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-blue-500/20 flex items-center justify-center">
+                <AlertTriangle className="w-6 h-6 text-blue-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-white mb-2">Payment In Progress</h3>
+              <p className="text-blue-200">
+                Complete your payment in the new tab that opened. Don't close this page - we're monitoring your payment status.
+              </p>
+            </div>
+          </GlassCard>
+        )}
+
+        {paymentStatus === 'incomplete' && (
+          <GlassCard className="p-6 mb-8">
+            <div className="text-center">
+              <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-orange-500/20 flex items-center justify-center">
+                <X className="w-6 h-6 text-orange-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-white mb-2">Payment Not Completed</h3>
+              <p className="text-orange-200 mb-4">
+                It looks like you closed the payment window or the payment wasn't completed. Your items are still in your cart.
+              </p>
+              <button
+                onClick={() => setPaymentStatus('none')}
+                className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+              >
+                Try Again
+              </button>
+            </div>
+          </GlassCard>
+        )}
+
+        {paymentStatus === 'completed' && (
+          <GlassCard className="p-6 mb-8">
+            <div className="text-center">
+              <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-green-500/20 flex items-center justify-center">
+                <Tag className="w-6 h-6 text-green-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-white mb-2">Payment Successful!</h3>
+              <p className="text-green-200">
+                Thank you for your registration! You'll receive a confirmation email shortly.
+              </p>
+            </div>
+          </GlassCard>
+        )}
+
         {/* Payment Options Explanation */}
         <GlassCard className="p-6 mb-12">
           <h2 className="text-xl font-bold mb-4 text-sky-custom">Payment Options</h2>
