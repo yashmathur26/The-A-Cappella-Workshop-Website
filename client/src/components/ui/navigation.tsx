@@ -120,7 +120,7 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
                 Sign In
               </Link>
             )}
-            <Link href="/register" className="relative">
+            <Link href="/camp-registration" className="relative">
               <ShoppingCart className="text-white/80 hover:text-white cursor-pointer" size={20} />
               {currentCartCount > 0 && (
                 <span className="cart-badge absolute -top-2 -right-2 text-xs text-white rounded-full w-5 h-5 flex items-center justify-center">
