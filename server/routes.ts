@@ -560,72 +560,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/students", requireAuth, express.json(), async (req, res) => {
+  app.post("/api/students", requireAuth, async (req, res) => {
     try {
       const user = req.user as any;
-      const { firstName, lastName, notes } = req.body;
-
-      // Basic validation
-      if (!firstName || !lastName) {
-        return res.status(400).json({ message: "First name and last name are required" });
-      }
-
-      if (firstName.length > 40 || lastName.length > 40) {
+      const data = insertStudentSchema.parse(req.body);
+      
+      // Validate field lengths
+      if (data.firstName.length > 40 || data.lastName.length > 40) {
         return res.status(400).json({ message: "Names must be 40 characters or less" });
       }
-
-      if (notes && notes.length > 400) {
+      if (data.notes && data.notes.length > 400) {
         return res.status(400).json({ message: "Notes must be 400 characters or less" });
       }
 
-      const newStudent = await storage.createStudent({
-        userId: user.id,
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        notes: notes ? notes.trim() : undefined,
-      });
-
-      res.json(newStudent);
+      const student = await storage.createStudent({ ...data, userId: user.id });
+      res.json(student);
     } catch (error) {
       console.error("Error creating student:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
       res.status(500).json({ message: "Failed to create student" });
     }
   });
 
-  app.put("/api/students/:id", requireAuth, express.json(), async (req, res) => {
+  app.put("/api/students/:id", requireAuth, async (req, res) => {
     try {
       const user = req.user as any;
-      const { id } = req.params;
-      const { firstName, lastName, notes } = req.body;
+      const data = insertStudentSchema.partial().parse(req.body);
+      
+      // Validate field lengths
+      if (data.firstName && data.firstName.length > 40) {
+        return res.status(400).json({ message: "First name must be 40 characters or less" });
+      }
+      if (data.lastName && data.lastName.length > 40) {
+        return res.status(400).json({ message: "Last name must be 40 characters or less" });
+      }
+      if (data.notes && data.notes.length > 400) {
+        return res.status(400).json({ message: "Notes must be 400 characters or less" });
+      }
 
-      // Check if student belongs to user
-      const existingStudent = await storage.getStudent(id);
+      // Verify ownership
+      const existingStudent = await storage.getStudent(req.params.id);
       if (!existingStudent || existingStudent.userId !== user.id) {
         return res.status(404).json({ message: "Student not found" });
       }
 
-      // Basic validation
-      if (firstName && firstName.length > 40) {
-        return res.status(400).json({ message: "First name must be 40 characters or less" });
-      }
-
-      if (lastName && lastName.length > 40) {
-        return res.status(400).json({ message: "Last name must be 40 characters or less" });
-      }
-
-      if (notes && notes.length > 400) {
-        return res.status(400).json({ message: "Notes must be 400 characters or less" });
-      }
-
-      const updates: any = {};
-      if (firstName !== undefined) updates.firstName = firstName.trim();
-      if (lastName !== undefined) updates.lastName = lastName.trim();
-      if (notes !== undefined) updates.notes = notes ? notes.trim() : null;
-
-      const updatedStudent = await storage.updateStudent(id, updates);
-      res.json(updatedStudent);
+      const student = await storage.updateStudent(req.params.id, data);
+      res.json(student);
     } catch (error) {
       console.error("Error updating student:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
       res.status(500).json({ message: "Failed to update student" });
     }
   });
