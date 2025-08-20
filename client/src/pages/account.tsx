@@ -26,7 +26,8 @@ import {
   Clock,
   XCircle,
   DollarSign,
-  Settings
+  Settings,
+  Mail
 } from "lucide-react";
 import { AddStudentModal } from '@/components/AddStudentModal';
 import { EditStudentModal } from '@/components/EditStudentModal';
