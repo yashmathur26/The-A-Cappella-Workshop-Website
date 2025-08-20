@@ -458,28 +458,82 @@ export default function Account() {
               </Card>
             ) : (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {students.map((student) => (
-                  <Card key={student.id} className="bg-black/20 backdrop-blur-lg border border-white/10">
-                    <CardHeader>
-                      <CardTitle className="text-white">{student.firstName} {student.lastName}</CardTitle>
-                      {student.notes && (
-                        <CardDescription className="text-white/60">{student.notes}</CardDescription>
-                      )}
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex space-x-2">
-                        <Button size="sm" variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
-                          <Edit className="w-4 h-4 mr-1" />
-                          Edit
-                        </Button>
-                        <Button size="sm" variant="outline" className="bg-red-500/10 border-red-500/20 text-red-300 hover:bg-red-500/20">
-                          <Trash2 className="w-4 h-4 mr-1" />
-                          Delete
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                {students.map((student) => {
+                  // Find registrations for this student
+                  const studentRegistrations = registrations.filter(reg => reg.studentId === student.id);
+                  
+                  return (
+                    <Card key={student.id} className="bg-black/20 backdrop-blur-lg border border-white/10">
+                      <CardHeader>
+                        <CardTitle className="text-white">{student.firstName} {student.lastName}</CardTitle>
+                        {student.notes && (
+                          <CardDescription className="text-white/60">{student.notes}</CardDescription>
+                        )}
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {/* Registrations Section */}
+                        {studentRegistrations.length > 0 ? (
+                          <div className="space-y-3">
+                            <h4 className="text-sm font-semibold text-white/80">Camp Registrations</h4>
+                            {studentRegistrations.map((registration) => {
+                              const week = weeks.find(w => w.id === registration.weekId);
+                              const statusColor = registration.status === 'paid' ? 'text-green-400' : 
+                                                registration.status === 'deposit_paid' ? 'text-yellow-400' : 
+                                                'text-orange-400';
+                              const statusText = registration.status === 'paid' ? 'Fully Paid' :
+                                               registration.status === 'deposit_paid' ? 'Deposit Paid' :
+                                               'Pending Payment';
+                              
+                              return (
+                                <div key={registration.id} className="bg-white/5 rounded-lg p-3">
+                                  <div className="flex justify-between items-start mb-2">
+                                    <div>
+                                      <p className="text-white font-medium text-sm">{week?.label || 'Unknown Week'}</p>
+                                      <p className={`text-xs ${statusColor}`}>{statusText}</p>
+                                    </div>
+                                    <Badge variant="outline" className="text-xs">
+                                      {registration.paymentType === 'deposit' ? 'Deposit' : 'Full Payment'}
+                                    </Badge>
+                                  </div>
+                                  
+                                  <div className="text-xs text-white/60">
+                                    <div className="flex justify-between">
+                                      <span>Paid:</span>
+                                      <span className="text-green-400">${((registration.amountPaidCents || 0) / 100).toFixed(2)}</span>
+                                    </div>
+                                    {(registration.balanceDueCents || 0) > 0 && (
+                                      <div className="flex justify-between">
+                                        <span>Balance Due:</span>
+                                        <span className="text-orange-400">${((registration.balanceDueCents || 0) / 100).toFixed(2)}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div className="text-center py-4">
+                            <Calendar className="w-8 h-8 text-white/20 mx-auto mb-2" />
+                            <p className="text-white/40 text-sm">No camp registrations yet</p>
+                          </div>
+                        )}
+                        
+                        {/* Action Buttons */}
+                        <div className="flex space-x-2 pt-2 border-t border-white/10">
+                          <Button size="sm" variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
+                            <Edit className="w-4 h-4 mr-1" />
+                            Edit
+                          </Button>
+                          <Button size="sm" variant="outline" className="bg-red-500/10 border-red-500/20 text-red-300 hover:bg-red-500/20">
+                            <Trash2 className="w-4 h-4 mr-1" />
+                            Delete
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </TabsContent>
