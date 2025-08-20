@@ -33,13 +33,14 @@ export default function Register() {
   const [promoCode, setPromoCode] = useState(CartManager.getPromoCode());
   const [promoError, setPromoError] = useState("");
   const [parentName, setParentName] = useState("");
+  const [parentEmail, setParentEmail] = useState("");
   const [childName, setChildName] = useState("");
   const [paymentStatus, setPaymentStatus] = useState<'none' | 'pending' | 'completed' | 'incomplete'>('none');
   const paymentWindowRef = useRef<Window | null>(null);
   const statusCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [showAddStudentModal, setShowAddStudentModal] = useState(false);
   const { toast } = useToast();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [, setLocation] = useLocation();
 
   // Fetch students for authenticated users
@@ -129,6 +130,15 @@ export default function Register() {
   const proceedToPayment = async () => {
     if (cart.length === 0) return;
     
+    // Only require contact info for guest users
+    if (!isAuthenticated && (!parentName.trim() || !parentEmail.trim() || !childName.trim())) {
+      toast({
+        title: "Contact information required",
+        description: "Please enter parent name, email, and child name before checkout.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     // For authenticated users, verify students are assigned to all cart items
     if (isAuthenticated) {
@@ -155,8 +165,9 @@ export default function Register() {
       const response = await apiRequest('POST', '/api/create-checkout-session', {
         cartItems: cart,
         promoCode: CartManager.getPromoCode(),
-        parentName: isAuthenticated ? `${user?.firstName} ${user?.lastName}` : 'Guest User',
-        childName: 'Student Registration',
+        parentName: isAuthenticated ? `${user?.firstName} ${user?.lastName}` : parentName.trim(),
+        parentEmail: isAuthenticated ? user?.email : parentEmail.trim(),
+        childName: isAuthenticated ? 'Student Registration' : childName.trim(),
       });
       
       const data = await response.json();
@@ -594,6 +605,39 @@ export default function Register() {
                 </div>
               )}
               
+              {/* Contact Information - Only for guest checkout */}
+              {cartItems.length > 0 && showForm && !isAuthenticated && (
+                <div className="mb-6 space-y-4">
+                  <div>
+                    <Label className="text-white text-sm mb-2 block">Parent/Guardian Name</Label>
+                    <Input
+                      value={parentName}
+                      onChange={(e) => setParentName(e.target.value)}
+                      placeholder="Enter parent name"
+                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-white text-sm mb-2 block">Parent Email</Label>
+                    <Input
+                      type="email"
+                      value={parentEmail}
+                      onChange={(e) => setParentEmail(e.target.value)}
+                      placeholder="Enter parent email"
+                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-white text-sm mb-2 block">Child's Name</Label>
+                    <Input
+                      value={childName}
+                      onChange={(e) => setChildName(e.target.value)}
+                      placeholder="Enter child's name"
+                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Student assignment reminder for authenticated users */}
               {cartItems.length > 0 && showForm && isAuthenticated && (
