@@ -173,10 +173,12 @@ export default function Account() {
   });
 
   // Fetch roster data for admin users
-  const { data: rosterWeeks = [] } = useQuery<string[]>({
+  const { data: rosterWeeksData } = useQuery<{weeks: string[]}>({
     queryKey: ["/api/roster/weeks"],
     enabled: isAuthenticated && user?.role === 'admin',
   });
+
+  const rosterWeeks = rosterWeeksData?.weeks || [];
 
   // Fetch roster records for each week (admin only)
   const rosterQueries = rosterWeeks.map(weekId => 
