@@ -177,18 +177,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       <body>
         <div class="login-container">
           <h1>Admin Login</h1>
-          <form method="POST" action="/admin/login">
+          <form id="loginForm" method="POST" action="/admin/login">
             <div class="form-group">
               <label for="email">Email</label>
-              <input type="email" id="email" name="email" required>
+              <input type="text" id="email" name="email" required autocomplete="username" value="theacappellaworkshop@gmail.com">
             </div>
             <div class="form-group">
               <label for="password">Password</label>
-              <input type="password" id="password" name="password" required>
+              <input type="password" id="password" name="password" required autocomplete="current-password" value="shop">
             </div>
-            <button type="submit">Login</button>
+            <button type="submit" id="loginBtn">Login</button>
           </form>
+          <div id="message" style="margin-top: 1rem; text-align: center; display: none;"></div>
         </div>
+        
+        <script>
+          document.getElementById('loginForm').addEventListener('submit', function(e) {
+            console.log('Form submitted');
+            document.getElementById('loginBtn').textContent = 'Logging in...';
+            document.getElementById('loginBtn').disabled = true;
+          });
+        </script>
       </body>
       </html>
     `);
