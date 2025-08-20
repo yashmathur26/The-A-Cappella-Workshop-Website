@@ -511,7 +511,7 @@ export default function Register() {
                   cartItems.map(item => (
                     <div key={item.weekId} className="flex justify-between items-center text-sm">
                       <div>
-                        <span className="text-white/90">{item.label}</span>
+                        <span className="text-white/90 text-base font-medium">{item.label}</span>
                         <span className="ml-2 text-xs px-2 py-1 rounded bg-white/10 text-white/70">
                           {item.paymentType === 'deposit' ? 'Deposit' : 'Full Payment'}
                         </span>
@@ -530,7 +530,7 @@ export default function Register() {
               {/* Promo Code Section */}
               {cartItems.length > 0 && (
                 <div className="mb-6">
-                  <Label className="text-white text-sm mb-2 block">Promo Code</Label>
+                  <Label className="text-white text-xs mb-2 block">Promo Code</Label>
                   <div className="flex space-x-2">
                     <Input
                       value={promoCode}

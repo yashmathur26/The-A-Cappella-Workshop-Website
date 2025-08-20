@@ -116,7 +116,7 @@ export default function Home() {
                   </div>
                 </div>
                 <Link href="/account">
-                  <GradientButton variant="outline">View Account</GradientButton>
+                  <GradientButton variant="ghost">View Account</GradientButton>
                 </Link>
               </div>
 
