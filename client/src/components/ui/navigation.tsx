@@ -104,20 +104,26 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
                 </Button>
               </div>
             ) : (
-              <>
+              <div className="flex items-center space-x-3">
                 <Link
                   href="/login"
-                  className="text-white/80 hover:text-white px-4 py-2 rounded"
+                  className="btn-gradient-secondary px-5 py-2 rounded-full text-white font-medium hover:text-white text-sm"
                 >
                   Sign In
                 </Link>
                 <Link
                   href="/register"
+                  className="btn-gradient px-5 py-2 rounded-full text-white font-medium hover:text-white text-sm"
+                >
+                  Sign Up
+                </Link>
+                <Link
+                  href="/camp-registration"
                   className="btn-gradient px-6 py-2 rounded-full text-white font-medium hover:text-white"
                 >
-                  Register
+                  Register for Camp
                 </Link>
-              </>
+              </div>
             )}
             <Link href="/register" className="relative">
               <ShoppingCart className="text-white/80 hover:text-white cursor-pointer" size={20} />
@@ -174,7 +180,7 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
                 <div className="space-y-3">
                   <Link
                     href="/login"
-                    className="block text-white/80 hover:text-white px-4 py-2 rounded text-center"
+                    className="btn-gradient-secondary px-6 py-2 rounded-full text-white font-medium inline-block text-center"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Sign In
@@ -184,7 +190,14 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
                     className="btn-gradient px-6 py-2 rounded-full text-white font-medium inline-block text-center"
                     onClick={() => setIsMenuOpen(false)}
                   >
-                    Register
+                    Sign Up
+                  </Link>
+                  <Link
+                    href="/camp-registration"
+                    className="btn-gradient px-6 py-2 rounded-full text-white font-medium inline-block text-center"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Register for Camp
                   </Link>
                 </div>
               )}

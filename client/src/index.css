@@ -109,6 +109,17 @@
     box-shadow: 0 10px 25px rgba(30, 64, 175, 0.4);
   }
 
+  /* Secondary gradient button (purple theme) */
+  .btn-gradient-secondary {
+    background: linear-gradient(90deg, #7c3aed, #a855f7 60%, #c084fc);
+    transition: all 0.3s ease;
+  }
+  
+  .btn-gradient-secondary:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 10px 25px rgba(124, 58, 237, 0.4);
+  }
+
   /* Card hover effects */
   .card-hover {
     transition: all 0.3s ease;

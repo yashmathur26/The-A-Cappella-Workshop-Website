@@ -229,6 +229,33 @@ export class DatabaseStorage implements IStorage {
       .where(eq(registrations.id, id));
   }
 
+  async updateRegistrationPaymentInfo(
+    id: string,
+    sessionId: string,
+    paymentType: string,
+    amountPaidCents?: number,
+    balanceDueCents?: number
+  ): Promise<void> {
+    const updateData: any = {
+      stripeCheckoutSessionId: sessionId,
+      paymentType,
+      updatedAt: new Date(),
+    };
+    
+    if (amountPaidCents !== undefined) {
+      updateData.amountPaidCents = amountPaidCents;
+    }
+    
+    if (balanceDueCents !== undefined) {
+      updateData.balanceDueCents = balanceDueCents;
+    }
+    
+    await db
+      .update(registrations)
+      .set(updateData)
+      .where(eq(registrations.id, id));
+  }
+
   // Payment operations
   async getPayments(userId: string): Promise<Payment[]> {
     return db.select().from(payments).where(eq(payments.userId, userId));

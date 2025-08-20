@@ -5,12 +5,19 @@ import { CartManager } from '@/lib/cart';
 import { WEEKS } from '@/lib/constants';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { PaymentOptions } from '@/components/PaymentOptions';
+import { useLocation } from 'wouter';
 
 export default function Register() {
   const [cart, setCart] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
+  const [registrationIds, setRegistrationIds] = useState<string[]>([]);
   const { toast } = useToast();
+  const { isAuthenticated } = useAuth();
+  const [, setLocation] = useLocation();
 
   useEffect(() => {
     setCart(CartManager.getCart());
@@ -46,6 +53,16 @@ export default function Register() {
 
   const proceedToPayment = async () => {
     if (cart.length === 0) return;
+    
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to complete your registration.",
+        variant: "destructive",
+      });
+      setLocation("/login");
+      return;
+    }
     
     setIsLoading(true);
     try {

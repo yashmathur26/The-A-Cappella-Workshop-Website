@@ -263,10 +263,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/checkout", requireAuth, auditLog("create_checkout"), async (req, res) => {
     try {
       const user = req.user as any;
-      const { registrationIds } = req.body;
+      const { registrationIds, paymentType = "full" } = req.body;
       
       if (!registrationIds || !Array.isArray(registrationIds) || registrationIds.length === 0) {
         return res.status(400).json({ message: "Registration IDs are required" });
+      }
+
+      if (!["full", "deposit"].includes(paymentType)) {
+        return res.status(400).json({ message: "Invalid payment type" });
       }
 
       // Verify all registrations belong to user and are pending
@@ -290,18 +294,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updateStripeCustomerId(user.id, stripeCustomerId);
       }
 
-      // Create line items
+      // Create line items with deposit or full pricing
       const lineItems = await Promise.all(
         registrations.map(async (reg) => {
           const student = await storage.getStudent(reg.studentId);
           const week = await storage.getWeek(reg.weekId);
+          const fullPrice = week?.priceCents || 50000;
+          const depositPrice = Math.round(fullPrice * 0.3); // 30% deposit ($150 for $500)
+          const amount = paymentType === "full" ? fullPrice : depositPrice;
+          
           return {
             price_data: {
               currency: 'usd',
               product_data: {
-                name: `The A Cappella Workshop — ${week?.label} — ${student?.firstName} ${student?.lastName}`,
+                name: `The A Cappella Workshop — ${week?.label} — ${student?.firstName} ${student?.lastName}${paymentType === "deposit" ? " (Deposit)" : ""}`,
+                description: paymentType === "deposit" 
+                  ? `Non-refundable deposit. Remaining balance: $${((fullPrice - depositPrice) / 100).toFixed(2)}`
+                  : undefined,
               },
-              unit_amount: week?.priceCents || 50000,
+              unit_amount: amount,
             },
             quantity: 1,
             metadata: {
@@ -309,6 +320,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               userId: user.id,
               studentId: reg.studentId,
               weekId: reg.weekId,
+              paymentType,
+              fullPrice: fullPrice.toString(),
+              depositPrice: depositPrice.toString(),
             },
           };
         })
@@ -318,17 +332,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const session = await stripe.checkout.sessions.create({
         customer: stripeCustomerId,
-        payment_method_types: ['card'],
+        payment_method_types: [
+          'card',
+          'us_bank_account',
+          'paypal',
+        ],
+        automatic_payment_methods: {
+          enabled: true,
+          allow_redirects: 'never'
+        },
         line_items: lineItems,
         mode: 'payment',
-        success_url: `${host}/account?success=1&session_id={CHECKOUT_SESSION_ID}`,
+        success_url: `${host}/account?success=1&session_id={CHECKOUT_SESSION_ID}&payment_type=${paymentType}`,
         cancel_url: `${host}/account?cancelled=1`,
-        metadata: { userId: user.id },
+        metadata: { 
+          userId: user.id,
+          paymentType,
+        },
       });
 
-      // Update registrations with session ID
+      // Update registrations with session ID and payment info
       for (const registration of registrations) {
-        await storage.updateRegistrationStripeData(registration.id, session.id);
+        await storage.updateRegistrationPaymentInfo(registration.id, session.id, paymentType);
       }
 
       res.json({ url: session.url });
@@ -469,6 +494,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         if (session.payment_status === 'paid') {
           try {
+            const paymentType = session.metadata?.paymentType || 'full';
+            
             // Get line items to update individual registrations
             const lineItems = await stripe.checkout.sessions.listLineItems(session.id, {
               expand: ['data.price.product']
@@ -478,7 +505,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
             for (const item of lineItems.data) {
               const metadata = item.price?.metadata;
               if (metadata?.registrationId) {
-                await storage.updateRegistrationStatus(metadata.registrationId, 'paid');
+                const registrationId = metadata.registrationId;
+                const fullPrice = parseInt(metadata.fullPrice || '50000');
+                const depositPrice = parseInt(metadata.depositPrice || '15000');
+                
+                if (paymentType === 'full') {
+                  // Full payment - mark as paid
+                  await storage.updateRegistrationStatus(registrationId, 'paid');
+                  await storage.updateRegistrationPaymentInfo(
+                    registrationId,
+                    session.id,
+                    'full',
+                    fullPrice,
+                    0
+                  );
+                } else {
+                  // Deposit payment - mark as deposit_paid with balance due
+                  await storage.updateRegistrationStatus(registrationId, 'deposit_paid');
+                  await storage.updateRegistrationPaymentInfo(
+                    registrationId,
+                    session.id,
+                    'deposit',
+                    depositPrice,
+                    fullPrice - depositPrice
+                  );
+                }
               }
             }
 

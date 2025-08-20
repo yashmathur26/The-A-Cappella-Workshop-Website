@@ -19,8 +19,10 @@ import {
   Trash2,
   CheckCircle,
   Clock,
-  XCircle
+  XCircle,
+  DollarSign
 } from "lucide-react";
+import { PaymentOptions } from "@/components/PaymentOptions";
 
 interface Student {
   id: string;
@@ -42,6 +44,9 @@ interface Registration {
   studentId: string;
   weekId: string;
   status: string;
+  paymentType?: string;
+  amountPaidCents?: number;
+  balanceDueCents?: number;
   createdAt: string;
 }
 
@@ -59,6 +64,8 @@ export default function Account() {
   const logoutMutation = useLogout();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [showPayment, setShowPayment] = useState(false);
+  const [selectedRegistrations, setSelectedRegistrations] = useState<string[]>([]);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -217,9 +224,24 @@ export default function Account() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold text-white">
-                    {registrations.filter(r => r.status === "paid").length}
+                    {registrations.filter(r => r.status === "paid" || r.status === "deposit_paid").length}
                   </div>
                   <p className="text-white/60">confirmed spots</p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-black/20 backdrop-blur-lg border border-white/10">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-white flex items-center">
+                    <DollarSign className="w-5 h-5 mr-2 text-orange-400" />
+                    Unpaid Balance
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-white">
+                    ${((registrations.reduce((sum, r) => sum + (r.balanceDueCents || 0), 0)) / 100).toFixed(0)}
+                  </div>
+                  <p className="text-white/60">remaining balance</p>
                 </CardContent>
               </Card>
 
@@ -366,11 +388,41 @@ export default function Account() {
                           {getStatusBadge(registration.status)}
                           {registration.status === "pending" && (
                             <div className="space-x-2">
-                              <Button size="sm" className="btn-gradient">
+                              <Button 
+                                size="sm" 
+                                className="btn-gradient"
+                                onClick={() => {
+                                  setSelectedRegistrations([registration.id]);
+                                  setShowPayment(true);
+                                }}
+                              >
                                 Pay Now
                               </Button>
                               <Button size="sm" variant="outline" className="bg-red-500/10 border-red-500/20 text-red-300 hover:bg-red-500/20">
                                 Cancel
+                              </Button>
+                            </div>
+                          )}
+                          {registration.status === "deposit_paid" && registration.balanceDueCents > 0 && (
+                            <div className="space-y-2">
+                              <div className="text-right">
+                                <p className="text-orange-300 text-sm font-medium">
+                                  Balance Due: ${(registration.balanceDueCents / 100).toFixed(2)}
+                                </p>
+                                <p className="text-white/60 text-xs">
+                                  Paid: ${(registration.amountPaidCents / 100).toFixed(2)} deposit
+                                </p>
+                              </div>
+                              <Button 
+                                size="sm" 
+                                className="btn-gradient"
+                                onClick={() => {
+                                  setSelectedRegistrations([registration.id]);
+                                  setShowPayment(true);
+                                }}
+                              >
+                                <DollarSign className="w-4 h-4 mr-1" />
+                                Pay Balance
                               </Button>
                             </div>
                           )}
@@ -425,6 +477,25 @@ export default function Account() {
             )}
           </TabsContent>
         </Tabs>
+
+        {/* Payment Options Modal */}
+        {showPayment && selectedRegistrations.length > 0 && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="w-full max-w-2xl">
+              <PaymentOptions
+                registrationIds={selectedRegistrations}
+                totalAmount={selectedRegistrations.reduce((total, regId) => {
+                  const reg = registrations.find(r => r.id === regId);
+                  return total + (reg?.balanceDueCents || weeks.find(w => w.id === reg?.weekId)?.priceCents || 50000);
+                }, 0) / 100}
+                onCancel={() => {
+                  setShowPayment(false);
+                  setSelectedRegistrations([]);
+                }}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

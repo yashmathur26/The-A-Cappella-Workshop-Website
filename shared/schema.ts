@@ -54,7 +54,10 @@ export const registrations = pgTable("registrations", {
   userId: text("user_id").notNull().references(() => users.id),
   studentId: text("student_id").notNull().references(() => students.id),
   weekId: text("week_id").notNull().references(() => weeks.id),
-  status: text("status").notNull().default("pending"), // pending|paid|canceled|refunded
+  status: text("status").notNull().default("pending"), // pending|deposit_paid|paid|canceled|refunded
+  paymentType: text("payment_type"), // full|deposit
+  amountPaidCents: integer("amount_paid_cents").notNull().default(0),
+  balanceDueCents: integer("balance_due_cents").notNull().default(0),
   stripeCheckoutSessionId: text("stripe_checkout_session_id"),
   stripePaymentIntentId: text("stripe_payment_intent_id"),
   createdAt: timestamp("created_at").defaultNow(),
