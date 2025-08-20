@@ -733,51 +733,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Enhanced checkout creation that accepts cart format with metadata
   app.post("/api/create-checkout-session", express.json(), async (req, res) => {
     try {
-      const { cart, parent_email, parent_name } = req.body;
+      const { cartItems, promoCode, parentName, parentEmail, childName } = req.body;
       
-      if (!cart || !Array.isArray(cart) || cart.length === 0) {
-        return res.status(400).json({ message: "Cart must be an array with at least 1 item" });
+      if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
+        return res.status(400).json({ message: "No items in cart" });
       }
 
-      // Validate cart items
-      for (const item of cart) {
-        if (!item.week_id || !item.week_label) {
-          return res.status(400).json({ message: "Each cart item must include week_id and week_label" });
-        }
+      if (!parentName || !childName) {
+        return res.status(400).json({ message: "Parent name and child name are required" });
       }
 
       const host = req.protocol + '://' + req.get('host');
       
-      // Create line items
-      const lineItems = cart.map((item: any) => ({
-        price_data: {
-          currency: 'usd',
-          product_data: {
-            name: `Week ${item.week_label} — ${item.student_name || 'Student'}`,
-            metadata: {
-              weekId: item.week_id,
-              paymentType: 'full',
+      // Handle promo codes properly
+      const upperPromoCode = promoCode?.toUpperCase();
+      let lineItems;
+      
+      if (upperPromoCode === 'ADMIN') {
+        // Special ADMIN promo code: $1 total
+        lineItems = [{
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: 'A Cappella Workshop Registration (Admin Discount)',
+              description: `${cartItems.length} camp week${cartItems.length > 1 ? 's' : ''} - Admin pricing`,
             },
+            unit_amount: 100, // $1.00 in cents
           },
-          unit_amount: 50000, // $500 in cents
-        },
-        quantity: 1,
-      }));
+          quantity: 1,
+        }];
+      } else {
+        // Calculate discount for SHOP promo code
+        const promoDiscounts: { [key: string]: number } = { 'SHOP': 0.20 };
+        const discount = upperPromoCode && promoDiscounts[upperPromoCode] || 0;
+        
+        // Create line items for each cart item
+        lineItems = cartItems.map((item: any) => {
+          const originalPrice = item.price * 100; // Convert to cents
+          const discountedPrice = Math.round(originalPrice * (1 - discount));
+          
+          return {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: `${item.label} (${item.paymentType === 'deposit' ? 'Deposit' : 'Full Payment'})`,
+                metadata: {
+                  weekId: item.weekId,
+                  paymentType: item.paymentType,
+                },
+              },
+              unit_amount: discountedPrice,
+            },
+            quantity: 1,
+          };
+        });
+      }
 
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
         line_items: lineItems,
         mode: 'payment',
-        success_url: `${host}/status?ok=1&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${host}/status?ok=0`,
+        success_url: `${host}/camp-registration?success=1&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${host}/camp-registration?cancelled=1`,
         metadata: {
-          parent_email: parent_email || '',
-          parent_name: parent_name || '',
-          items_json: JSON.stringify(cart.map(item => ({
-            week_id: item.week_id,
-            week_label: item.week_label,
-            student_name: item.student_name || ''
-          })))
+          parentName,
+          childName,
+          parentEmail: parentEmail || '',
+          promoCode: promoCode || '',
+          isAdminDiscount: upperPromoCode === 'ADMIN' ? 'true' : 'false',
         },
       });
 
