@@ -797,10 +797,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cancel_url: `${host}/camp-registration?cancelled=1`,
         metadata: {
           parentName,
-          childName,
+          childName, 
           parentEmail: parentEmail || '',
           promoCode: promoCode || '',
           isAdminDiscount: upperPromoCode === 'ADMIN' ? 'true' : 'false',
+          items_json: JSON.stringify(cartItems.map(item => ({
+            week_id: item.weekId,
+            week_label: item.label,
+            student_name: item.studentName || ''
+          })))
         },
       });
 
@@ -844,9 +849,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const itemsJson = session.metadata?.items_json;
             const items = itemsJson ? JSON.parse(itemsJson) : [];
             
-            // Get parent info
-            const parentEmail = session.customer_details?.email || session.metadata?.parent_email || '';
-            const parentName = session.metadata?.parent_name || '';
+            // Get parent info 
+            const parentEmail = session.customer_details?.email || session.metadata?.parentEmail || '';
+            const parentName = session.metadata?.parentName || '';
             
             // Write roster records
             let recordCount = 0;
