@@ -153,16 +153,6 @@ export default function Register() {
                   </GlassCard>
                 ))}
               </div>
-              {cart.length > 0 && !showForm && (
-                <div className="text-center mt-8">
-                  <GradientButton
-                    size="lg"
-                    onClick={() => setShowForm(true)}
-                  >
-                    Proceed to Registration Form
-                  </GradientButton>
-                </div>
-              )}
             </section>
 
             {/* Step 2: Registration Form - Only show after weeks are selected */}
@@ -211,31 +201,43 @@ export default function Register() {
                   <span className="text-white">${cartTotal}</span>
                 </div>
                 <div className="space-y-3">
-                  {isAuthenticated ? (
+                  {!showForm ? (
                     <GradientButton
                       className="w-full"
-                      onClick={proceedToPayment}
-                      disabled={cart.length === 0 || isLoading || !showForm}
+                      onClick={() => setShowForm(true)}
+                      disabled={cart.length === 0}
                     >
-                      {isLoading ? 'Processing...' : 'Choose Payment Option'}
+                      Proceed to Registration Form
                     </GradientButton>
                   ) : (
                     <>
-                      <GradientButton
-                        className="w-full"
-                        onClick={proceedToPayment}
-                        disabled={cart.length === 0 || isLoading || !showForm}
-                      >
-                        {isLoading ? 'Processing...' : 'Pay as Guest'}
-                      </GradientButton>
-                      <GradientButton
-                        variant="outline"
-                        className="w-full bg-transparent border-white/20 text-white hover:bg-white/10"
-                        onClick={handleSignInFirst}
-                        disabled={cart.length === 0 || !showForm}
-                      >
-                        Sign In for Account Benefits
-                      </GradientButton>
+                      {isAuthenticated ? (
+                        <GradientButton
+                          className="w-full"
+                          onClick={proceedToPayment}
+                          disabled={cart.length === 0 || isLoading}
+                        >
+                          {isLoading ? 'Processing...' : 'Choose Payment Option'}
+                        </GradientButton>
+                      ) : (
+                        <>
+                          <GradientButton
+                            className="w-full"
+                            onClick={proceedToPayment}
+                            disabled={cart.length === 0 || isLoading}
+                          >
+                            {isLoading ? 'Processing...' : 'Pay as Guest'}
+                          </GradientButton>
+                          <GradientButton
+                            variant="ghost"
+                            className="w-full bg-transparent border border-white/20 text-white hover:bg-white/10"
+                            onClick={handleSignInFirst}
+                            disabled={cart.length === 0}
+                          >
+                            Sign In for Account Benefits
+                          </GradientButton>
+                        </>
+                      )}
                     </>
                   )}
                   <GradientButton
