@@ -1,7 +1,25 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'wouter';
-import { Music, ShoppingCart, Menu, X } from 'lucide-react';
+import { ShoppingCart, Menu, X } from 'lucide-react';
 import { CartManager } from '@/lib/cart';
+import { CartPopup } from '@/components/ui/cart-popup';
+// Using a custom SVG logo that matches the microphone design
+const LogoSVG = () => (
+  <svg viewBox="0 0 100 100" className="w-10 h-10" fill="none">
+    <circle cx="50" cy="50" r="45" fill="rgba(56, 189, 248, 0.3)" stroke="rgba(56, 189, 248, 0.6)" strokeWidth="2"/>
+    <path d="M35 55L45 35L65 35L75 55L75 75C75 80 70 85 65 85L45 85C40 85 35 80 35 75Z" fill="#374151"/>
+    <circle cx="55" cy="30" r="8" fill="#374151"/>
+    <path d="M55 40L55 70" stroke="#374151" strokeWidth="3" strokeLinecap="round"/>
+    <path d="M45 45L50 40" stroke="#374151" strokeWidth="2"/>
+    <path d="M65 45L60 40" stroke="#374151" strokeWidth="2"/>
+    <path d="M40 65L45 60" stroke="#374151" strokeWidth="2"/>
+    <path d="M70 65L65 60" stroke="#374151" strokeWidth="2"/>
+    <circle cx="35" cy="45" r="1.5" fill="#374151"/>
+    <circle cx="75" cy="45" r="1.5" fill="#374151"/>
+    <path d="M30 35C28 37 30 40 32 38" stroke="#374151" strokeWidth="1.5" fill="none"/>
+    <path d="M80 35C82 37 80 40 78 38" stroke="#374151" strokeWidth="1.5" fill="none"/>
+  </svg>
+);
 
 interface NavigationProps {
   cartCount?: number;
@@ -10,6 +28,7 @@ interface NavigationProps {
 export function Navigation({ cartCount = 0 }: NavigationProps) {
   const [location] = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(false);
   const [currentCartCount, setCurrentCartCount] = useState(cartCount);
 
   useEffect(() => {
@@ -46,8 +65,8 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
         <div className="flex items-center justify-between">
           {/* Logo and Brand */}
           <Link href="/" className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-custom to-teal-custom flex items-center justify-center">
-              <Music className="text-white text-lg" size={20} />
+            <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-sky-custom/20 to-teal-custom/20 border-2 border-sky-custom/30 flex items-center justify-center">
+              <LogoSVG />
             </div>
             <h1 className="text-2xl font-bold text-white brand-text">The A Cappella Workshop</h1>
           </Link>
@@ -73,14 +92,17 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
             >
               Register
             </Link>
-            <Link href="/register" className="relative">
-              <ShoppingCart className="text-white/80 hover:text-white cursor-pointer" size={20} />
+            <button 
+              onClick={() => setIsCartOpen(true)}
+              className="relative group"
+            >
+              <ShoppingCart className="text-white/80 hover:text-teal-custom transition-colors cursor-pointer" size={20} />
               {currentCartCount > 0 && (
                 <span className="cart-badge absolute -top-2 -right-2 text-xs text-white rounded-full w-5 h-5 flex items-center justify-center">
                   {currentCartCount}
                 </span>
               )}
-            </Link>
+            </button>
           </div>
           
           {/* Mobile Menu Button */}
@@ -119,6 +141,9 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
           </div>
         )}
       </div>
+      
+      {/* Cart Popup */}
+      <CartPopup isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </nav>
   );
 }
