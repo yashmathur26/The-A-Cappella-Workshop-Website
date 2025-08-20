@@ -1,0 +1,476 @@
+Replit Agent Prompt — Auth, Parent Accounts, Google Sign-In, Purchases, Admin Editor Mode
+
+Goal: Extend the current Node/Express site to support:
+
+Auth: Email/password + Sign in with Google (OAuth 2.0). Sessions via secure cookies.
+
+Parent accounts: Each parent can add Student profiles, register for weeks, see purchases & receipts.
+
+Stripe linkage: Tie Checkout Sessions/webhooks to the logged-in parent (Stripe Customer), store completed purchases and items (weeks).
+
+Admin: Special sign-in with role admin. Admin can toggle Editor Mode on any page to edit text safely with field limits and preview.
+
+Security: Proper password hashing, CSRF, rate limiting, validation, RBAC, audit logging.
+
+Tech
+
+Node.js + Express
+
+SQLite via better-sqlite3 (simple, file-based) — OK on Replit. (Can swap to Postgres later.)
+
+Sessions: express-session + connect-sqlite3
+
+Password hashing: argon2
+
+OAuth: passport, passport-google-oauth20
+
+Validation: zod
+
+Rate limit: express-rate-limit
+
+CSRF: csurf
+
+UUIDs: uuid
+
+Email (optional): placeholder nodemailer transport (future receipts/reset emails)
+
+Env (Replit Secrets) — DO NOT hardcode
+SESSION_SECRET = a_really_long_random_string
+GOOGLE_CLIENT_ID = ...
+GOOGLE_CLIENT_SECRET = ...
+GOOGLE_CALLBACK_URL = https://<your-repl>/auth/google/callback
+
+ADMIN_BOOTSTRAP_EMAIL = you@example.com
+ADMIN_BOOTSTRAP_PASSWORD = set_a_strong_password
+
+STRIPE_SECRET_KEY = sk_test_...
+STRIPE_WEBHOOK_SECRET = whsec_...
+
+APP_BASE_URL = https://<your-repl>  // used for redirects and Stripe success/cancel
+
+Install
+
+Add to package.json (or let the agent install):
+express, express-session, connect-sqlite3, better-sqlite3, passport, passport-google-oauth20, argon2, zod, csurf, express-rate-limit, uuid, stripe, cookie-parser
+
+Database (SQLite) — schema.sql
+
+Create a db/schema.sql and run it on startup if tables are missing.
+
+users
+
+id (TEXT PK, uuid)
+
+email (TEXT UNIQUE NOT NULL)
+
+email_verified (INTEGER 0/1 DEFAULT 0)
+
+password_hash (TEXT NULL) // null if Google only
+
+google_id (TEXT NULL UNIQUE)
+
+role (TEXT NOT NULL DEFAULT 'parent') // 'parent' | 'admin'
+
+stripe_customer_id (TEXT NULL)
+
+created_at (INTEGER)
+
+updated_at (INTEGER)
+
+students
+
+id (TEXT PK)
+
+user_id (TEXT NOT NULL REFERENCES users(id))
+
+first_name (TEXT NOT NULL)
+
+last_name (TEXT NOT NULL)
+
+notes (TEXT NULL) // allergies/health info summary
+
+created_at (INTEGER)
+
+updated_at (INTEGER)
+
+weeks
+
+id (TEXT PK) // e.g., 'wk1'
+
+label (TEXT NOT NULL) // "June 22–26, 2026"
+
+price_cents (INTEGER NOT NULL DEFAULT 50000)
+
+capacity (INTEGER NOT NULL DEFAULT 20)
+
+registrations
+
+id (TEXT PK)
+
+user_id (TEXT NOT NULL REFERENCES users(id))
+
+student_id (TEXT NOT NULL REFERENCES students(id))
+
+week_id (TEXT NOT NULL REFERENCES weeks(id))
+
+status (TEXT NOT NULL DEFAULT 'pending') // pending|paid|canceled|refunded
+
+stripe_checkout_session_id (TEXT NULL)
+
+stripe_payment_intent_id (TEXT NULL)
+
+created_at (INTEGER)
+
+updated_at (INTEGER)
+(UNIQUE(user_id, student_id, week_id) to prevent duplicates)
+
+payments
+
+id (TEXT PK)
+
+user_id (TEXT NOT NULL)
+
+amount_cents (INTEGER NOT NULL)
+
+currency (TEXT NOT NULL DEFAULT 'usd')
+
+stripe_payment_intent_id (TEXT NOT NULL)
+
+status (TEXT NOT NULL) // succeeded|processing|canceled|requires_payment_method
+
+received_at (INTEGER)
+
+audit_logs
+
+id (TEXT PK)
+
+user_id (TEXT NULL)
+
+action (TEXT NOT NULL) // 'login', 'edit_content', 'create_registration', etc.
+
+meta (TEXT) // JSON string
+
+created_at (INTEGER)
+
+content (OPTIONAL if you prefer JSON file; DB helps with versioning)
+
+key (TEXT PK) // 'home.hero_title', 'about.what', etc.
+
+value (TEXT NOT NULL)
+
+updated_by (TEXT NULL REFERENCES users(id))
+
+updated_at (INTEGER)
+
+Seed weeks with:
+
+wk1: June 22–26, 2026
+
+wk2: July 27–31, 2026
+
+wk3: August 3–7, 2026
+
+wk4: August 10–14, 2026
+
+wk5: August 17–21, 2026
+(price 50000, capacity 20)
+
+Auth Flows
+Sessions
+
+Use cookie-based sessions: express-session with secure (true on HTTPS), httpOnly, sameSite:'lax', name acashop.sid.
+
+Store session in SQLite via connect-sqlite3.
+
+Email/Password
+
+POST /auth/register: email, password (min 10 chars), optional name.
+
+Lowercase and normalize email; hash password with argon2id.
+
+Create user with role parent.
+
+(Optional) Send verification email (out-of-scope to keep light).
+
+POST /auth/login: email, password → check hash → create session.
+
+POST /auth/logout: destroy session.
+
+Google Sign-In
+
+Configure passport-google-oauth20 with env keys.
+
+GET /auth/google → OAuth consent.
+
+GET /auth/google/callback → find user by google_id OR by email (link accounts), set session.
+
+On first Google login, if email matches an existing parent account with password, link (google_id set), prefer verified email.
+
+Admin bootstrap
+
+On startup: if ADMIN_BOOTSTRAP_EMAIL not found, create it with role admin + ADMIN_BOOTSTRAP_PASSWORD.
+
+Rate limiting & CSRF
+
+Rate-limit /auth/* (10/min/IP).
+
+Use csurf on all state-changing routes (send token via cookie; forms include hidden _csrf; fetch uses header x-csrf-token).
+
+Stripe Integration (map purchases to parent)
+
+Key principle: always attach Checkout Sessions to a Stripe Customer that maps to users.stripe_customer_id.
+
+On first checkout, if user has no stripe_customer_id, create one with email=user.email, save it.
+
+For each registration, include metadata:
+
+user_id, student_id, week_id, and a unique registration_id.
+
+Create Checkout Session with:
+
+customer: user.stripe_customer_id
+
+mode: 'payment'
+
+line_items: one per registration (multiple students/weeks allowed)
+
+success_url: ${APP_BASE_URL}/status?ok=1&session_id={CHECKOUT_SESSION_ID}
+
+cancel_url: ${APP_BASE_URL}/status?ok=0
+
+metadata: { user_id }
+
+Webhook /webhook (raw body): handle:
+
+checkout.session.completed → for each item (from your posted context or by retrieving the session & line items), mark related registrations paid, upsert a payments row (amount, currency, payment_intent), and store stripe_payment_intent_id.
+
+Also reconcile by reading session.metadata.user_id and session.customer.
+
+Optional: add a “Billing Portal” link: create a portal session via Stripe to let parents see receipts/update cards (nice extra).
+
+Parent Dashboard (after login)
+
+Pages under /account (auth required, role: parent):
+
+Overview: greeting + list of students, upcoming weeks, status chips (paid/pending), and total paid.
+
+Students: CRUD students (first/last name, optional notes for allergies—limit length).
+
+Registrations: choose student + week(s), add to a “cart”, then Proceed to Payment → calls server to create Checkout Session exactly like the public Register page but bound to the logged-in account.
+
+Payments/Receipts: list payments from DB; each links to Stripe receipt URL (retrieve from PaymentIntent charges).
+
+Profile: email, whether Google-linked, change password (if password-based), logout.
+
+Constraints to protect layout:
+
+Use form controls with hard limits:
+
+Student first/last name: max 40 chars
+
+Notes: max 400 chars
+
+Server-side validate with zod and return clean errors.
+
+Admin & Editor Mode
+
+Admin access
+
+Role check middleware requireRole('admin').
+
+/admin/login separate page OR reuse /auth/login and redirect to /admin.
+
+/admin dashboard: user search, registrations overview, weekly rosters export (CSV), content editor.
+
+Editor Mode (inline)
+
+Toggle with a small “Edit” switch visible only for admin (top-right).
+
+When ON:
+
+Each editable text area on the page shows a light outline + inline pencil button.
+
+Clicking opens a small modal with:
+
+Plain textarea/input with character counters.
+
+The exact field limits and allowed HTML (usually none; sanitize to plaintext).
+
+Preview panel that renders as it will appear.
+
+Save → POST /api/content with { key, value }, CSRF header, audit-log the change.
+
+Hard limits per field (examples):
+
+home.hero_title ≤ 80 chars
+
+home.hero_sub ≤ 160 chars, max 2 lines
+
+Highlight titles ≤ 40, bodies ≤ 120
+
+About paragraphs ≤ 800, bios ≤ 800
+
+Server enforces these limits with zod + rejects oversized input.
+
+Sanitize output (escape HTML) to avoid XSS.
+
+API Endpoints
+
+Auth
+
+POST /auth/register { email, password }
+
+POST /auth/login { email, password }
+
+GET /auth/google
+
+GET /auth/google/callback
+
+POST /auth/logout
+
+Account (parent)
+
+GET /api/me → { id, email, role, stripe_customer_id }
+
+GET /api/students
+
+POST /api/students { first_name, last_name, notes }
+
+PUT /api/students/:id
+
+DELETE /api/students/:id
+
+GET /api/registrations // for this user
+
+POST /api/registrations { student_id, week_id } // create pending
+
+DELETE /api/registrations/:id // remove pending if not paid
+
+POST /api/checkout { registration_ids:[...] } → creates Checkout Session bound to user, returns { url }
+
+GET /api/payments
+
+Admin
+
+GET /api/admin/users?query=...
+
+GET /api/admin/roster/:week_id // list students + parents + contact
+
+GET /api/admin/registrations?week_id=...&status=...
+
+POST /api/content { key, value } // zod-validated, limit length
+
+GET /api/content // full content for editor
+
+GET /api/content-public // read-only, minimal keys for public pages
+
+Stripe
+
+POST /create-checkout-session (public Register page flow) — if user logged in, attach to their stripe_customer_id; else create a temporary checkout (still map via email).
+
+POST /webhook (raw) — handle events.
+
+UI Work
+
+Auth pages
+
+/login: email/password + “Sign in with Google” button.
+
+/register: email/password.
+
+Use the site’s dark/blue theme; show error toasts if invalid.
+
+Parent dashboard (/account)
+
+Tabs: Overview, Students, Registrations, Payments, Profile.
+
+Simple glass cards, responsive, with soft animations.
+
+Admin pages
+
+/admin: quick stats; links to Rosters, Users, Content.
+
+Content editor: list of fields with edit buttons; Editor Mode toggle that also works inline on public pages (for admins only).
+
+Security & Compliance
+
+Passwords: argon2id.
+
+Sessions: secure cookies, rotate session on login.
+
+CSRF: csurf on all POST/PUT/DELETE.
+
+Rate-limit: auth + webhook + content updates.
+
+Input validation: zod (server-side) + length limits.
+
+XSS: escape all content from DB before rendering; sanitize inline editor inputs.
+
+RBAC: guard admin routes.
+
+Audit log all content changes and admin actions.
+
+Webhook: verify signature with STRIPE_WEBHOOK_SECRET using stripe.webhooks.constructEvent. Keep /webhook on raw body only.
+
+Stripe: tying items to children & weeks
+
+When creating registrations from the parent dashboard:
+
+Build pending registrations per (student_id, week_id).
+
+On /api/checkout, gather those pending IDs → make line items:
+
+name: "Week <label> — <Student Name>"
+
+unit_amount: 50000
+
+quantity: 1
+
+metadata: { registration_id, user_id, student_id, week_id }
+
+Save stripe_checkout_session_id on each registration.
+
+In webhook on checkout.session.completed, fetch line items, for each:
+
+Mark corresponding registrations.status = 'paid'
+
+Insert payments row once per PaymentIntent (amount + user_id).
+
+Show receipts in /account/payments with Stripe receipt URLs.
+
+Editor Mode — field map & limits (examples)
+home.hero_title          (≤ 80 chars)
+home.hero_sub            (≤ 160 chars)
+home.highlights[].title  (≤ 40)
+home.highlights[].body   (≤ 120)
+about.what               (≤ 900)
+about.week               (≤ 900)
+about.bios[].name        (≤ 80)
+about.bios[].body        (≤ 900)
+faq.sections[].title     (≤ 60)
+faq.sections[].qa[].q    (≤ 120)
+faq.sections[].qa[].a    (≤ 900)
+register.week_blurb      (≤ 160)
+
+
+Reject anything exceeding limits; show remaining char counter in UI. Always store plain text; render with <br> for newlines (max 2).
+
+Deliverables
+
+DB init on boot (run schema if tables missing; seed weeks).
+
+All routes above with middleware (requireAuth, requireRole).
+
+Auth pages + Google OAuth working.
+
+Parent dashboard with Students/Registrations/Payments.
+
+Public Register page keeps working; if logged in, associates to account.
+
+Stripe webhooks marking registrations as paid.
+
+Admin pages + inline Editor Mode with safe limits.
+
+Content served via /api/content-public to hydrate pages.
+
+Comments in code explaining env vars and how to rotate keys.
