@@ -390,7 +390,7 @@ export default function Register() {
                       </div>
                     </div>
                     <div className="mb-4">
-                      <span className="text-sm text-sky-custom/80">{week.spots} spots remaining</span>
+                      <span className="text-sm text-sky-custom/80">{week.spots}/20 spots</span>
                     </div>
                     
                     {/* Payment Options */}
