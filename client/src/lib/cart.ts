@@ -4,32 +4,43 @@ export interface CartItem {
   weekId: string;
   label: string;
   price: number;
+  paymentType: 'full' | 'deposit';
 }
 
 export class CartManager {
   private static readonly STORAGE_KEY = 'acappella-cart';
 
-  static getCart(): string[] {
+  static getCart(): CartItem[] {
     if (typeof window === 'undefined') return [];
     const stored = localStorage.getItem(this.STORAGE_KEY);
     return stored ? JSON.parse(stored) : [];
   }
 
-  static setCart(weekIds: string[]): void {
+  static setCart(items: CartItem[]): void {
     if (typeof window === 'undefined') return;
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(weekIds));
+    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(items));
   }
 
-  static addToCart(weekId: string): void {
+  static addToCart(weekId: string, paymentType: 'full' | 'deposit'): void {
     const cart = this.getCart();
-    if (!cart.includes(weekId)) {
-      cart.push(weekId);
-      this.setCart(cart);
+    // Remove any existing entry for this week
+    const filteredCart = cart.filter(item => item.weekId !== weekId);
+    
+    const week = WEEKS.find(w => w.id === weekId);
+    if (week) {
+      const price = paymentType === 'full' ? week.price : 150;
+      filteredCart.push({
+        weekId,
+        label: week.label,
+        price,
+        paymentType
+      });
+      this.setCart(filteredCart);
     }
   }
 
   static removeFromCart(weekId: string): void {
-    const cart = this.getCart().filter(id => id !== weekId);
+    const cart = this.getCart().filter(item => item.weekId !== weekId);
     this.setCart(cart);
   }
 
@@ -38,12 +49,7 @@ export class CartManager {
   }
 
   static getCartItems(): CartItem[] {
-    const cart = this.getCart();
-    return WEEKS.filter(week => cart.includes(week.id)).map(week => ({
-      weekId: week.id,
-      label: week.label,
-      price: week.price
-    }));
+    return this.getCart();
   }
 
   static getCartTotal(): number {
@@ -52,5 +58,14 @@ export class CartManager {
 
   static getCartCount(): number {
     return this.getCart().length;
+  }
+
+  static isInCart(weekId: string): boolean {
+    return this.getCart().some(item => item.weekId === weekId);
+  }
+
+  static getPaymentType(weekId: string): 'full' | 'deposit' | null {
+    const item = this.getCart().find(item => item.weekId === weekId);
+    return item ? item.paymentType : null;
   }
 }
