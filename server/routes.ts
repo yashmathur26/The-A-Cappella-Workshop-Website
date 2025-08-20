@@ -497,32 +497,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Parent name and child name are required" });
       }
 
-      // Calculate discount
-      const promoDiscounts: { [key: string]: number } = { 'SHOP': 0.20 };
-      const discount = promoCode && promoDiscounts[promoCode.toUpperCase()] || 0;
-      
       const host = process.env.APP_BASE_URL || `${req.protocol}://${req.get('host')}`;
       
-      // Create line items for each cart item
-      const lineItems = cartItems.map((item: any) => {
-        const originalPrice = item.price * 100; // Convert to cents
-        const discountedPrice = Math.round(originalPrice * (1 - discount));
-        
-        return {
+      // Handle promo codes properly
+      const upperPromoCode = promoCode?.toUpperCase();
+      let lineItems;
+      
+      if (upperPromoCode === 'ADMIN') {
+        // Special ADMIN promo code: $1 total
+        lineItems = [{
           price_data: {
             currency: 'usd',
             product_data: {
-              name: `${item.label} (${item.paymentType === 'deposit' ? 'Deposit' : 'Full Payment'})`,
-              metadata: {
-                weekId: item.weekId,
-                paymentType: item.paymentType,
-              },
+              name: 'A Cappella Workshop Registration (Admin Discount)',
+              description: `${cartItems.length} camp week${cartItems.length > 1 ? 's' : ''} - Admin pricing`,
             },
-            unit_amount: discountedPrice,
+            unit_amount: 100, // $1.00 in cents
           },
           quantity: 1,
-        };
-      });
+        }];
+      } else {
+        // Calculate discount for SHOP promo code
+        const promoDiscounts: { [key: string]: number } = { 'SHOP': 0.20 };
+        const discount = upperPromoCode && promoDiscounts[upperPromoCode] || 0;
+        
+        // Create line items for each cart item
+        lineItems = cartItems.map((item: any) => {
+          const originalPrice = item.price * 100; // Convert to cents
+          const discountedPrice = Math.round(originalPrice * (1 - discount));
+          
+          return {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: `${item.label} (${item.paymentType === 'deposit' ? 'Deposit' : 'Full Payment'})`,
+                metadata: {
+                  weekId: item.weekId,
+                  paymentType: item.paymentType,
+                },
+              },
+              unit_amount: discountedPrice,
+            },
+            quantity: 1,
+          };
+        });
+      }
 
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
