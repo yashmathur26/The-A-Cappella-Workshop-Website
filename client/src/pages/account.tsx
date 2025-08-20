@@ -28,6 +28,7 @@ import {
   DollarSign,
   Settings
 } from "lucide-react";
+import { AddStudentModal } from '@/components/AddStudentModal';
 
 interface Student {
   id: string;
@@ -70,6 +71,7 @@ export default function Account() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [showAddStudentModal, setShowAddStudentModal] = useState(false);
 
   // Profile update form schema
   const profileSchema = z.object({
@@ -426,7 +428,10 @@ export default function Account() {
           <TabsContent value="students" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold text-white">Your Students</h2>
-              <Button className="btn-gradient">
+              <Button 
+                className="btn-gradient"
+                onClick={() => setShowAddStudentModal(true)}
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Student
               </Button>
@@ -442,7 +447,10 @@ export default function Account() {
                   <Users className="w-16 h-16 text-white/40 mx-auto mb-4" />
                   <h3 className="text-xl font-bold text-white mb-2">No students yet</h3>
                   <p className="text-white/60 mb-6">Add your first student to get started with registrations</p>
-                  <Button className="btn-gradient">
+                  <Button 
+                    className="btn-gradient"
+                    onClick={() => setShowAddStudentModal(true)}
+                  >
                     <Plus className="w-4 h-4 mr-2" />
                     Add Your First Student
                   </Button>
@@ -718,6 +726,12 @@ export default function Account() {
         </Tabs>
 
       </div>
+
+      {/* Add Student Modal */}
+      <AddStudentModal
+        isOpen={showAddStudentModal}
+        onClose={() => setShowAddStudentModal(false)}
+      />
     </div>
   );
 }
