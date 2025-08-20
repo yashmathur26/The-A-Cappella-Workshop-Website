@@ -188,31 +188,22 @@ export default function Home() {
               </GlassCard>
             </div>
 
-            {/* Right Column - Campus Info */}
+            {/* Right Column - Location Map */}
             <div className="space-y-8">
               <GlassCard className="p-8 h-full">
-                <h3 className="text-2xl font-bold mb-6 text-teal-custom">Our Campus</h3>
-                <p className="text-white/90 mb-6">
-                  Located in the heart of Lexington, our state-of-the-art facility features professional recording studios, spacious rehearsal rooms, and beautiful outdoor performance spaces.
-                </p>
-                <ul className="space-y-3 text-white/80">
-                  <li className="flex items-center space-x-3">
-                    <div className="w-2 h-2 rounded-full bg-teal-custom"></div>
-                    <span>Free parking available</span>
-                  </li>
-                  <li className="flex items-center space-x-3">
-                    <div className="w-2 h-2 rounded-full bg-sky-custom"></div>
-                    <span>Accessible facilities</span>
-                  </li>
-                  <li className="flex items-center space-x-3">
-                    <div className="w-2 h-2 rounded-full bg-indigo-custom"></div>
-                    <span>Air-conditioned rooms</span>
-                  </li>
-                  <li className="flex items-center space-x-3">
-                    <div className="w-2 h-2 rounded-full bg-teal-custom"></div>
-                    <span>Professional audio equipment</span>
-                  </li>
-                </ul>
+                <h3 className="text-2xl font-bold mb-6 text-teal-custom">Find Us</h3>
+                <div className="aspect-video rounded-lg overflow-hidden border border-white/20">
+                  <iframe
+                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2944.123456789!2d-71.2271715!3d42.4208445!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89e39da7cf60964d%3A0xb9185605b60e37d8!2sTemple%20Emunah!5e0!3m2!1sen!2sus!4v1692820800000!5m2!1sen!2sus"
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    allowFullScreen
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    title="Temple Emunah Location"
+                  />
+                </div>
               </GlassCard>
             </div>
           </div>
