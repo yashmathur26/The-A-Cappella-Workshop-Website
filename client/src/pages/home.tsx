@@ -1,10 +1,58 @@
 import { useEffect } from 'react';
 import { Link } from 'wouter';
-import { Users, GraduationCap, Star, Phone, Mail, MapPin, Clock, Play } from 'lucide-react';
+import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
+import { Users, GraduationCap, Star, Phone, Mail, MapPin, Clock, Play, User, CreditCard, DollarSign } from 'lucide-react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { GradientButton } from '@/components/ui/gradient-button';
+import { Badge } from "@/components/ui/badge";
+
+interface Student {
+  id: string;
+  firstName: string;
+  lastName: string;
+  notes?: string;
+  createdAt: string;
+}
+
+interface Registration {
+  id: string;
+  studentId: string;
+  weekId: string;
+  status: string;
+  paymentType?: string;
+  amountPaidCents?: number;
+  balanceDueCents?: number;
+  createdAt: string;
+}
+
+interface Payment {
+  id: string;
+  amountCents: number;
+  currency: string;
+  status: string;
+  receivedAt: string;
+}
 
 export default function Home() {
+  const { user, isAuthenticated } = useAuth();
+
+  // Fetch user data for profile summary (only if authenticated)
+  const { data: students = [] } = useQuery<Student[]>({
+    queryKey: ["/api/students"],
+    enabled: isAuthenticated,
+  });
+
+  const { data: registrations = [] } = useQuery<Registration[]>({
+    queryKey: ["/api/registrations"],
+    enabled: isAuthenticated,
+  });
+
+  const { data: payments = [] } = useQuery<Payment[]>({
+    queryKey: ["/api/payments"],
+    enabled: isAuthenticated,
+  });
+
   useEffect(() => {
     // Scroll reveal animation
     const observer = new IntersectionObserver((entries) => {
@@ -49,6 +97,109 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Profile Summary Section - Only shown when authenticated */}
+      {isAuthenticated && user && (
+        <section className="py-8">
+          <div className="max-w-6xl mx-auto px-6">
+            <GlassCard className="p-8 reveal-in" hover>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-custom to-teal-custom flex items-center justify-center">
+                    <User className="text-white" size={24} />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-white">
+                      Welcome back, {user.firstName}!
+                    </h2>
+                    <p className="text-white/60">{user.email}</p>
+                  </div>
+                </div>
+                <Link href="/account">
+                  <GradientButton variant="outline">View Account</GradientButton>
+                </Link>
+              </div>
+
+              <div className="grid md:grid-cols-4 gap-6">
+                {/* Students Count */}
+                <div className="text-center p-4 bg-white/5 rounded-lg">
+                  <Users className="w-8 h-8 text-blue-400 mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-white">{students.length}</p>
+                  <p className="text-white/60 text-sm">Students</p>
+                </div>
+
+                {/* Active Registrations */}
+                <div className="text-center p-4 bg-white/5 rounded-lg">
+                  <GraduationCap className="w-8 h-8 text-green-400 mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-white">{registrations.length}</p>
+                  <p className="text-white/60 text-sm">Registrations</p>
+                </div>
+
+                {/* Total Paid */}
+                <div className="text-center p-4 bg-white/5 rounded-lg">
+                  <DollarSign className="w-8 h-8 text-green-400 mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-green-400">
+                    ${registrations.reduce((total, reg) => total + (reg.amountPaidCents ?? 0) / 100, 0).toFixed(2)}
+                  </p>
+                  <p className="text-white/60 text-sm">Total Paid</p>
+                </div>
+
+                {/* Outstanding Balance */}
+                <div className="text-center p-4 bg-white/5 rounded-lg">
+                  <CreditCard className="w-8 h-8 text-orange-400 mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-orange-400">
+                    ${registrations.reduce((total, reg) => total + (reg.balanceDueCents ?? 0) / 100, 0).toFixed(2)}
+                  </p>
+                  <p className="text-white/60 text-sm">Balance Due</p>
+                </div>
+              </div>
+
+              {/* Recent Students with Registration Status */}
+              {students.length > 0 && (
+                <div className="mt-6">
+                  <h3 className="text-lg font-semibold text-white mb-3">Your Students</h3>
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {students.slice(0, 6).map((student) => {
+                      const studentRegistrations = registrations.filter(reg => reg.studentId === student.id);
+                      const hasActiveRegistration = studentRegistrations.some(reg => 
+                        reg.status === 'paid' || reg.status === 'deposit_paid'
+                      );
+                      
+                      return (
+                        <div key={student.id} className="bg-white/5 rounded-lg p-3">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="text-white font-medium">
+                                {student.firstName} {student.lastName}
+                              </p>
+                              {studentRegistrations.length > 0 ? (
+                                <Badge 
+                                  variant="outline" 
+                                  className={`text-xs ${
+                                    hasActiveRegistration 
+                                      ? 'text-green-400 border-green-400' 
+                                      : 'text-orange-400 border-orange-400'
+                                  }`}
+                                >
+                                  {studentRegistrations.length} registration{studentRegistrations.length !== 1 ? 's' : ''}
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-xs text-white/60 border-white/30">
+                                  No registrations
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </GlassCard>
+          </div>
+        </section>
+      )}
 
       {/* Welcome Video Section */}
       <section className="py-6">

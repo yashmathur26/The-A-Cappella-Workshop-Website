@@ -29,6 +29,7 @@ import {
   Settings
 } from "lucide-react";
 import { AddStudentModal } from '@/components/AddStudentModal';
+import { EditStudentModal } from '@/components/EditStudentModal';
 
 interface Student {
   id: string;
@@ -72,6 +73,8 @@ export default function Account() {
   const queryClient = useQueryClient();
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [showAddStudentModal, setShowAddStudentModal] = useState(false);
+  const [showEditStudentModal, setShowEditStudentModal] = useState(false);
+  const [editingStudent, setEditingStudent] = useState<Student | null>(null);
 
   // Profile update form schema
   const profileSchema = z.object({
@@ -99,6 +102,28 @@ export default function Account() {
       });
     }
   }, [user, profileForm]);
+
+  // Delete student handler
+  const handleDeleteStudent = async (student: Student) => {
+    const confirmed = window.confirm(`Are you sure you want to delete ${student.firstName} ${student.lastName}? This action cannot be undone.`);
+    
+    if (!confirmed) return;
+
+    try {
+      await apiRequest("DELETE", `/api/students/${student.id}`);
+      toast({
+        title: "Student Deleted",
+        description: `${student.firstName} ${student.lastName} has been deleted successfully.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/students"] });
+    } catch (error: any) {
+      toast({
+        title: "Failed to Delete Student",
+        description: error.message || "An error occurred while deleting the student.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -521,11 +546,24 @@ export default function Account() {
                         
                         {/* Action Buttons */}
                         <div className="flex space-x-2 pt-2 border-t border-white/10">
-                          <Button size="sm" variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                            onClick={() => {
+                              setEditingStudent(student);
+                              setShowEditStudentModal(true);
+                            }}
+                          >
                             <Edit className="w-4 h-4 mr-1" />
                             Edit
                           </Button>
-                          <Button size="sm" variant="outline" className="bg-red-500/10 border-red-500/20 text-red-300 hover:bg-red-500/20">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="bg-red-500/10 border-red-500/20 text-red-300 hover:bg-red-500/20"
+                            onClick={() => handleDeleteStudent(student)}
+                          >
                             <Trash2 className="w-4 h-4 mr-1" />
                             Delete
                           </Button>
@@ -846,6 +884,16 @@ export default function Account() {
       <AddStudentModal
         isOpen={showAddStudentModal}
         onClose={() => setShowAddStudentModal(false)}
+      />
+
+      {/* Edit Student Modal */}
+      <EditStudentModal
+        isOpen={showEditStudentModal}
+        onClose={() => {
+          setShowEditStudentModal(false);
+          setEditingStudent(null);
+        }}
+        student={editingStudent}
       />
     </div>
   );
