@@ -1,0 +1,228 @@
+import type { Express } from "express";
+import express from "express";
+import { createServer, type Server } from "http";
+import cookieParser from "cookie-parser";
+import Stripe from "stripe";
+import { z } from "zod";
+import fs from "fs";
+import path from "path";
+import { passport } from "./auth";
+import { storage } from "./storage";
+import { authRoutes } from "./authRoutes";
+import { 
+  setupSession, 
+  generalRateLimit, 
+  requireAuth, 
+  requireRole, 
+  auditLog,
+  initializeDatabase 
+} from "./middleware";
+import {
+  insertStudentSchema,
+  insertRegistrationSchema,
+  insertContentSchema,
+  type Week,
+  type Student,
+  type Registration
+} from "@shared/schema";
+
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY. Please set it in your environment variables.');
+}
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: "2025-07-30.basil",
+});
+
+// Simple in-memory session store for admin auth
+const adminSessions = new Map<string, { role: string; email: string }>();
+
+// Generate a random session ID
+function generateSessionId(): string {
+  return Math.random().toString(36).substring(2) + Date.now().toString(36);
+}
+
+// Admin auth middleware
+function requireAdmin(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const sessionId = req.cookies.sid;
+  const session = sessionId ? adminSessions.get(sessionId) : null;
+  
+  if (!session || session.role !== 'admin') {
+    if (req.path.startsWith('/api/')) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    return res.redirect('/admin/login');
+  }
+  
+  (req as any).adminSession = session;
+  next();
+}
+
+// Ensure data/rosters directory exists
+function ensureRosterDirectory() {
+  const rosterDir = path.join(process.cwd(), 'data', 'rosters');
+  if (!fs.existsSync(rosterDir)) {
+    fs.mkdirSync(rosterDir, { recursive: true });
+  }
+}
+
+// Write roster record to JSONL files
+function writeRosterRecord(record: any) {
+  ensureRosterDirectory();
+  const rosterDir = path.join(process.cwd(), 'data', 'rosters');
+  
+  // Write to per-week file
+  const weekFile = path.join(rosterDir, `${record.week_id}.jsonl`);
+  fs.appendFileSync(weekFile, JSON.stringify(record) + '\n', 'utf8');
+  
+  // Write to global index
+  const indexFile = path.join(rosterDir, '_index.jsonl');
+  fs.appendFileSync(indexFile, JSON.stringify(record) + '\n', 'utf8');
+}
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  // Initialize database
+  await initializeDatabase();
+
+  // Basic middleware - Set trust proxy first
+  app.set('trust proxy', 1);
+  app.use(cookieParser());
+  app.use(setupSession());
+  app.use(passport.initialize());
+  app.use(passport.session());
+
+  // Authentication routes
+  app.use("/auth", authRoutes);
+
+  // Admin login routes
+  app.get("/admin/login", (req, res) => {
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Admin Login - A Cappella Workshop</title>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0b1220;
+            color: white;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .login-container {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(71, 85, 105, 0.3);
+            border-radius: 16px;
+            padding: 2rem;
+            width: 100%;
+            max-width: 400px;
+            backdrop-filter: blur(8px);
+          }
+          h1 {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            color: #06b6d4;
+          }
+          .form-group {
+            margin-bottom: 1rem;
+          }
+          label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+          }
+          input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid rgba(71, 85, 105, 0.3);
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            color: white;
+            font-size: 1rem;
+            box-sizing: border-box;
+          }
+          input:focus {
+            outline: none;
+            border-color: #06b6d4;
+          }
+          button {
+            width: 100%;
+            padding: 0.75rem;
+            background: linear-gradient(135deg, #3b82f6, #06b6d4);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+          }
+          button:hover {
+            opacity: 0.9;
+          }
+          .error {
+            color: #ef4444;
+            text-align: center;
+            margin-top: 1rem;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="login-container">
+          <h1>Admin Login</h1>
+          <form method="POST" action="/admin/login">
+            <div class="form-group">
+              <label for="email">Email</label>
+              <input type="email" id="email" name="email" required>
+            </div>
+            <div class="form-group">
+              <label for="password">Password</label>
+              <input type="password" id="password" name="password" required>
+            </div>
+            <button type="submit">Login</button>
+          </form>
+        </div>
+      </body>
+      </html>
+    `);
+  });
+
+  app.post("/admin/login", express.urlencoded({ extended: true }), (req, res) => {
+    const { email, password } = req.body;
+    
+    if (email === 'theacappellaworkshop@gmail.com' && password === 'shop') {
+      const sessionId = generateSessionId();
+      adminSessions.set(sessionId, { role: 'admin', email });
+      
+      res.cookie('sid', sessionId, {
+        httpOnly: true,
+        sameSite: 'lax',
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+      });
+      
+      return res.redirect('/admin');
+    }
+    
+    res.status(401).send('Invalid credentials');
+  });
+
+  app.post("/admin/logout", (req, res) => {
+    const sessionId = req.cookies.sid;
+    if (sessionId) {
+      adminSessions.delete(sessionId);
+    }
+    res.clearCookie('sid');
+    res.redirect('/admin/login');
+  });
+
+  // Continue with the rest of the existing routes...
+  // I'll add this step by step to avoid syntax errors
+  
+  const httpServer = createServer(app);
+  return httpServer;
+}

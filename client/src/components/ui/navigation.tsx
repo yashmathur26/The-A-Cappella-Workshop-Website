@@ -92,7 +92,7 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
             ))}
             <Link
               href="/camp-registration"
-              className="btn-gradient px-6 py-2 rounded-full text-white font-medium hover:text-white text-[14px]"
+              className="btn-gradient px-6 py-2 rounded-full text-white font-medium hover:text-white text-[14px] pl-[20px] pr-[20px]"
             >
               Register
             </Link>

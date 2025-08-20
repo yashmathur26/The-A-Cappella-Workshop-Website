@@ -4,6 +4,8 @@ import { createServer, type Server } from "http";
 import cookieParser from "cookie-parser";
 import Stripe from "stripe";
 import { z } from "zod";
+import fs from "fs";
+import path from "path";
 import { passport } from "./auth";
 import { storage } from "./storage";
 import { authRoutes } from "./authRoutes";
@@ -32,6 +34,52 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2025-07-30.basil",
 });
 
+// Simple in-memory session store for admin auth
+const adminSessions = new Map<string, { role: string; email: string }>();
+
+// Generate a random session ID
+function generateSessionId(): string {
+  return Math.random().toString(36).substring(2) + Date.now().toString(36);
+}
+
+// Admin auth middleware
+function requireAdmin(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const sessionId = req.cookies.sid;
+  const session = sessionId ? adminSessions.get(sessionId) : null;
+  
+  if (!session || session.role !== 'admin') {
+    if (req.path.startsWith('/api/')) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    return res.redirect('/admin/login');
+  }
+  
+  (req as any).adminSession = session;
+  next();
+}
+
+// Ensure data/rosters directory exists
+function ensureRosterDirectory() {
+  const rosterDir = path.join(process.cwd(), 'data', 'rosters');
+  if (!fs.existsSync(rosterDir)) {
+    fs.mkdirSync(rosterDir, { recursive: true });
+  }
+}
+
+// Write roster record to JSONL files
+function writeRosterRecord(record: any) {
+  ensureRosterDirectory();
+  const rosterDir = path.join(process.cwd(), 'data', 'rosters');
+  
+  // Write to per-week file
+  const weekFile = path.join(rosterDir, `${record.week_id}.jsonl`);
+  fs.appendFileSync(weekFile, JSON.stringify(record) + '\n', 'utf8');
+  
+  // Write to global index
+  const indexFile = path.join(rosterDir, '_index.jsonl');
+  fs.appendFileSync(indexFile, JSON.stringify(record) + '\n', 'utf8');
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize database
   await initializeDatabase();
@@ -39,14 +87,367 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Basic middleware - Set trust proxy first
   app.set('trust proxy', 1);
   app.use(cookieParser());
-  // Temporarily disable rate limiting for debugging
-  // app.use(generalRateLimit);
   app.use(setupSession());
   app.use(passport.initialize());
   app.use(passport.session());
 
   // Authentication routes
   app.use("/auth", authRoutes);
+
+  // Admin login routes
+  app.get("/admin/login", (req, res) => {
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Admin Login - A Cappella Workshop</title>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0b1220;
+            color: white;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .login-container {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(71, 85, 105, 0.3);
+            border-radius: 16px;
+            padding: 2rem;
+            width: 100%;
+            max-width: 400px;
+            backdrop-filter: blur(8px);
+          }
+          h1 {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            color: #06b6d4;
+          }
+          .form-group {
+            margin-bottom: 1rem;
+          }
+          label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+          }
+          input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid rgba(71, 85, 105, 0.3);
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            color: white;
+            font-size: 1rem;
+            box-sizing: border-box;
+          }
+          input:focus {
+            outline: none;
+            border-color: #06b6d4;
+          }
+          button {
+            width: 100%;
+            padding: 0.75rem;
+            background: linear-gradient(135deg, #3b82f6, #06b6d4);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+          }
+          button:hover {
+            opacity: 0.9;
+          }
+          .error {
+            color: #ef4444;
+            text-align: center;
+            margin-top: 1rem;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="login-container">
+          <h1>Admin Login</h1>
+          <form method="POST" action="/admin/login">
+            <div class="form-group">
+              <label for="email">Email</label>
+              <input type="email" id="email" name="email" required>
+            </div>
+            <div class="form-group">
+              <label for="password">Password</label>
+              <input type="password" id="password" name="password" required>
+            </div>
+            <button type="submit">Login</button>
+          </form>
+        </div>
+      </body>
+      </html>
+    `);
+  });
+
+  app.post("/admin/login", express.urlencoded({ extended: true }), (req, res) => {
+    const { email, password } = req.body;
+    
+    if (email === 'theacappellaworkshop@gmail.com' && password === 'shop') {
+      const sessionId = generateSessionId();
+      adminSessions.set(sessionId, { role: 'admin', email });
+      
+      res.cookie('sid', sessionId, {
+        httpOnly: true,
+        sameSite: 'lax',
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+      });
+      
+      return res.redirect('/admin');
+    }
+    
+    res.status(401).send('Invalid credentials');
+  });
+
+  app.post("/admin/logout", (req, res) => {
+    const sessionId = req.cookies.sid;
+    if (sessionId) {
+      adminSessions.delete(sessionId);
+    }
+    res.clearCookie('sid');
+    res.redirect('/admin/login');
+  });
+
+  // Admin panel HTML page
+  app.get("/admin", requireAdmin, (req, res) => {
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Admin Panel - A Cappella Workshop</title>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0b1220;
+            color: white;
+            margin: 0;
+            padding: 1rem;
+            min-height: 100vh;
+          }
+          .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+          }
+          h1 {
+            margin: 0;
+            color: #06b6d4;
+          }
+          .logout-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+          }
+          .logout-btn:hover {
+            background: #dc2626;
+          }
+          .week-section {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(71, 85, 105, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            backdrop-filter: blur(8px);
+          }
+          .week-title {
+            color: #06b6d4;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+            font-weight: 600;
+          }
+          .roster-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+          }
+          .roster-table th,
+          .roster-table td {
+            text-align: left;
+            padding: 0.75rem;
+            border-bottom: 1px solid rgba(71, 85, 105, 0.3);
+          }
+          .roster-table th {
+            background: rgba(0, 0, 0, 0.3);
+            color: #06b6d4;
+            font-weight: 600;
+          }
+          .roster-table tr:hover {
+            background: rgba(71, 85, 105, 0.1);
+          }
+          .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #94a3b8;
+          }
+          .no-data {
+            text-align: center;
+            padding: 2rem;
+            color: #64748b;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>Admin Panel</h1>
+          <form method="POST" action="/admin/logout" style="margin: 0;">
+            <button type="submit" class="logout-btn">Logout</button>
+          </form>
+        </div>
+        
+        <div id="roster-container">
+          <div class="loading">Loading roster data...</div>
+        </div>
+
+        <script>
+          async function loadRosters() {
+            try {
+              // Get list of weeks
+              const weeksResponse = await fetch('/api/admin/weeks');
+              const weeksData = await weeksResponse.json();
+              const weeks = weeksData.weeks || [];
+              
+              const container = document.getElementById('roster-container');
+              
+              if (weeks.length === 0) {
+                container.innerHTML = '<div class="no-data">No roster data available yet.</div>';
+                return;
+              }
+              
+              let html = '';
+              
+              // Load roster for each week
+              for (const weekId of weeks) {
+                const rosterResponse = await fetch(\`/api/admin/roster/\${weekId}\`);
+                const rosterData = await rosterResponse.json();
+                const records = rosterData.records || [];
+                
+                html += \`
+                  <div class="week-section">
+                    <div class="week-title">Week \${weekId} (\${records.length} registrations)</div>
+                \`;
+                
+                if (records.length > 0) {
+                  html += \`
+                    <table class="roster-table">
+                      <thead>
+                        <tr>
+                          <th>Date</th>
+                          <th>Student Name</th>
+                          <th>Parent Name</th>
+                          <th>Parent Email</th>
+                          <th>Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                  \`;
+                  
+                  records.forEach(record => {
+                    const date = new Date(record.ts).toLocaleDateString();
+                    const amount = \`$\${(record.amount_cents / 100).toFixed(2)}\`;
+                    
+                    html += \`
+                      <tr>
+                        <td>\${date}</td>
+                        <td>\${record.student_name || '(not provided)'}</td>
+                        <td>\${record.parent_name || '(not provided)'}</td>
+                        <td>\${record.parent_email || '(not provided)'}</td>
+                        <td>\${amount}</td>
+                      </tr>
+                    \`;
+                  });
+                  
+                  html += \`
+                      </tbody>
+                    </table>
+                  \`;
+                } else {
+                  html += '<div class="no-data">No registrations for this week yet.</div>';
+                }
+                
+                html += '</div>';
+              }
+              
+              container.innerHTML = html;
+            } catch (error) {
+              console.error('Error loading rosters:', error);
+              document.getElementById('roster-container').innerHTML = 
+                '<div class="no-data">Error loading roster data. Please try refreshing.</div>';
+            }
+          }
+          
+          // Load rosters when page loads
+          loadRosters();
+        </script>
+      </body>
+      </html>
+    `);
+  });
+
+  // Admin API routes
+  app.get("/api/admin/weeks", requireAdmin, (req, res) => {
+    try {
+      ensureRosterDirectory();
+      const rosterDir = path.join(process.cwd(), 'data', 'rosters');
+      const files = fs.readdirSync(rosterDir);
+      const weeks = files
+        .filter(file => file.endsWith('.jsonl') && file !== '_index.jsonl')
+        .map(file => file.replace('.jsonl', ''))
+        .sort();
+      
+      res.json({ weeks });
+    } catch (error) {
+      console.error('Error reading roster directory:', error);
+      res.json({ weeks: [] });
+    }
+  });
+
+  app.get("/api/admin/roster/:weekId", requireAdmin, (req, res) => {
+    try {
+      const { weekId } = req.params;
+      const rosterDir = path.join(process.cwd(), 'data', 'rosters');
+      const weekFile = path.join(rosterDir, weekId + '.jsonl');
+      
+      if (!fs.existsSync(weekFile)) {
+        return res.json({ records: [] });
+      }
+      
+      const fileContent = fs.readFileSync(weekFile, 'utf8');
+      const lines = fileContent.trim().split('\n').filter(line => line.trim());
+      
+      const records = lines.map(line => {
+        try {
+          return JSON.parse(line);
+        } catch (error) {
+          console.error('Error parsing roster line:', line, error);
+          return null;
+        }
+      }).filter(record => record !== null);
+      
+      res.json({ records });
+    } catch (error) {
+      console.error('Error reading roster file:', error);
+      res.status(500).json({ message: 'Error reading roster file' });
+    }
+  });
 
   // Public API routes
   app.get("/api/weeks", async (req, res) => {
@@ -56,20 +457,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching weeks:", error);
       res.status(500).json({ message: "Failed to fetch weeks" });
-    }
-  });
-
-  app.get("/api/content-public", async (req, res) => {
-    try {
-      const content = await storage.getContent();
-      const contentMap = content.reduce((acc: any, item) => {
-        acc[item.key] = item.value;
-        return acc;
-      }, {});
-      res.json(contentMap);
-    } catch (error) {
-      console.error("Error fetching content:", error);
-      res.status(500).json({ message: "Failed to fetch content" });
     }
   });
 
@@ -91,469 +478,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Update user profile
-  app.put("/api/profile", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Not authenticated" });
-    }
-    
+  // Enhanced checkout creation that accepts cart format with metadata
+  app.post("/api/create-checkout-session", express.json(), async (req, res) => {
     try {
-      const user = req.user as any;
-      const { firstName, lastName, email } = req.body;
+      const { cart, parent_email, parent_name } = req.body;
       
-      if (!firstName || !lastName || !email) {
-        return res.status(400).json({ message: "All fields are required" });
-      }
-      
-      // Check if email is already taken by another user
-      const existingUser = await storage.getUserByEmail(email);
-      if (existingUser && existingUser.id !== user.id) {
-        return res.status(400).json({ message: "Email is already taken" });
-      }
-      
-      const updatedUser = await storage.updateUser(user.id, {
-        firstName,
-        lastName,
-        email
-      });
-      
-      // Update session data
-      req.user = updatedUser;
-      
-      res.json({
-        id: updatedUser.id,
-        email: updatedUser.email,
-        firstName: updatedUser.firstName,
-        lastName: updatedUser.lastName,
-        role: updatedUser.role,
-        emailVerified: updatedUser.emailVerified,
-        stripeCustomerId: updatedUser.stripeCustomerId,
-      });
-    } catch (error) {
-      console.error("Profile update error:", error);
-      res.status(500).json({ message: "Failed to update profile" });
-    }
-  });
-
-  // Student management
-  app.get("/api/students", requireAuth, async (req, res) => {
-    try {
-      const user = req.user as any;
-      const students = await storage.getStudents(user.id);
-      res.json(students);
-    } catch (error) {
-      console.error("Error fetching students:", error);
-      res.status(500).json({ message: "Failed to fetch students" });
-    }
-  });
-
-  app.post("/api/students", requireAuth, auditLog("create_student"), async (req, res) => {
-    try {
-      const user = req.user as any;
-      const data = insertStudentSchema.parse(req.body);
-      
-      // Validate field lengths
-      if (data.firstName.length > 40 || data.lastName.length > 40) {
-        return res.status(400).json({ message: "Names must be 40 characters or less" });
-      }
-      if (data.notes && data.notes.length > 400) {
-        return res.status(400).json({ message: "Notes must be 400 characters or less" });
+      if (!cart || !Array.isArray(cart) || cart.length === 0) {
+        return res.status(400).json({ message: "Cart must be an array with at least 1 item" });
       }
 
-      const student = await storage.createStudent({ ...data, userId: user.id });
-      res.json(student);
-    } catch (error) {
-      console.error("Error creating student:", error);
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Validation error", errors: error.errors });
-      }
-      res.status(500).json({ message: "Failed to create student" });
-    }
-  });
-
-  app.put("/api/students/:id", requireAuth, auditLog("update_student"), async (req, res) => {
-    try {
-      const user = req.user as any;
-      const data = insertStudentSchema.partial().parse(req.body);
-      
-      // Validate field lengths
-      if (data.firstName && data.firstName.length > 40) {
-        return res.status(400).json({ message: "First name must be 40 characters or less" });
-      }
-      if (data.lastName && data.lastName.length > 40) {
-        return res.status(400).json({ message: "Last name must be 40 characters or less" });
-      }
-      if (data.notes && data.notes.length > 400) {
-        return res.status(400).json({ message: "Notes must be 400 characters or less" });
-      }
-
-      // Verify ownership
-      const existingStudent = await storage.getStudent(req.params.id);
-      if (!existingStudent || existingStudent.userId !== user.id) {
-        return res.status(404).json({ message: "Student not found" });
-      }
-
-      const student = await storage.updateStudent(req.params.id, data);
-      res.json(student);
-    } catch (error) {
-      console.error("Error updating student:", error);
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Validation error", errors: error.errors });
-      }
-      res.status(500).json({ message: "Failed to update student" });
-    }
-  });
-
-  app.delete("/api/students/:id", requireAuth, auditLog("delete_student"), async (req, res) => {
-    try {
-      const user = req.user as any;
-      
-      // Verify ownership
-      const existingStudent = await storage.getStudent(req.params.id);
-      if (!existingStudent || existingStudent.userId !== user.id) {
-        return res.status(404).json({ message: "Student not found" });
-      }
-
-      await storage.deleteStudent(req.params.id);
-      res.json({ message: "Student deleted" });
-    } catch (error) {
-      console.error("Error deleting student:", error);
-      res.status(500).json({ message: "Failed to delete student" });
-    }
-  });
-
-  // Registration management
-  app.get("/api/registrations", requireAuth, async (req, res) => {
-    try {
-      const user = req.user as any;
-      const registrations = await storage.getRegistrations(user.id);
-      res.json(registrations);
-    } catch (error) {
-      console.error("Error fetching registrations:", error);
-      res.status(500).json({ message: "Failed to fetch registrations" });
-    }
-  });
-
-  app.post("/api/registrations", requireAuth, auditLog("create_registration"), async (req, res) => {
-    try {
-      const user = req.user as any;
-      const { studentId, weekId } = req.body;
-      
-      if (!studentId || !weekId) {
-        return res.status(400).json({ message: "Student ID and Week ID are required" });
-      }
-
-      // Verify student belongs to user
-      const student = await storage.getStudent(studentId);
-      if (!student || student.userId !== user.id) {
-        return res.status(400).json({ message: "Invalid student" });
-      }
-
-      // Verify week exists
-      const week = await storage.getWeek(weekId);
-      if (!week) {
-        return res.status(400).json({ message: "Invalid week" });
-      }
-
-      const registration = await storage.createRegistration({
-        userId: user.id,
-        studentId,
-        weekId,
-        status: "pending",
-      });
-
-      res.json(registration);
-    } catch (error) {
-      console.error("Error creating registration:", error);
-      res.status(500).json({ message: "Failed to create registration" });
-    }
-  });
-
-  app.delete("/api/registrations/:id", requireAuth, auditLog("delete_registration"), async (req, res) => {
-    try {
-      const user = req.user as any;
-      
-      // Verify ownership and that it's not paid
-      const registration = await storage.getRegistration(req.params.id);
-      if (!registration || registration.userId !== user.id) {
-        return res.status(404).json({ message: "Registration not found" });
-      }
-      
-      if (registration.status === "paid") {
-        return res.status(400).json({ message: "Cannot delete paid registration" });
-      }
-
-      // Note: In a real implementation, you'd delete the registration here
-      // For now, we'll just mark it as cancelled
-      await storage.updateRegistrationStatus(req.params.id, "cancelled");
-      res.json({ message: "Registration cancelled" });
-    } catch (error) {
-      console.error("Error cancelling registration:", error);
-      res.status(500).json({ message: "Failed to cancel registration" });
-    }
-  });
-
-  // Payment management
-  app.get("/api/payments", requireAuth, async (req, res) => {
-    try {
-      const user = req.user as any;
-      const payments = await storage.getPayments(user.id);
-      res.json(payments);
-    } catch (error) {
-      console.error("Error fetching payments:", error);
-      res.status(500).json({ message: "Failed to fetch payments" });
-    }
-  });
-
-  // Checkout for authenticated users
-  app.post("/api/checkout", requireAuth, auditLog("create_checkout"), async (req, res) => {
-    try {
-      const user = req.user as any;
-      const { registrationIds, paymentType = "full" } = req.body;
-      
-      if (!registrationIds || !Array.isArray(registrationIds) || registrationIds.length === 0) {
-        return res.status(400).json({ message: "Registration IDs are required" });
-      }
-
-      if (!["full", "deposit"].includes(paymentType)) {
-        return res.status(400).json({ message: "Invalid payment type" });
-      }
-
-      // Verify all registrations belong to user and are pending
-      const registrations = [];
-      for (const id of registrationIds) {
-        const registration = await storage.getRegistration(id);
-        if (!registration || registration.userId !== user.id || registration.status !== "pending") {
-          return res.status(400).json({ message: "Invalid registration" });
+      // Validate cart items
+      for (const item of cart) {
+        if (!item.week_id || !item.week_label) {
+          return res.status(400).json({ message: "Each cart item must include week_id and week_label" });
         }
-        registrations.push(registration);
       }
 
-      // Ensure user has a Stripe customer ID
-      let stripeCustomerId = user.stripeCustomerId;
-      if (!stripeCustomerId) {
-        const customer = await stripe.customers.create({
-          email: user.email,
-          metadata: { userId: user.id },
-        });
-        stripeCustomerId = customer.id;
-        await storage.updateStripeCustomerId(user.id, stripeCustomerId);
-      }
-
-      // Create line items with deposit or full pricing
-      const lineItems = await Promise.all(
-        registrations.map(async (reg) => {
-          const student = await storage.getStudent(reg.studentId);
-          const week = await storage.getWeek(reg.weekId);
-          const fullPrice = week?.priceCents || 50000;
-          const depositPrice = Math.round(fullPrice * 0.3); // 30% deposit ($150 for $500)
-          const amount = paymentType === "full" ? fullPrice : depositPrice;
-          
-          return {
-            price_data: {
-              currency: 'usd',
-              product_data: {
-                name: `The A Cappella Workshop — ${week?.label} — ${student?.firstName} ${student?.lastName}${paymentType === "deposit" ? " (Deposit)" : ""}`,
-                description: paymentType === "deposit" 
-                  ? `Non-refundable deposit. Remaining balance: $${((fullPrice - depositPrice) / 100).toFixed(2)}`
-                  : undefined,
-              },
-              unit_amount: amount,
-            },
-            quantity: 1,
+      const host = req.protocol + '://' + req.get('host');
+      
+      // Create line items
+      const lineItems = cart.map((item: any) => ({
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: `Week ${item.week_label} — ${item.student_name || 'Student'}`,
             metadata: {
-              registrationId: reg.id,
-              userId: user.id,
-              studentId: reg.studentId,
-              weekId: reg.weekId,
-              paymentType,
-              fullPrice: fullPrice.toString(),
-              depositPrice: depositPrice.toString(),
+              weekId: item.week_id,
+              paymentType: 'full',
             },
-          };
-        })
-      );
-
-      const host = process.env.APP_BASE_URL || `${req.protocol}://${req.get('host')}`;
-      
-      const session = await stripe.checkout.sessions.create({
-        customer: stripeCustomerId,
-        payment_method_types: ['card'],
-        line_items: lineItems,
-        mode: 'payment',
-        success_url: `${host}/account?success=1&session_id={CHECKOUT_SESSION_ID}&payment_type=${paymentType}`,
-        cancel_url: `${host}/account?cancelled=1`,
-        metadata: { 
-          userId: user.id,
-          paymentType,
-        },
-      });
-
-      // Update registrations with session ID and payment info
-      for (const registration of registrations) {
-        await storage.updateRegistrationPaymentInfo(registration.id, session.id, paymentType);
-      }
-
-      res.json({ url: session.url });
-    } catch (error: any) {
-      console.error('Error creating checkout session:', error);
-      res.status(500).json({ message: "Error creating checkout session: " + error.message });
-    }
-  });
-
-  // Balance checkout for existing registrations
-  app.post("/api/balance-checkout", async (req, res) => {
-    try {
-      const { registrationIds } = req.body;
-      
-      if (!registrationIds || !Array.isArray(registrationIds) || registrationIds.length === 0) {
-        return res.status(400).json({ message: "Registration IDs are required" });
-      }
-
-      // Get registrations and calculate balances
-      const lineItems = [];
-      let customerEmail = null;
-      let userId = null;
-      
-      for (const regId of registrationIds) {
-        const registration = await storage.getRegistration(regId);
-        if (!registration) {
-          return res.status(400).json({ message: "Registration not found" });
-        }
-        
-        // Get user for customer info
-        if (!userId) {
-          const user = await storage.getUser(registration.userId);
-          if (user) {
-            customerEmail = user.email;
-            userId = user.id;
-          }
-        }
-        
-        const student = await storage.getStudent(registration.studentId);
-        const week = await storage.getWeek(registration.weekId);
-        const balanceDue = registration.balanceDueCents || 0;
-        
-        if (balanceDue <= 0) {
-          continue; // Skip if no balance due
-        }
-        
-        lineItems.push({
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: `Balance Payment — ${week?.label} — ${student?.firstName} ${student?.lastName}`,
-              description: `Remaining balance for camp registration`,
-            },
-            unit_amount: balanceDue,
           },
-          quantity: 1,
-          metadata: {
-            registrationId: regId,
-            userId: registration.userId,
-            studentId: registration.studentId,
-            weekId: registration.weekId,
-            paymentType: 'balance'
-          }
-        });
-      }
-      
-      if (lineItems.length === 0) {
-        return res.status(400).json({ message: "No outstanding balances to pay" });
-      }
-
-      const host = process.env.APP_BASE_URL || `${req.protocol}://${req.get('host')}`;
-      
-      const session = await stripe.checkout.sessions.create({
-        customer_email: customerEmail || undefined,
-        payment_method_types: ['card'],
-        line_items: lineItems,
-        mode: 'payment',
-        success_url: `${host}/account?success=1&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${host}/account?cancelled=1`,
-        metadata: {
-          userId: userId || '',
-          paymentType: 'balance'
+          unit_amount: 50000, // $500 in cents
         },
-      });
-
-      res.json({ url: session.url });
-    } catch (error: any) {
-      console.error('Error creating balance checkout session:', error);
-      res.status(500).json({ message: "Error creating checkout session: " + error.message });
-    }
-  });
-
-  // Public checkout with cart data
-  app.post("/api/create-checkout-session", async (req, res) => {
-    try {
-      const { cartItems, promoCode, parentName, childName } = req.body;
-      
-      if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
-        return res.status(400).json({ message: "No items in cart" });
-      }
-
-      if (!parentName || !childName) {
-        return res.status(400).json({ message: "Parent name and child name are required" });
-      }
-
-      const host = process.env.APP_BASE_URL || `${req.protocol}://${req.get('host')}`;
-      
-      // Handle promo codes properly
-      const upperPromoCode = promoCode?.toUpperCase();
-      let lineItems;
-      
-      if (upperPromoCode === 'ADMIN') {
-        // Special ADMIN promo code: $1 total
-        lineItems = [{
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: 'A Cappella Workshop Registration (Admin Discount)',
-              description: `${cartItems.length} camp week${cartItems.length > 1 ? 's' : ''} - Admin pricing`,
-            },
-            unit_amount: 100, // $1.00 in cents
-          },
-          quantity: 1,
-        }];
-      } else {
-        // Calculate discount for SHOP promo code
-        const promoDiscounts: { [key: string]: number } = { 'SHOP': 0.20 };
-        const discount = upperPromoCode && promoDiscounts[upperPromoCode] || 0;
-        
-        // Create line items for each cart item
-        lineItems = cartItems.map((item: any) => {
-          const originalPrice = item.price * 100; // Convert to cents
-          const discountedPrice = Math.round(originalPrice * (1 - discount));
-          
-          return {
-            price_data: {
-              currency: 'usd',
-              product_data: {
-                name: `${item.label} (${item.paymentType === 'deposit' ? 'Deposit' : 'Full Payment'})`,
-                metadata: {
-                  weekId: item.weekId,
-                  paymentType: item.paymentType,
-                },
-              },
-              unit_amount: discountedPrice,
-            },
-            quantity: 1,
-          };
-        });
-      }
+        quantity: 1,
+      }));
 
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
         line_items: lineItems,
         mode: 'payment',
-        success_url: `${host}/camp-registration?success=1&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${host}/camp-registration?cancelled=1`,
+        success_url: `${host}/status?ok=1&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${host}/status?ok=0`,
         metadata: {
-          parentName,
-          childName,
-          promoCode: promoCode || '',
-          isAdminDiscount: upperPromoCode === 'ADMIN' ? 'true' : 'false',
+          parent_email: parent_email || '',
+          parent_name: parent_name || '',
+          items_json: JSON.stringify(cart.map(item => ({
+            week_id: item.week_id,
+            week_label: item.week_label,
+            student_name: item.student_name || ''
+          })))
         },
       });
 
@@ -564,88 +536,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Payment status check endpoint
-  app.get("/api/payment-status/:sessionId", async (req, res) => {
-    try {
-      const { sessionId } = req.params;
-      const session = await stripe.checkout.sessions.retrieve(sessionId);
-      
-      res.json({
-        status: session.payment_status,
-        sessionStatus: session.status,
-        paymentIntent: session.payment_intent
-      });
-    } catch (error: any) {
-      console.error('Error checking payment status:', error);
-      res.status(500).json({ message: "Error checking payment status: " + error.message });
-    }
-  });
-
-  // Admin routes
-  app.get("/api/admin/users", requireRole("admin"), async (req, res) => {
-    try {
-      // This would need to be implemented with proper pagination and search
-      res.json({ message: "Admin users endpoint - to be implemented" });
-    } catch (error) {
-      console.error("Error fetching admin users:", error);
-      res.status(500).json({ message: "Failed to fetch users" });
-    }
-  });
-
-  app.get("/api/admin/registrations", requireRole("admin"), async (req, res) => {
-    try {
-      const registrations = await storage.getRegistrations();
-      res.json(registrations);
-    } catch (error) {
-      console.error("Error fetching admin registrations:", error);
-      res.status(500).json({ message: "Failed to fetch registrations" });
-    }
-  });
-
-  // Content management
-  app.get("/api/content", requireRole("admin"), async (req, res) => {
-    try {
-      const content = await storage.getContent();
-      res.json(content);
-    } catch (error) {
-      console.error("Error fetching content:", error);
-      res.status(500).json({ message: "Failed to fetch content" });
-    }
-  });
-
-  app.post("/api/content", requireRole("admin"), auditLog("edit_content"), async (req, res) => {
-    try {
-      const user = req.user as any;
-      const { key, value } = req.body;
-      
-      if (!key || !value) {
-        return res.status(400).json({ message: "Key and value are required" });
-      }
-
-      // Validate content length based on field type
-      const fieldLimits: { [key: string]: number } = {
-        "home.hero_title": 80,
-        "home.hero_sub": 160,
-        "about.what": 900,
-        "about.week": 900,
-      };
-      
-      const limit = fieldLimits[key] || 900; // Default limit
-      if (value.length > limit) {
-        return res.status(400).json({ 
-          message: `Content exceeds maximum length of ${limit} characters` 
-        });
-      }
-
-      const content = await storage.updateContent(key, value, user.id);
-      res.json(content);
-    } catch (error) {
-      console.error("Error updating content:", error);
-      res.status(500).json({ message: "Failed to update content" });
-    }
-  });
-
-  // Webhook endpoint - must use raw body parser
+  // Webhook handler with roster writing
   app.post('/api/webhook', 
     express.raw({ type: 'application/json' }), 
     async (req, res) => {
@@ -674,57 +565,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         if (session.payment_status === 'paid') {
           try {
-            const paymentType = session.metadata?.paymentType || 'full';
+            // Parse cart items from metadata
+            const itemsJson = session.metadata?.items_json;
+            const items = itemsJson ? JSON.parse(itemsJson) : [];
             
-            // Get line items to update individual registrations
-            const lineItems = await stripe.checkout.sessions.listLineItems(session.id, {
-              expand: ['data.price.product']
-            });
-
-            // Update registration status for each line item
-            for (const item of lineItems.data) {
-              const metadata = item.price?.metadata;
-              if (metadata?.registrationId) {
-                const registrationId = metadata.registrationId;
-                const fullPrice = parseInt(metadata.fullPrice || '50000');
-                const depositPrice = parseInt(metadata.depositPrice || '15000');
-                
-                if (paymentType === 'full') {
-                  // Full payment - mark as paid
-                  await storage.updateRegistrationStatus(registrationId, 'paid');
-                  await storage.updateRegistrationPaymentInfo(
-                    registrationId,
-                    session.id,
-                    'full',
-                    fullPrice,
-                    0
-                  );
-                } else {
-                  // Deposit payment - mark as deposit_paid with balance due
-                  await storage.updateRegistrationStatus(registrationId, 'deposit_paid');
-                  await storage.updateRegistrationPaymentInfo(
-                    registrationId,
-                    session.id,
-                    'deposit',
-                    depositPrice,
-                    fullPrice - depositPrice
-                  );
-                }
-              }
-            }
-
-            // Create payment record if user ID is available
-            if (session.metadata?.userId && session.payment_intent) {
-              await storage.createPayment({
-                userId: session.metadata.userId,
-                amountCents: session.amount_total || 0,
+            // Get parent info
+            const parentEmail = session.customer_details?.email || session.metadata?.parent_email || '';
+            const parentName = session.metadata?.parent_name || '';
+            
+            // Write roster records
+            let recordCount = 0;
+            for (const item of items) {
+              const record = {
+                ts: new Date().toISOString(),
+                week_id: item.week_id,
+                week_label: item.week_label,
+                student_name: item.student_name || '',
+                parent_email: parentEmail,
+                parent_name: parentName,
+                payment_intent: session.payment_intent || '',
+                amount_cents: session.amount_total || 0,
                 currency: session.currency || 'usd',
-                stripePaymentIntentId: session.payment_intent as string,
-                status: 'succeeded',
-              });
+                session_id: session.id
+              };
+              
+              writeRosterRecord(record);
+              recordCount++;
             }
+            
+            console.log(`Stored ${recordCount} roster lines for session ${session.id}`);
           } catch (error) {
-            console.error('Error processing webhook:', error);
+            console.error('Error processing checkout session:', error);
           }
         }
       }
@@ -732,7 +603,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ received: true });
     }
   );
-
+  
   const httpServer = createServer(app);
   return httpServer;
 }

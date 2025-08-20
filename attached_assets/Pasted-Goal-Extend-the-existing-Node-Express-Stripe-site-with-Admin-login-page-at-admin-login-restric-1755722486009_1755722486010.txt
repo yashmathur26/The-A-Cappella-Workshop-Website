@@ -1,0 +1,232 @@
+Goal: Extend the existing Node/Express + Stripe site with:
+
+Admin login page at /admin/login restricted to the specific email theacappellaworkshop@gmail.com and password shop (exactly as typed).
+
+Roster storage: whenever a Stripe checkout succeeds, write one JSON line per student into data/rosters/<week_id>.jsonl (and also append to data/rosters/_index.jsonl).
+
+Admin panel at /admin to select a week and view the roster: Student Name, Parent Email, Parent Name (if provided), Stripe Payment Intent ID, and Timestamp.
+
+Update the checkout flow so the client posts a cart of items ({week_id, week_label, student_name} + optional {parent_email, parent_name}) to the server; the server encodes these in the Stripe Checkout Session metadata so the webhook can write the roster files.
+
+Constraints & compatibility
+
+Do not break existing pages (Home, About, FAQ, Register, Status) or the working Stripe flow.
+
+Keep /webhook on raw body; do not apply express.json() globally before /webhook.
+
+Keep the project lightweight (no database). Use filesystem writes only.
+
+Keep all additions in index.js and create the new files/folders as specified below.
+
+1) File & folder setup
+
+Ensure folder data/rosters/ exists (create if missing).
+
+Roster files are JSON Lines (one JSON object per line, UTF-8 encoded).
+
+Per-week file: data/rosters/<week_id>.jsonl (e.g., wk1.jsonl)
+
+Global index: data/rosters/_index.jsonl
+
+Each line (record) structure:
+
+{
+  ts: ISO_8601_string,          // write time on webhook
+  week_id: string,              // e.g., "wk1"
+  week_label: string,           // e.g., "June 22–26, 2026"
+  student_name: string,         // from cart
+  parent_email: string,         // session.customer_details.email OR posted metadata
+  parent_name: string,          // optional, from metadata
+  payment_intent: string,       // Stripe PaymentIntent ID
+  amount_cents: number,         // session.amount_total
+  currency: string,             // e.g., "usd"
+  session_id: string            // Stripe Checkout Session ID
+}
+
+2) Admin sign-in (email + password)
+
+Add a minimal in-memory cookie session mechanism (Map of sessionId → payload) with:
+
+Cookie name sid, httpOnly, sameSite: lax.
+
+Payload for admin: { role: 'admin', email: 'theacappellaworkshop@gmail.com' }.
+
+Create routes:
+
+GET /admin/login → serve a tiny dark themed login form (email + password).
+
+POST /admin/login → if email === 'theacappellaworkshop@gmail.com' and password === 'shop', create session and redirect to /admin; otherwise respond 401.
+
+POST /admin/logout → clear session and redirect to /admin/login.
+
+Middleware:
+
+requireAdmin checks cookie session; if missing or not role admin, respond 401/redirect to login.
+
+Keep this extremely simple; no external auth libs. Password is exactly shop as the user requested.
+
+3) Checkout creation: accept a richer cart and encode metadata
+
+Update POST /create-checkout-session to expect JSON body:
+
+{
+  cart: [
+    { week_id: "wk1", week_label: "June 22–26, 2026", student_name: "Alice Smith" },
+    { week_id: "wk4", week_label: "August 10–14, 2026", student_name: "Bob Jones" }
+  ],
+  parent_email: "parent@example.com",  // optional (can be blank)
+  parent_name:  "Pat Example"          // optional
+}
+
+
+Validation:
+
+cart must be an array with ≥1 items.
+
+Each item must include week_id and week_label (non-empty); student_name may be empty but should be included when available.
+
+Build Stripe Checkout Session:
+
+One line_item per cart item; each with unit_amount: 50000 (USD cents), product_data.name: "Week <week_label> — <student_name or 'Student'>".
+
+success_url: <base>/status?ok=1&session_id={CHECKOUT_SESSION_ID}
+
+cancel_url: <base>/status?ok=0
+
+metadata on the session:
+
+parent_email (string; may be empty)
+
+parent_name (string; may be empty)
+
+items_json = JSON.stringify of the cart array but minimized to [{ week_id, week_label, student_name }].
+
+Derive <base> from the request: req.protocol + '://' + req.get('host').
+
+Return JSON { url: session.url } or 500 on error.
+
+Do not change existing front-end unless necessary; if the current Register page doesn’t post student_name, that field may be empty—the webhook will still write a line.
+
+4) Webhook: write roster files on successful payment
+
+Keep route POST /webhook with express.raw({ type: 'application/json' }) and signature verification using STRIPE_WEBHOOK_SECRET.
+
+On event checkout.session.completed:
+
+Parse session.metadata.items_json (if missing, treat as []).
+
+Read parentEmail from session.customer_details.email (fallback to session.metadata.parent_email).
+
+Collect:
+
+paymentIntentId = session.payment_intent
+
+amountTotal = session.amount_total
+
+currency = session.currency || 'usd'
+
+For each item in items_json, build the record object exactly as in section (1) and:
+
+Append to per-week file: data/rosters/<week_id>.jsonl.
+
+Append to global index: data/rosters/_index.jsonl.
+
+Log a concise success line: Stored N roster lines for session <id>.
+
+Respond with { received: true }. On signature failure, 400 with message.
+
+5) Admin panel: list weeks and view rosters
+
+Implement:
+
+API GET /api/admin/weeks (admin-only):
+
+Scan data/rosters/ for files ending in .jsonl excluding _index.jsonl.
+
+Return { weeks: ["wk1", "wk2", ...] } sorted.
+
+API GET /api/admin/roster/:weekId (admin-only):
+
+Read data/rosters/:weekId.jsonl.
+
+Split by newline, JSON.parse each, drop malformed lines.
+
+Return { records: [ ...objects... ] }.
+
+Page GET /admin (admin-only):
+
+A single, minimal HTML page (dark/blue styling consistent with the site) that:
+
+On load, fetches /api/admin/weeks, populates a <select>.
+
+Fetches /api/admin/roster/<week> and fills a table with columns:
+
+# (index)
+
+Student (student_name)
+
+Parent Email (parent_email)
+
+Parent Name (parent_name)
+
+Payment Intent (payment_intent)
+
+Time (format ts as local datetime)
+
+Shows a small “N registrations” summary.
+
+Includes a “Log out” button posting to /admin/logout.
+
+Keep the UI read-only and fast—no editing here.
+
+UI notes:
+
+Use the same sleek dark/blue palette (background #0b1220, glassy cards, system font).
+
+Keep everything inlined (no extra assets) to stay token-light.
+
+Make the table responsive (wrap text if narrow).
+
+6) Middleware ordering & safety
+
+Ensure cookie-parser is applied globally.
+
+Do not apply express.json() before /webhook. Use express.json() only on routes that parse JSON (e.g., /create-checkout-session).
+
+Keep error handling minimal and log clearly.
+
+If a roster file doesn’t exist yet, return an empty list instead of an error.
+
+7) Quick test plan (the agent should verify)
+
+Visit /admin/login, enter email theacappellaworkshop@gmail.com and password shop → should redirect to /admin.
+
+/admin should load with an empty weeks list initially.
+
+Run a test checkout using the site’s Register flow, posting a cart with at least one item (include a fake student name and week id).
+
+Complete Stripe test payment → webhook fires → JSONL files appear under data/rosters/.
+
+Refresh /admin → week IDs should appear → selecting a week shows the roster table with the fields specified.
+
+Log out via the button → should clear session and redirect to /admin/login.
+
+Deliverables (what to create/modify):
+
+Update index.js to add:
+
+cookie parser + very small session map
+
+/admin/login (GET, POST), /admin/logout (POST)
+
+/admin page (admin-only)
+
+/api/admin/weeks and /api/admin/roster/:weekId (admin-only)
+
+Enhanced /create-checkout-session that accepts { cart, parent_email, parent_name } and stores metadata
+
+Webhook logic that writes JSONL roster files
+
+Create folder data/rosters/ if missing.
+
+Keep all other existing routes/pages working unchanged.
