@@ -47,6 +47,8 @@ function requireAdmin(req: express.Request, res: express.Response, next: express
   const sessionId = req.cookies.sid;
   const session = sessionId ? adminSessions.get(sessionId) : null;
   
+  console.log('Admin auth check:', { sessionId, hasSession: !!session, path: req.path });
+  
   if (!session || session.role !== 'admin') {
     if (req.path.startsWith('/api/')) {
       return res.status(401).json({ message: 'Unauthorized' });
@@ -195,9 +197,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/admin/login", express.urlencoded({ extended: true }), (req, res) => {
     const { email, password } = req.body;
     
+    console.log('Admin login attempt:', { email, password: password ? '[PROVIDED]' : '[MISSING]' });
+    
     if (email === 'theacappellaworkshop@gmail.com' && password === 'shop') {
       const sessionId = generateSessionId();
       adminSessions.set(sessionId, { role: 'admin', email });
+      
+      console.log('Admin login successful, setting session:', sessionId);
       
       res.cookie('sid', sessionId, {
         httpOnly: true,
@@ -208,6 +214,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.redirect('/admin');
     }
     
+    console.log('Admin login failed - invalid credentials');
     res.status(401).send('Invalid credentials');
   });
 
