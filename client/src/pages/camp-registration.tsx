@@ -175,11 +175,31 @@ export default function Register() {
         const urlParts = data.url.split('/');
         const sessionId = urlParts[urlParts.length - 1].split('?')[0];
         
-        // Open payment in new tab
-        paymentWindowRef.current = window.open(data.url, '_blank', 'noopener,noreferrer');
+        // Check if user is on mobile or has limited screen space
+        const isMobileOrSmallScreen = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         
-        // Start monitoring payment status
-        startPaymentMonitoring(sessionId);
+        if (isMobileOrSmallScreen) {
+          // On mobile/small screens, redirect in the same window for better UX
+          window.location.href = data.url;
+        } else {
+          // On desktop, try to open in new tab, with fallback to same window
+          const paymentWindow = window.open(data.url, '_blank', 'noopener,noreferrer');
+          paymentWindowRef.current = paymentWindow;
+          
+          if (paymentWindow && !paymentWindow.closed) {
+            // Start monitoring payment status
+            startPaymentMonitoring(sessionId);
+          } else {
+            // Fallback: redirect in same window if popup is blocked
+            toast({
+              title: "Redirecting to payment", 
+              description: "Opening secure payment page...",
+            });
+            setTimeout(() => {
+              window.location.href = data.url;
+            }, 1000);
+          }
+        }
         
       } else {
         throw new Error('No checkout URL received');
@@ -370,9 +390,9 @@ export default function Register() {
           </div>
         </GlassCard>
         
-        <div className="lg:grid lg:grid-cols-3 lg:gap-12">
+        <div className="lg:grid lg:grid-cols-3 lg:gap-8 xl:gap-12">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-12">
+          <div className="lg:col-span-2 space-y-8 lg:space-y-12">
             {/* Step 1: Choose Weeks */}
             <section>
               <h2 className="text-2xl font-bold mb-4 text-teal-custom">Step 1 — Choose Your Week(s)</h2>
@@ -394,7 +414,7 @@ export default function Register() {
                     </div>
                     
                     {/* Payment Options */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="bg-white/5 border border-white/10 rounded-lg p-4 hover:bg-white/10 transition-colors">
                         <div className="flex justify-between items-center mb-2">
                           <span className="font-semibold text-white">Full Payment</span>
@@ -404,7 +424,7 @@ export default function Register() {
                         <GradientButton
                           variant={CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'full' ? 'ghost' : 'primary'}
                           size="sm"
-                          className="w-full"
+                          className="w-full py-2.5 text-sm font-medium min-h-[44px]"
                           disabled={CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'deposit'}
                           onClick={() => {
                             if (CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'full') {
@@ -427,7 +447,7 @@ export default function Register() {
                         <GradientButton
                           variant={CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'deposit' ? 'ghost' : 'primary'}
                           size="sm"
-                          className="w-full"
+                          className="w-full py-2.5 text-sm font-medium min-h-[44px]"
                           disabled={CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'full'}
                           onClick={() => {
                             if (CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'deposit') {
@@ -549,7 +569,7 @@ export default function Register() {
               {cartItems.length > 0 && (
                 <div className="mb-6">
                   <Label className="text-white text-xs mb-2 block">Promo Code</Label>
-                  <div className="flex space-x-2">
+                  <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
                     <Input
                       value={promoCode}
                       onChange={(e) => setPromoCode(e.target.value)}

@@ -49,6 +49,10 @@
     @apply font-sans antialiased text-foreground;
     background: linear-gradient(135deg, #0b1220 0%, #1e3a8a 50%, #164e63 100%);
     min-height: 100vh;
+    /* Mobile optimization */
+    -webkit-overflow-scrolling: touch;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
 
   html {
