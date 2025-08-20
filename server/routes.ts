@@ -355,28 +355,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Legacy public checkout (for backward compatibility)
+  // Public checkout with cart data
   app.post("/api/create-checkout-session", async (req, res) => {
     try {
-      const { weeks } = req.body;
+      const { cartItems, promoCode, parentName, childName } = req.body;
       
-      if (!weeks || !Array.isArray(weeks) || weeks.length === 0) {
-        return res.status(400).json({ message: "Invalid weeks selection" });
+      if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
+        return res.status(400).json({ message: "No items in cart" });
       }
 
+      if (!parentName || !childName) {
+        return res.status(400).json({ message: "Parent name and child name are required" });
+      }
+
+      // Calculate discount
+      const promoDiscounts: { [key: string]: number } = { 'SHOP': 0.20 };
+      const discount = promoCode && promoDiscounts[promoCode.toUpperCase()] || 0;
+      
       const host = process.env.APP_BASE_URL || `${req.protocol}://${req.get('host')}`;
       
-      // Create line items for each selected week
-      const lineItems = weeks.map((weekLabel: string) => ({
-        price_data: {
-          currency: 'usd',
-          product_data: {
-            name: `The A Cappella Workshop — ${weekLabel}`,
+      // Create line items for each cart item
+      const lineItems = cartItems.map((item: any) => {
+        const originalPrice = item.price * 100; // Convert to cents
+        const discountedPrice = Math.round(originalPrice * (1 - discount));
+        
+        return {
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: `${item.label} (${item.paymentType === 'deposit' ? 'Deposit' : 'Full Payment'})`,
+              metadata: {
+                weekId: item.weekId,
+                paymentType: item.paymentType,
+              },
+            },
+            unit_amount: discountedPrice,
           },
-          unit_amount: 50000, // $500.00 in cents
-        },
-        quantity: 1,
-      }));
+          quantity: 1,
+        };
+      });
 
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
@@ -384,6 +401,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         mode: 'payment',
         success_url: `${host}/camp-registration?success=1&session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${host}/camp-registration?cancelled=1`,
+        metadata: {
+          parentName,
+          childName,
+          promoCode: promoCode || '',
+          discount: discount.toString(),
+        },
       });
 
       res.json({ url: session.url });

@@ -7,8 +7,20 @@ export interface CartItem {
   paymentType: 'full' | 'deposit';
 }
 
+export interface CartState {
+  items: CartItem[];
+  promoCode: string;
+  discount: number;
+}
+
 export class CartManager {
   private static readonly STORAGE_KEY = 'acappella-cart';
+  private static readonly PROMO_KEY = 'acappella-promo';
+  
+  // Promo codes and their discounts
+  private static readonly PROMO_CODES = {
+    'SHOP': 0.20 // 20% discount
+  };
 
   static getCart(): CartItem[] {
     if (typeof window === 'undefined') return [];
@@ -58,16 +70,20 @@ export class CartManager {
         paymentType
       });
       this.setCart(filteredCart);
+      this.triggerCartUpdate();
     }
   }
 
   static removeFromCart(weekId: string): void {
     const cart = this.getCart().filter(item => item.weekId !== weekId);
     this.setCart(cart);
+    this.triggerCartUpdate();
   }
 
   static clearCart(): void {
     this.setCart([]);
+    this.removePromoCode();
+    this.triggerCartUpdate();
   }
 
   static getCartItems(): CartItem[] {
@@ -75,7 +91,56 @@ export class CartManager {
   }
 
   static getCartTotal(): number {
+    const subtotal = this.getCartItems().reduce((total, item) => total + item.price, 0);
+    const discount = this.getDiscount();
+    return Math.round((subtotal * (1 - discount)) * 100) / 100;
+  }
+
+  static getCartSubtotal(): number {
     return this.getCartItems().reduce((total, item) => total + item.price, 0);
+  }
+
+  static getDiscount(): number {
+    const promoCode = this.getPromoCode();
+    return this.PROMO_CODES[promoCode as keyof typeof this.PROMO_CODES] || 0;
+  }
+
+  static getDiscountAmount(): number {
+    const subtotal = this.getCartSubtotal();
+    const discount = this.getDiscount();
+    return Math.round(subtotal * discount * 100) / 100;
+  }
+
+  static getPromoCode(): string {
+    if (typeof window === 'undefined') return '';
+    return localStorage.getItem(this.PROMO_KEY) || '';
+  }
+
+  static setPromoCode(code: string): boolean {
+    if (typeof window === 'undefined') return false;
+    const upperCode = code.toUpperCase();
+    if (upperCode === '' || this.PROMO_CODES[upperCode as keyof typeof this.PROMO_CODES]) {
+      localStorage.setItem(this.PROMO_KEY, upperCode);
+      this.triggerCartUpdate();
+      return true;
+    }
+    return false;
+  }
+
+  static removePromoCode(): void {
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem(this.PROMO_KEY);
+    this.triggerCartUpdate();
+  }
+
+  static isValidPromoCode(code: string): boolean {
+    return !!this.PROMO_CODES[code.toUpperCase() as keyof typeof this.PROMO_CODES];
+  }
+
+  private static triggerCartUpdate(): void {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('cartUpdated'));
+    }
   }
 
   static getCartCount(): number {

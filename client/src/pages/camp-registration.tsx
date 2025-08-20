@@ -8,6 +8,9 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { PaymentOptions } from '@/components/PaymentOptions';
 import { useLocation } from 'wouter';
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tag, X } from "lucide-react";
 
 export default function Register() {
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -15,15 +18,21 @@ export default function Register() {
   const [showForm, setShowForm] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [registrationIds, setRegistrationIds] = useState<string[]>([]);
+  const [promoCode, setPromoCode] = useState(CartManager.getPromoCode());
+  const [promoError, setPromoError] = useState("");
+  const [parentName, setParentName] = useState("");
+  const [childName, setChildName] = useState("");
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
 
   useEffect(() => {
     setCart(CartManager.getCart());
+    setPromoCode(CartManager.getPromoCode());
     
     const handleStorageChange = () => {
       setCart(CartManager.getCart());
+      setPromoCode(CartManager.getPromoCode());
     };
 
     window.addEventListener('storage', handleStorageChange);
@@ -53,8 +62,45 @@ export default function Register() {
     window.dispatchEvent(new Event('cartUpdated'));
   };
 
+  const handlePromoCodeSubmit = () => {
+    if (!promoCode.trim()) {
+      setPromoError("");
+      CartManager.removePromoCode();
+      return;
+    }
+    
+    const isValid = CartManager.setPromoCode(promoCode.trim());
+    if (isValid) {
+      setPromoError("");
+      toast({
+        title: "Promo code applied!",
+        description: `You saved $${CartManager.getDiscountAmount()} with code ${promoCode.toUpperCase()}`,
+      });
+    } else {
+      setPromoError("Invalid promo code");
+    }
+  };
+
+  const handleRemovePromo = () => {
+    CartManager.removePromoCode();
+    setPromoCode("");
+    setPromoError("");
+    toast({
+      title: "Promo code removed",
+    });
+  };
+
   const proceedToPayment = async () => {
     if (cart.length === 0) return;
+    
+    if (!parentName.trim() || !childName.trim()) {
+      toast({
+        title: "Names required",
+        description: "Please enter both parent and child names before checkout.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     if (isAuthenticated) {
       // Show payment options for authenticated users
@@ -65,10 +111,11 @@ export default function Register() {
     // Guest checkout flow
     setIsLoading(true);
     try {
-      const selectedWeeks = cart.map(item => item.label);
-      
       const response = await apiRequest('POST', '/api/create-checkout-session', {
-        weeks: selectedWeeks
+        cartItems: cart,
+        promoCode: CartManager.getPromoCode(),
+        parentName: parentName.trim(),
+        childName: childName.trim(),
       });
       
       const data = await response.json();
@@ -94,7 +141,10 @@ export default function Register() {
   };
 
   const cartItems = CartManager.getCartItems();
+  const cartSubtotal = CartManager.getCartSubtotal();
+  const discountAmount = CartManager.getDiscountAmount();
   const cartTotal = CartManager.getCartTotal();
+  const hasDiscount = discountAmount > 0;
 
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
@@ -262,7 +312,83 @@ export default function Register() {
                   ))
                 )}
               </div>
+              
+              {/* Promo Code Section */}
+              {cartItems.length > 0 && (
+                <div className="mb-6">
+                  <Label className="text-white text-sm mb-2 block">Promo Code</Label>
+                  <div className="flex space-x-2">
+                    <Input
+                      value={promoCode}
+                      onChange={(e) => setPromoCode(e.target.value)}
+                      placeholder="Enter promo code"
+                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50 flex-1"
+                      onKeyPress={(e) => e.key === 'Enter' && handlePromoCodeSubmit()}
+                    />
+                    {CartManager.getPromoCode() ? (
+                      <button
+                        onClick={handleRemovePromo}
+                        className="px-3 py-2 bg-red-500/20 border border-red-400/30 text-red-200 rounded hover:bg-red-500/30 transition-colors"
+                      >
+                        <X size={16} />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handlePromoCodeSubmit}
+                        className="px-3 py-2 bg-sky-custom/20 border border-sky-custom/30 text-sky-200 rounded hover:bg-sky-custom/30 transition-colors"
+                      >
+                        <Tag size={16} />
+                      </button>
+                    )}
+                  </div>
+                  {promoError && (
+                    <p className="text-red-400 text-xs mt-1">{promoError}</p>
+                  )}
+                  {CartManager.getPromoCode() && (
+                    <p className="text-green-400 text-xs mt-1">
+                      Code "{CartManager.getPromoCode()}" applied!
+                    </p>
+                  )}
+                </div>
+              )}
+              
+              {/* Names Section */}
+              {cartItems.length > 0 && showForm && (
+                <div className="mb-6 space-y-4">
+                  <div>
+                    <Label className="text-white text-sm mb-2 block">Parent/Guardian Name</Label>
+                    <Input
+                      value={parentName}
+                      onChange={(e) => setParentName(e.target.value)}
+                      placeholder="Enter parent name"
+                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-white text-sm mb-2 block">Child's Name</Label>
+                    <Input
+                      value={childName}
+                      onChange={(e) => setChildName(e.target.value)}
+                      placeholder="Enter child's name"
+                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                    />
+                  </div>
+                </div>
+              )}
+              
               <div className="border-t border-white/20 pt-4">
+                {hasDiscount && (
+                  <div className="space-y-2 mb-4 text-sm">
+                    <div className="flex justify-between text-white/80">
+                      <span>Subtotal:</span>
+                      <span>${cartSubtotal}</span>
+                    </div>
+                    <div className="flex justify-between text-green-400">
+                      <span>Discount ({CartManager.getPromoCode()}):</span>
+                      <span>-${discountAmount}</span>
+                    </div>
+                  </div>
+                )}
                 <div className="flex justify-between text-lg font-semibold mb-6">
                   <span className="text-white">Total:</span>
                   <span className="text-white">${cartTotal}</span>
