@@ -758,7 +758,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               name: 'A Cappella Workshop Registration (Admin Discount)',
               description: `${cartItems.length} camp week${cartItems.length > 1 ? 's' : ''} - Admin pricing`,
             },
-            unit_amount: 100, // $1.00 in cents
+            unit_amount: 0, // $0.00 in cents
           },
           quantity: 1,
         }];
@@ -793,8 +793,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         payment_method_types: ['card'],
         line_items: lineItems,
         mode: 'payment',
-        success_url: `${host}/camp-registration?success=1&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${host}/camp-registration?cancelled=1`,
+        success_url: `${host}/status?ok=1&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${host}/status?ok=0`,
         metadata: {
           parentName,
           childName, 
