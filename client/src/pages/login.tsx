@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useRegister, useAuth } from "@/hooks/useAuth";
+import { useLogin, useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,36 +12,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Eye, EyeOff, Chrome } from "lucide-react";
 
-const registerSchema = z.object({
+const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
-  password: z
-    .string()
-    .min(10, "Password must be at least 10 characters long")
-    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
-    .regex(/[0-9]/, "Password must contain at least one number"),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
+  password: z.string().min(1, "Password is required"),
 });
 
-type RegisterForm = z.infer<typeof registerSchema>;
+type LoginForm = z.infer<typeof loginSchema>;
 
-export default function Register() {
+export default function Login() {
   const [, setLocation] = useLocation();
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { isAuthenticated } = useAuth();
   const { toast } = useToast();
-  const registerMutation = useRegister();
+  const loginMutation = useLogin();
 
-  const form = useForm<RegisterForm>({
-    resolver: zodResolver(registerSchema),
+  const form = useForm<LoginForm>({
+    resolver: zodResolver(loginSchema),
     defaultValues: {
       email: "",
       password: "",
-      confirmPassword: "",
     },
   });
 
@@ -52,21 +41,18 @@ export default function Register() {
     }
   }, [isAuthenticated, setLocation]);
 
-  const onSubmit = async (data: RegisterForm) => {
+  const onSubmit = async (data: LoginForm) => {
     try {
-      await registerMutation.mutateAsync({
-        email: data.email,
-        password: data.password,
-      });
+      await loginMutation.mutateAsync(data);
       toast({
-        title: "Account created!",
-        description: "Welcome to The A Cappella Workshop. You've been logged in automatically.",
+        title: "Welcome back!",
+        description: "You've been logged in successfully.",
       });
       setLocation("/account");
     } catch (error: any) {
       toast({
-        title: "Registration failed",
-        description: error.message || "Please try again.",
+        title: "Login failed",
+        description: error.message || "Please check your credentials and try again.",
         variant: "destructive",
       });
     }
@@ -89,9 +75,9 @@ export default function Register() {
       <div className="w-full max-w-md">
         <Card className="bg-black/20 backdrop-blur-lg border border-white/10 shadow-2xl">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold text-white">Create Your Account</CardTitle>
+            <CardTitle className="text-2xl font-bold text-white">Welcome Back</CardTitle>
             <CardDescription className="text-white/70">
-              Join The A Cappella Workshop community
+              Sign in to your A Cappella Workshop account
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -116,7 +102,7 @@ export default function Register() {
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="Create a strong password"
+                    placeholder="Your password"
                     className="bg-white/10 border-white/20 text-white placeholder:text-white/50 pr-10"
                     {...form.register("password")}
                   />
@@ -131,40 +117,14 @@ export default function Register() {
                 {form.formState.errors.password && (
                   <p className="text-red-400 text-sm">{form.formState.errors.password.message}</p>
                 )}
-                <p className="text-white/60 text-xs">
-                  Must be at least 10 characters with uppercase, lowercase, and number
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="text-white">Confirm Password</Label>
-                <div className="relative">
-                  <Input
-                    id="confirmPassword"
-                    type={showConfirmPassword ? "text" : "password"}
-                    placeholder="Confirm your password"
-                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50 pr-10"
-                    {...form.register("confirmPassword")}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white"
-                  >
-                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-                {form.formState.errors.confirmPassword && (
-                  <p className="text-red-400 text-sm">{form.formState.errors.confirmPassword.message}</p>
-                )}
               </div>
 
               <Button
                 type="submit"
                 className="w-full btn-gradient"
-                disabled={registerMutation.isPending}
+                disabled={loginMutation.isPending}
               >
-                {registerMutation.isPending ? "Creating account..." : "Create Account"}
+                {loginMutation.isPending ? "Signing in..." : "Sign In"}
               </Button>
             </form>
 
@@ -184,23 +144,15 @@ export default function Register() {
               onClick={handleGoogleLogin}
             >
               <Chrome className="mr-2 h-4 w-4" />
-              Sign up with Google
+              Sign in with Google
             </Button>
 
             <div className="text-center">
               <p className="text-white/70 text-sm">
-                Already have an account?{" "}
-                <Link href="/login">
+                Don't have an account?{" "}
+                <Link href="/register">
                   <span className="text-sky-custom hover:text-teal-custom font-medium cursor-pointer">
-                    Sign in
-                  </span>
-                </Link>
-              </p>
-              <p className="text-white/60 text-xs mt-2">
-                Looking for camp registration?{" "}
-                <Link href="/camp-registration">
-                  <span className="text-sky-custom hover:text-teal-custom cursor-pointer">
-                    Register for camp
+                    Sign up
                   </span>
                 </Link>
               </p>

@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'wouter';
-import { ShoppingCart, Menu, X } from 'lucide-react';
+import { ShoppingCart, Menu, X, User, LogOut } from 'lucide-react';
 import { CartManager } from '@/lib/cart';
+import { useAuth, useLogout } from '@/hooks/useAuth';
+import { Button } from '@/components/ui/button';
 // Using a custom SVG logo that matches the microphone design
 const LogoSVG = () => (
   <svg viewBox="0 0 100 100" className="w-10 h-10" fill="none">
@@ -28,6 +30,8 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
   const [location] = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [currentCartCount, setCurrentCartCount] = useState(cartCount);
+  const { user, isAuthenticated } = useAuth();
+  const logoutMutation = useLogout();
 
   useEffect(() => {
     setCurrentCartCount(CartManager.getCartCount());
@@ -83,12 +87,38 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
                 {link.label}
               </Link>
             ))}
-            <Link
-              href="/register"
-              className="btn-gradient px-6 py-2 rounded-full text-white font-medium hover:text-white"
-            >
-              Register
-            </Link>
+            {isAuthenticated ? (
+              <div className="flex items-center space-x-4">
+                <Link href="/account" className="flex items-center space-x-2 text-white/80 hover:text-white">
+                  <User size={18} />
+                  <span className="hidden sm:inline">{user?.email?.split('@')[0]}</span>
+                </Link>
+                <Button
+                  onClick={() => logoutMutation.mutate()}
+                  variant="ghost"
+                  size="sm"
+                  className="text-white/80 hover:text-white hover:bg-white/10"
+                  disabled={logoutMutation.isPending}
+                >
+                  <LogOut size={16} />
+                </Button>
+              </div>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="text-white/80 hover:text-white px-4 py-2 rounded"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  href="/register"
+                  className="btn-gradient px-6 py-2 rounded-full text-white font-medium hover:text-white"
+                >
+                  Register
+                </Link>
+              </>
+            )}
             <Link href="/register" className="relative">
               <ShoppingCart className="text-white/80 hover:text-white cursor-pointer" size={20} />
               {currentCartCount > 0 && (
@@ -124,13 +154,40 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
                   {link.label}
                 </Link>
               ))}
-              <Link
-                href="/register"
-                className="btn-gradient px-6 py-2 rounded-full text-white font-medium inline-block text-center"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Register
-              </Link>
+              {isAuthenticated ? (
+                <div className="space-y-4">
+                  <Link href="/account" className="flex items-center space-x-2 text-white/80 hover:text-white">
+                    <User size={18} />
+                    <span>Account ({user?.email?.split('@')[0]})</span>
+                  </Link>
+                  <Button
+                    onClick={() => logoutMutation.mutate()}
+                    variant="ghost"
+                    className="w-full text-white/80 hover:text-white hover:bg-white/10"
+                    disabled={logoutMutation.isPending}
+                  >
+                    <LogOut size={16} className="mr-2" />
+                    Sign Out
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <Link
+                    href="/login"
+                    className="block text-white/80 hover:text-white px-4 py-2 rounded text-center"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    href="/register"
+                    className="btn-gradient px-6 py-2 rounded-full text-white font-medium inline-block text-center"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Register
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         )}
