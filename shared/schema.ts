@@ -19,6 +19,8 @@ export const sessions = pgTable(
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: text("email").unique().notNull(),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
   emailVerified: boolean("email_verified").default(false),
   passwordHash: text("password_hash"), // null if Google-only
   googleId: text("google_id").unique(),

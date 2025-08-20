@@ -83,6 +83,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({
       id: user.id,
       email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
       role: user.role,
       emailVerified: user.emailVerified,
       stripeCustomerId: user.stripeCustomerId,

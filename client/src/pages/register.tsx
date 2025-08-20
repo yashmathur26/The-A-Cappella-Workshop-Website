@@ -13,6 +13,8 @@ import { Separator } from "@/components/ui/separator";
 import { Eye, EyeOff, Chrome } from "lucide-react";
 
 const registerSchema = z.object({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
   email: z.string().email("Please enter a valid email address"),
   password: z
     .string()
@@ -39,6 +41,8 @@ export default function Register() {
   const form = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
+      firstName: "",
+      lastName: "",
       email: "",
       password: "",
       confirmPassword: "",
@@ -55,6 +59,8 @@ export default function Register() {
   const onSubmit = async (data: RegisterForm) => {
     try {
       await registerMutation.mutateAsync({
+        firstName: data.firstName,
+        lastName: data.lastName,
         email: data.email,
         password: data.password,
       });
@@ -96,6 +102,33 @@ export default function Register() {
           </CardHeader>
           <CardContent className="space-y-6">
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName" className="text-white">First Name</Label>
+                  <Input
+                    id="firstName"
+                    placeholder="Your first name"
+                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                    {...form.register("firstName")}
+                  />
+                  {form.formState.errors.firstName && (
+                    <p className="text-red-400 text-sm">{form.formState.errors.firstName.message}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName" className="text-white">Last Name</Label>
+                  <Input
+                    id="lastName"
+                    placeholder="Your last name"
+                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                    {...form.register("lastName")}
+                  />
+                  {form.formState.errors.lastName && (
+                    <p className="text-red-400 text-sm">{form.formState.errors.lastName.message}</p>
+                  )}
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-white">Email</Label>
                 <Input

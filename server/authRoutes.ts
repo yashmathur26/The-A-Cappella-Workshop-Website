@@ -9,6 +9,8 @@ const router = Router();
 
 // Validation schemas
 const registerSchema = z.object({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
   email: z.string().email().min(1),
   password: z.string().min(10, "Password must be at least 10 characters"),
 });
@@ -21,7 +23,7 @@ const loginSchema = z.object({
 // Registration route
 router.post("/register", authRateLimit, async (req, res) => {
   try {
-    const { email, password } = registerSchema.parse(req.body);
+    const { firstName, lastName, email, password } = registerSchema.parse(req.body);
     
     // Check if user already exists
     const existingUser = await storage.getUserByEmail(email);
@@ -34,6 +36,8 @@ router.post("/register", authRateLimit, async (req, res) => {
     
     // Create user
     const user = await storage.upsertUser({
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
       email: email.toLowerCase(),
       passwordHash,
       role: "parent",
@@ -59,6 +63,8 @@ router.post("/register", authRateLimit, async (req, res) => {
         user: {
           id: user.id,
           email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
           role: user.role,
         },
       });

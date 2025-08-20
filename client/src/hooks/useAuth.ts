@@ -4,6 +4,8 @@ import { apiRequest } from "@/lib/queryClient";
 export interface User {
   id: string;
   email: string;
+  firstName?: string;
+  lastName?: string;
   role: string;
   emailVerified: boolean;
   stripeCustomerId?: string;
@@ -51,7 +53,7 @@ export function useRegister() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (data: { email: string; password: string }) => {
+    mutationFn: async (data: { firstName: string; lastName: string; email: string; password: string }) => {
       const response = await apiRequest("POST", "/auth/register", data);
       return response.json();
     },
