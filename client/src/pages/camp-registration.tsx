@@ -102,13 +102,7 @@ export default function Register() {
       return;
     }
     
-    if (isAuthenticated) {
-      // Show payment options for authenticated users
-      setShowPayment(true);
-      return;
-    }
-    
-    // Guest checkout flow
+    // Go directly to Stripe checkout for both authenticated and guest users
     setIsLoading(true);
     try {
       const response = await apiRequest('POST', '/api/create-checkout-session', {

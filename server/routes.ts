@@ -401,6 +401,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Balance checkout for existing registrations
+  app.post("/api/balance-checkout", async (req, res) => {
+    try {
+      const { registrationIds } = req.body;
+      
+      if (!registrationIds || !Array.isArray(registrationIds) || registrationIds.length === 0) {
+        return res.status(400).json({ message: "Registration IDs are required" });
+      }
+
+      // Get registrations and calculate balances
+      const lineItems = [];
+      let customerEmail = null;
+      let userId = null;
+      
+      for (const regId of registrationIds) {
+        const registration = await storage.getRegistration(regId);
+        if (!registration) {
+          return res.status(400).json({ message: "Registration not found" });
+        }
+        
+        // Get user for customer info
+        if (!userId) {
+          const user = await storage.getUser(registration.userId);
+          if (user) {
+            customerEmail = user.email;
+            userId = user.id;
+          }
+        }
+        
+        const student = await storage.getStudent(registration.studentId);
+        const week = await storage.getWeek(registration.weekId);
+        const balanceDue = registration.balanceDueCents || 0;
+        
+        if (balanceDue <= 0) {
+          continue; // Skip if no balance due
+        }
+        
+        lineItems.push({
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: `Balance Payment — ${week?.label} — ${student?.firstName} ${student?.lastName}`,
+              description: `Remaining balance for camp registration`,
+            },
+            unit_amount: balanceDue,
+          },
+          quantity: 1,
+          metadata: {
+            registrationId: regId,
+            userId: registration.userId,
+            studentId: registration.studentId,
+            weekId: registration.weekId,
+            paymentType: 'balance'
+          }
+        });
+      }
+      
+      if (lineItems.length === 0) {
+        return res.status(400).json({ message: "No outstanding balances to pay" });
+      }
+
+      const host = process.env.APP_BASE_URL || `${req.protocol}://${req.get('host')}`;
+      
+      const session = await stripe.checkout.sessions.create({
+        customer_email: customerEmail || undefined,
+        payment_method_types: ['card'],
+        line_items: lineItems,
+        mode: 'payment',
+        success_url: `${host}/account?success=1&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${host}/account?cancelled=1`,
+        metadata: {
+          userId: userId || '',
+          paymentType: 'balance'
+        },
+      });
+
+      res.json({ url: session.url });
+    } catch (error: any) {
+      console.error('Error creating balance checkout session:', error);
+      res.status(500).json({ message: "Error creating checkout session: " + error.message });
+    }
+  });
+
   // Public checkout with cart data
   app.post("/api/create-checkout-session", async (req, res) => {
     try {

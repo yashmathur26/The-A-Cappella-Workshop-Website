@@ -28,7 +28,6 @@ import {
   DollarSign,
   Settings
 } from "lucide-react";
-import { PaymentOptions } from "@/components/PaymentOptions";
 
 interface Student {
   id: string;
@@ -70,8 +69,34 @@ export default function Account() {
   const logoutMutation = useLogout();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [showPayment, setShowPayment] = useState(false);
-  const [selectedRegistrations, setSelectedRegistrations] = useState<string[]>([]);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
+  // Profile update form schema
+  const profileSchema = z.object({
+    firstName: z.string().min(1, "First name is required"),
+    lastName: z.string().min(1, "Last name is required"),
+    email: z.string().email("Please enter a valid email address")
+  });
+
+  const profileForm = useForm<z.infer<typeof profileSchema>>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: {
+      firstName: user?.firstName || "",
+      lastName: user?.lastName || "",
+      email: user?.email || ""
+    }
+  });
+
+  // Update form default values when user data loads
+  useEffect(() => {
+    if (user) {
+      profileForm.reset({
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+        email: user.email || ""
+      });
+    }
+  }, [user, profileForm]);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -109,6 +134,59 @@ export default function Account() {
       await logoutMutation.mutateAsync();
     } catch (error) {
       console.error("Logout error:", error);
+    }
+  };
+
+  // Profile update mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof profileSchema>) => {
+      return await apiRequest("PUT", "/api/profile", data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Profile Updated",
+        description: "Your profile information has been successfully updated.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/me"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update profile. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onProfileSubmit = (data: z.infer<typeof profileSchema>) => {
+    updateProfileMutation.mutate(data);
+  };
+
+  // Handle balance payment - go directly to Stripe
+  const handleBalancePayment = async (registrationIds: string[]) => {
+    if (registrationIds.length === 0) return;
+    
+    setIsProcessingPayment(true);
+    try {
+      const response = await apiRequest("POST", "/api/balance-checkout", {
+        registrationIds
+      });
+      
+      const data = await response.json();
+      
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('No checkout URL received');
+      }
+    } catch (error) {
+      toast({
+        title: "Payment Error",
+        description: error instanceof Error ? error.message : "Failed to create checkout session",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessingPayment(false);
     }
   };
 
@@ -330,10 +408,8 @@ export default function Account() {
                         <Button 
                           className="btn-gradient" 
                           size="sm"
-                          onClick={() => {
-                            setSelectedRegistrations([registration.id]);
-                            setShowPayment(true);
-                          }}
+                          onClick={() => handleBalancePayment([registration.id])}
+                          disabled={isProcessingPayment}
                         >
                           <CreditCard className="w-4 h-4 mr-2" />
                           Pay Balance
@@ -447,10 +523,8 @@ export default function Account() {
                               <Button 
                                 size="sm" 
                                 className="btn-gradient"
-                                onClick={() => {
-                                  setSelectedRegistrations([registration.id]);
-                                  setShowPayment(true);
-                                }}
+                                onClick={() => handleBalancePayment([registration.id])}
+                                disabled={isProcessingPayment}
                               >
                                 Pay Now
                               </Button>
@@ -472,10 +546,8 @@ export default function Account() {
                               <Button 
                                 size="sm" 
                                 className="btn-gradient"
-                                onClick={() => {
-                                  setSelectedRegistrations([registration.id]);
-                                  setShowPayment(true);
-                                }}
+                                onClick={() => handleBalancePayment([registration.id])}
+                                disabled={isProcessingPayment}
                               >
                                 <DollarSign className="w-4 h-4 mr-1" />
                                 Pay Balance
@@ -645,24 +717,6 @@ export default function Account() {
           </TabsContent>
         </Tabs>
 
-        {/* Payment Options Modal */}
-        {showPayment && selectedRegistrations.length > 0 && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="w-full max-w-2xl">
-              <PaymentOptions
-                registrationIds={selectedRegistrations}
-                totalAmount={selectedRegistrations.reduce((total, regId) => {
-                  const reg = registrations.find(r => r.id === regId);
-                  return total + (reg?.balanceDueCents || weeks.find(w => w.id === reg?.weekId)?.priceCents || 50000);
-                }, 0) / 100}
-                onCancel={() => {
-                  setShowPayment(false);
-                  setSelectedRegistrations([]);
-                }}
-              />
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
