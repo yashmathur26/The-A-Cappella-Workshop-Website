@@ -115,42 +115,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Info Stripe */}
-      <section className="py-12 bg-black/30 backdrop-blur-sm border-y border-white/10 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-indigo-custom/5 to-teal-custom/5"></div>
-        <div className="max-w-6xl mx-auto px-6 relative z-10">
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-12 text-center">
-            <div className="reveal-in group">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-sky-custom/20 to-indigo-custom/20 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-                <span className="text-sky-custom font-bold text-lg">📅</span>
-              </div>
-              <h4 className="text-xl font-bold text-sky-custom mb-3 group-hover:text-teal-custom transition-colors duration-300">Dates (2026)</h4>
-              <p className="text-white/90 leading-relaxed">June 22–26 • July 27–31<br />Aug 3–7 • Aug 10–14 • Aug 17–21</p>
-            </div>
-            <div className="reveal-in group">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-custom/20 to-sky-custom/20 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-                <span className="text-teal-custom font-bold text-lg">⏰</span>
-              </div>
-              <h4 className="text-xl font-bold text-sky-custom mb-3 group-hover:text-teal-custom transition-colors duration-300">Daily Schedule</h4>
-              <p className="text-white/90 text-lg font-medium">9:00 AM – 4:00 PM</p>
-            </div>
-            <div className="reveal-in group">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-custom/20 to-teal-custom/20 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-                <span className="text-indigo-custom font-bold text-lg">📍</span>
-              </div>
-              <h4 className="text-xl font-bold text-sky-custom mb-3 group-hover:text-teal-custom transition-colors duration-300">Location</h4>
-              <p className="text-white/90 leading-relaxed">Temple Emunah<br />9 Piper Rd, Lexington, MA</p>
-            </div>
-            <div className="reveal-in group">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-custom/20 to-indigo-custom/20 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
-                <span className="text-teal-custom font-bold text-lg">💰</span>
-              </div>
-              <h4 className="text-xl font-bold text-sky-custom mb-3 group-hover:text-teal-custom transition-colors duration-300">Tuition</h4>
-              <p className="text-teal-custom text-3xl font-bold group-hover:text-sky-custom transition-colors duration-300">$500 per week</p>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* Get in Touch Section */}
       <section className="py-6">
