@@ -85,7 +85,7 @@ export default function Home() {
                 <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-custom to-sky-custom flex items-center justify-center mb-8 animate-float shadow-lg shadow-indigo-custom/30">
                   <Users className="text-white" size={36} />
                 </div>
-                <h3 className="text-2xl font-bold mb-6 text-teal-custom group-hover:text-sky-custom transition-colors duration-300">Student-led small-group singing</h3>
+                <h3 className="text-2xl font-bold mb-6 text-teal-custom group-hover:text-sky-custom transition-colors duration-300">Teacher-guided small-group singing</h3>
                 <p className="text-white/90 leading-relaxed">Build confidence through harmony, blend, and teamwork in supportive peer groups.</p>
               </div>
             </GlassCard>
