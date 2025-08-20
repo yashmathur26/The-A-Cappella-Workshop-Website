@@ -8,8 +8,8 @@ const FAQ_SECTIONS = [
     title: 'General Camp Information',
     content: (
       <div>
-        <h4 className="font-semibold mb-3 text-sky-custom">Who is the camp for?</h4>
-        <p className="text-white/90">This camp is for rising 6th, 7th, 8th, and 9th graders who love to sing. Prior choir or singing experience is recommended, but beginners are absolutely welcome.</p>
+        <h4 className="font-semibold mb-3 text-sky-custom text-lg">Who is the camp for?</h4>
+        <p className="text-white/90 text-base">This camp is for rising 6th, 7th, 8th, and 9th graders who love to sing. Prior choir or singing experience is recommended, but beginners are absolutely welcome.</p>
       </div>
     )
   },
@@ -19,12 +19,12 @@ const FAQ_SECTIONS = [
     content: (
       <div className="space-y-4">
         <div>
-          <h4 className="font-semibold mb-2 text-sky-custom">Where:</h4>
-          <p className="text-white/90">Temple Emunah, 9 Piper Rd, Lexington, MA 02421</p>
+          <h4 className="font-semibold mb-2 text-sky-custom text-lg">Where:</h4>
+          <p className="text-white/90 text-base">Temple Emunah, 9 Piper Rd, Lexington, MA 02421</p>
         </div>
         <div>
-          <h4 className="font-semibold mb-2 text-sky-custom">When:</h4>
-          <p className="text-white/90">Monday–Friday, 9:00 AM – 4:00 PM</p>
+          <h4 className="font-semibold mb-2 text-sky-custom text-lg">When:</h4>
+          <p className="text-white/90 text-base">Monday–Friday, 9:00 AM – 4:00 PM</p>
         </div>
         <div>
           <h4 className="font-semibold mb-2 text-sky-custom">Welcome:</h4>
@@ -42,7 +42,7 @@ const FAQ_SECTIONS = [
     title: 'Curriculum & Experience',
     content: (
       <div>
-        <p className="text-white/90">Students spend the week learning how to sing contemporary a cappella. Day one focuses on bonding, vocal range checks, and song selection. Throughout the week, students rehearse for the showcase, rotate through beatboxing, arranging, and music theory tracks, and prepare short mock solos for supportive feedback. We're always amazed by the growth students show by Friday!</p>
+        <p className="text-white/90 text-base">Students spend the week learning how to sing contemporary a cappella. Day one focuses on bonding, vocal range checks, and song selection. Throughout the week, students rehearse for the showcase, rotate through beatboxing, arranging, and music theory tracks, and prepare short mock solos for supportive feedback. We're always amazed by the growth students show by Friday!</p>
       </div>
     )
   },
@@ -119,7 +119,7 @@ export default function FAQ() {
                 className="flex justify-between items-center p-6 cursor-pointer hover:bg-white/5 transition-colors"
                 onClick={() => toggleSection(section.id)}
               >
-                <h3 className="text-xl font-semibold text-teal-custom">{section.title}</h3>
+                <h3 className="text-2xl font-semibold text-teal-custom">{section.title}</h3>
                 <ChevronDown 
                   className={`text-white transition-transform ${
                     openSection === section.id ? 'rotate-180' : ''

@@ -28,7 +28,7 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative py-20 lg:py-32 overflow-hidden">
+      <section className="relative py-12 lg:py-20 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-indigo-custom/20 to-teal-custom/20"></div>
         <div className="max-w-6xl mx-auto px-6 relative z-10">
           <div className="text-center reveal-in">
@@ -51,7 +51,7 @@ export default function Home() {
       </section>
 
       {/* Welcome Video Section */}
-      <section className="py-20">
+      <section className="py-12">
         <div className="max-w-4xl mx-auto px-6">
           <GlassCard className="p-8 reveal-in" hover>
             <div className="text-center mb-8">
@@ -74,27 +74,27 @@ export default function Home() {
       </section>
 
       {/* Highlights Section */}
-      <section className="py-20">
+      <section className="py-12">
         <div className="max-w-6xl mx-auto px-6">
           <div className="grid md:grid-cols-3 gap-8">
-            <GlassCard className="p-8" hover>
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-custom to-sky-custom flex items-center justify-center mb-6">
+            <GlassCard className="p-8 reveal-in animate-slide-up" hover>
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-custom to-sky-custom flex items-center justify-center mb-6 animate-float">
                 <Users className="text-white" size={32} />
               </div>
               <h3 className="text-2xl font-bold mb-4 text-teal-custom">Student-led small-group singing</h3>
               <p className="text-white/80">Build confidence through harmony, blend, and teamwork in supportive peer groups.</p>
             </GlassCard>
             
-            <GlassCard className="p-8 reveal-in" hover>
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-sky-custom to-teal-custom flex items-center justify-center mb-6">
+            <GlassCard className="p-8 reveal-in animate-slide-up" hover>
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-sky-custom to-teal-custom flex items-center justify-center mb-6 animate-pulse-soft">
                 <GraduationCap className="text-white" size={32} />
               </div>
               <h3 className="text-2xl font-bold mb-4 text-sky-custom">Skills that last</h3>
               <p className="text-white/80">Beatboxing, arranging, music theory, and rehearsal strategies you'll use forever.</p>
             </GlassCard>
             
-            <GlassCard className="p-8 reveal-in" hover>
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-teal-custom to-indigo-custom flex items-center justify-center mb-6">
+            <GlassCard className="p-8 reveal-in animate-slide-up" hover>
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-teal-custom to-indigo-custom flex items-center justify-center mb-6 animate-float">
                 <Star className="text-white" size={32} />
               </div>
               <h3 className="text-2xl font-bold mb-4 text-indigo-custom">End-of-week performance</h3>
@@ -105,7 +105,7 @@ export default function Home() {
       </section>
 
       {/* Info Stripe */}
-      <section className="py-16 bg-black/20">
+      <section className="py-10 bg-black/20">
         <div className="max-w-6xl mx-auto px-6">
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 text-center">
             <div className="reveal-in">
@@ -129,16 +129,16 @@ export default function Home() {
       </section>
 
       {/* Get in Touch Section */}
-      <section className="py-20">
+      <section className="py-12">
         <div className="max-w-6xl mx-auto px-6">
           <h2 className="text-3xl lg:text-4xl font-bold text-center mb-12 reveal-in gradient-text">Get in Touch</h2>
           
           <div className="grid md:grid-cols-2 gap-8">
             {/* Left Column - Contact Info */}
             <div className="space-y-8">
-              <GlassCard className="p-6" hover>
+              <GlassCard className="p-6 reveal-in animate-slide-up" hover>
                 <div className="flex items-start space-x-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-custom to-sky-custom flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-custom to-sky-custom flex items-center justify-center animate-pulse-soft">
                     <Phone className="text-white" size={20} />
                   </div>
                   <div>
@@ -149,9 +149,9 @@ export default function Home() {
                 </div>
               </GlassCard>
 
-              <GlassCard className="p-6" hover>
+              <GlassCard className="p-6 reveal-in animate-slide-up" hover>
                 <div className="flex items-start space-x-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-sky-custom to-teal-custom flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-sky-custom to-teal-custom flex items-center justify-center animate-pulse-soft">
                     <Mail className="text-white" size={20} />
                   </div>
                   <div>
@@ -161,9 +161,9 @@ export default function Home() {
                 </div>
               </GlassCard>
 
-              <GlassCard className="p-6" hover>
+              <GlassCard className="p-6 reveal-in animate-slide-up" hover>
                 <div className="flex items-start space-x-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-custom to-indigo-custom flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-custom to-indigo-custom flex items-center justify-center animate-pulse-soft">
                     <MapPin className="text-white" size={20} />
                   </div>
                   <div>
@@ -174,9 +174,9 @@ export default function Home() {
                 </div>
               </GlassCard>
 
-              <GlassCard className="p-6" hover>
+              <GlassCard className="p-6 reveal-in animate-slide-up" hover>
                 <div className="flex items-start space-x-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-custom to-teal-custom flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-custom to-teal-custom flex items-center justify-center animate-pulse-soft">
                     <Clock className="text-white" size={20} />
                   </div>
                   <div>
@@ -190,8 +190,12 @@ export default function Home() {
 
             {/* Right Column - Location Map */}
             <div className="space-y-8">
-              <GlassCard className="p-8 h-full">
+              <GlassCard className="p-8 h-full reveal-in animate-slide-up">
                 <h3 className="text-2xl font-bold mb-6 text-teal-custom">Find Us</h3>
+                <div className="mb-4">
+                  <p className="text-white/90 font-medium">Temple Emunah</p>
+                  <p className="text-white/70">9 Piper Rd, Lexington, MA</p>
+                </div>
                 <div className="aspect-video rounded-lg overflow-hidden border border-white/20">
                   <iframe
                     src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2944.123456789!2d-71.2271715!3d42.4208445!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89e39da7cf60964d%3A0xb9185605b60e37d8!2sTemple%20Emunah!5e0!3m2!1sen!2sus!4v1692820800000!5m2!1sen!2sus"
@@ -211,7 +215,7 @@ export default function Home() {
       </section>
 
       {/* Gallery Section */}
-      <section className="py-20">
+      <section className="py-12">
         <div className="max-w-6xl mx-auto px-6">
           <h2 className="text-3xl lg:text-4xl font-bold text-center mb-12 reveal-in gradient-text">Experience the Magic</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -236,7 +240,7 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20">
+      <section className="py-12">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <GlassCard className="p-12 reveal-in">
             <h2 className="text-3xl lg:text-4xl font-bold mb-6 gradient-text">Ready to sing?</h2>
