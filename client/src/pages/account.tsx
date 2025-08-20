@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import { useAuth, useLogout } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -172,28 +172,27 @@ export default function Account() {
     enabled: isAuthenticated,
   });
 
-  // Fetch roster data for admin users
-  const { data: rosterWeeksData } = useQuery<{weeks: string[]}>({
-    queryKey: ["/api/roster/weeks"],
-    enabled: isAuthenticated && user?.role === 'admin',
-  });
-
-  const rosterWeeks = rosterWeeksData?.weeks || [];
-
-  // Fetch roster records for each week (admin only)
-  const rosterQueries = rosterWeeks.map(weekId => 
-    useQuery<{records: RosterRecord[]}>({
-      queryKey: ["/api/roster", weekId],
-      enabled: isAuthenticated && user?.role === 'admin' && rosterWeeks.length > 0,
-    })
-  );
-
-  const allRosterData = rosterQueries.reduce((acc, query, index) => {
-    if (query.data) {
-      acc[rosterWeeks[index]] = query.data.records;
+  // Group registrations by week for admin users
+  const registrationsByWeek = useMemo(() => {
+    if (!isAuthenticated || user?.role !== 'admin' || !registrations) {
+      return {};
     }
-    return acc;
-  }, {} as Record<string, RosterRecord[]>);
+    
+    return registrations.reduce((acc, registration) => {
+      const weekId = registration.weekId;
+      if (!acc[weekId]) {
+        acc[weekId] = [];
+      }
+      acc[weekId].push(registration);
+      return acc;
+    }, {} as Record<string, typeof registrations>);
+  }, [registrations, isAuthenticated, user?.role]);
+
+  // Get week labels for display
+  const getWeekLabel = (weekId: string) => {
+    const week = weeks.find(w => w.id === weekId);
+    return week ? week.label : `Week ${weekId}`;
+  };
 
   const handleLogout = async () => {
     try {
@@ -990,7 +989,7 @@ export default function Account() {
                 </Badge>
               </div>
 
-              {rosterWeeks.length === 0 ? (
+              {Object.keys(registrationsByWeek).length === 0 ? (
                 <Card className="bg-black/20 backdrop-blur-lg border border-white/10">
                   <CardContent className="text-center py-12">
                     <FileText className="w-16 h-16 text-white/40 mx-auto mb-4" />
@@ -1000,9 +999,14 @@ export default function Account() {
                 </Card>
               ) : (
                 <div className="space-y-6">
-                  {rosterWeeks.map((weekId) => {
-                    const records = allRosterData[weekId] || [];
-                    const totalAmount = records.reduce((sum, record) => sum + record.amount_cents, 0);
+                  {Object.entries(registrationsByWeek).map(([weekId, weekRegistrations]) => {
+                    const totalRegistrations = weekRegistrations.length;
+                    const totalRevenue = weekRegistrations.reduce((sum, reg) => {
+                      return sum + (reg.priceCents - (reg.balanceDueCents || 0));
+                    }, 0);
+                    const outstandingBalance = weekRegistrations.reduce((sum, reg) => {
+                      return sum + (reg.balanceDueCents || 0);
+                    }, 0);
                     
                     return (
                       <Card key={weekId} className="bg-black/20 backdrop-blur-lg border border-white/10">
@@ -1011,63 +1015,68 @@ export default function Account() {
                             <div>
                               <CardTitle className="text-white flex items-center">
                                 <Calendar className="w-5 h-5 mr-2 text-teal-custom" />
-                                Week {weekId}
+                                {getWeekLabel(weekId)}
                               </CardTitle>
                               <CardDescription className="text-white/60">
-                                {records.length} registrations • ${(totalAmount / 100).toFixed(2)} total
+                                {totalRegistrations} registrations • ${(totalRevenue / 100).toFixed(2)} collected • ${(outstandingBalance / 100).toFixed(2)} remaining
                               </CardDescription>
                             </div>
                             <Badge className="bg-teal-500/20 text-teal-300 border-teal-500/30">
-                              {records.length} students
+                              {totalRegistrations} students
                             </Badge>
                           </div>
                         </CardHeader>
                         <CardContent>
-                          {records.length === 0 ? (
-                            <div className="text-center py-8">
-                              <Users className="w-12 h-12 text-white/40 mx-auto mb-4" />
-                              <p className="text-white/60">No registrations for this week yet</p>
-                            </div>
-                          ) : (
-                            <div className="overflow-x-auto">
-                              <table className="w-full">
-                                <thead>
-                                  <tr className="border-b border-white/10">
-                                    <th className="text-left py-3 text-white/80 font-medium">Date</th>
-                                    <th className="text-left py-3 text-white/80 font-medium">Student</th>
-                                    <th className="text-left py-3 text-white/80 font-medium">Parent</th>
-                                    <th className="text-left py-3 text-white/80 font-medium">Email</th>
-                                    <th className="text-right py-3 text-white/80 font-medium">Amount</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {records
-                                    .sort((a, b) => new Date(b.ts).getTime() - new Date(a.ts).getTime())
-                                    .map((record, index) => (
-                                    <tr key={index} className="border-b border-white/5 hover:bg-white/5">
-                                      <td className="py-3 text-white/60 text-sm">
-                                        {new Date(record.ts).toLocaleDateString()}
-                                      </td>
-                                      <td className="py-3 text-white font-medium">
-                                        {record.student_name || '(not provided)'}
-                                      </td>
-                                      <td className="py-3 text-white">
-                                        {record.parent_name || '(not provided)'}
-                                      </td>
-                                      <td className="py-3 text-white/60">
-                                        {record.parent_email || '(not provided)'}
-                                      </td>
-                                      <td className="py-3 text-right">
-                                        <span className="text-green-400 font-medium">
-                                          ${(record.amount_cents / 100).toFixed(2)}
-                                        </span>
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                          )}
+                          <div className="overflow-x-auto">
+                            <table className="w-full">
+                              <thead>
+                                <tr className="border-b border-white/10">
+                                  <th className="text-left py-3 text-white/80 font-medium">Student Name</th>
+                                  <th className="text-left py-3 text-white/80 font-medium">Parent Name</th>
+                                  <th className="text-left py-3 text-white/80 font-medium">Parent Email</th>
+                                  <th className="text-right py-3 text-white/80 font-medium">Total Cost</th>
+                                  <th className="text-right py-3 text-white/80 font-medium">Cost Remaining</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {weekRegistrations
+                                  .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                                  .map((registration) => {
+                                    const student = students.find(s => s.id === registration.studentId);
+                                    const parentName = student ? `${student.firstName} ${student.lastName}`.trim() : 'Unknown';
+                                    const parentEmail = user?.email || 'Unknown';
+                                    
+                                    return (
+                                      <tr key={registration.id} className="border-b border-white/5 hover:bg-white/5">
+                                        <td className="py-3 text-white font-medium">
+                                          {student ? `${student.firstName} ${student.lastName}`.trim() : 'Unknown Student'}
+                                        </td>
+                                        <td className="py-3 text-white">
+                                          {user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : parentName}
+                                        </td>
+                                        <td className="py-3 text-white/60">
+                                          {parentEmail}
+                                        </td>
+                                        <td className="py-3 text-right">
+                                          <span className="text-blue-400 font-medium">
+                                            ${(registration.priceCents / 100).toFixed(2)}
+                                          </span>
+                                        </td>
+                                        <td className="py-3 text-right">
+                                          {registration.balanceDueCents && registration.balanceDueCents > 0 ? (
+                                            <span className="text-orange-400 font-medium">
+                                              ${(registration.balanceDueCents / 100).toFixed(2)}
+                                            </span>
+                                          ) : (
+                                            <span className="text-green-400 font-medium">$0.00</span>
+                                          )}
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                              </tbody>
+                            </table>
+                          </div>
                         </CardContent>
                       </Card>
                     );
