@@ -160,7 +160,6 @@ export default function Register() {
                         <p className="text-white/90">{week.label}</p>
                       </div>
                     </div>
-                    <p className="text-white/80 mb-4">Learn, rehearse, and perform — perfect for beginners and returning singers.</p>
                     <div className="mb-4">
                       <span className="text-sm text-sky-custom/80">{week.spots} spots remaining</span>
                     </div>
@@ -177,6 +176,7 @@ export default function Register() {
                           variant={CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'full' ? 'ghost' : 'primary'}
                           size="sm"
                           className="w-full"
+                          disabled={CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'deposit'}
                           onClick={() => {
                             if (CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'full') {
                               removeWeekFromCart(week.id);
@@ -196,9 +196,10 @@ export default function Register() {
                         </div>
                         <p className="text-xs text-white/60 mb-3">$350 remaining via invoice</p>
                         <GradientButton
-                          variant={CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'deposit' ? 'primary' : 'ghost'}
+                          variant={CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'deposit' ? 'ghost' : 'primary'}
                           size="sm"
-                          className="w-full bg-transparent border border-white/20 text-white hover:bg-white/10"
+                          className="w-full"
+                          disabled={CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'full'}
                           onClick={() => {
                             if (CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'deposit') {
                               removeWeekFromCart(week.id);
@@ -207,7 +208,7 @@ export default function Register() {
                             }
                           }}
                         >
-                          {CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'deposit' ? 'Remove' : 'Add Deposit'}
+                          {CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'deposit' ? 'Remove' : 'Add to Cart'}
                         </GradientButton>
                       </div>
                     </div>
