@@ -207,6 +207,24 @@ export default function Register() {
             </div>
           </CardContent>
         </Card>
+        
+        {/* Guest Registration Option */}
+        <div className="mt-6 text-center">
+          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-4">
+            <h3 className="text-white font-medium mb-2">Don't want to create an account?</h3>
+            <p className="text-white/70 text-sm mb-4">
+              You can register for camp as a guest without creating an account
+            </p>
+            <Link href="/camp-registration">
+              <Button 
+                variant="outline" 
+                className="w-full bg-transparent border-white/20 text-white hover:bg-white/10"
+              >
+                Register as Guest
+              </Button>
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );
