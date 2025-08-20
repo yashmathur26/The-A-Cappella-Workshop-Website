@@ -24,11 +24,11 @@ export default function About() {
 
   return (
     <div className="min-h-screen">
-      <div className="max-w-4xl mx-auto px-6 py-20">
-        <h1 className="text-4xl lg:text-5xl font-bold text-center mb-16 gradient-text">About The A Cappella Workshop</h1>
+      <div className="max-w-4xl mx-auto px-6 py-8">
+        <h1 className="text-4xl lg:text-5xl font-bold text-center mb-8 gradient-text">About The A Cappella Workshop</h1>
         
         {/* What is section */}
-        <section className="mb-16">
+        <section className="mb-6">
           <GlassCard className="p-8 lg:p-12 reveal-in">
             <h2 className="text-2xl lg:text-3xl font-bold mb-6 text-teal-custom">What is The A Cappella Workshop?</h2>
             <p className="text-lg text-white/90 leading-relaxed">
@@ -38,7 +38,7 @@ export default function About() {
         </section>
 
         {/* How the week works */}
-        <section className="mb-16">
+        <section className="mb-6">
           <GlassCard className="p-8 lg:p-12 reveal-in">
             <h2 className="text-2xl lg:text-3xl font-bold mb-6 text-sky-custom">How the week works</h2>
             <p className="text-lg text-white/90 leading-relaxed">
@@ -49,7 +49,7 @@ export default function About() {
 
         {/* Meet the Co-Presidents */}
         <section>
-          <h2 className="text-2xl lg:text-3xl font-bold text-center mb-12 gradient-text">Meet the Co-Presidents</h2>
+          <h2 className="text-2xl lg:text-3xl font-bold text-center mb-6 gradient-text">Meet the Co-Presidents</h2>
           <div className="space-y-8">
             {STAFF_BIOS.map((staff) => (
               <GlassCard key={staff.id} className="p-8 reveal-in" hover>

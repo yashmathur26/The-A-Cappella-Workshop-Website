@@ -26,7 +26,7 @@ export default function Gallery() {
   return (
     <div className="min-h-screen pt-20">
       {/* Hero Section */}
-      <section className="py-20 lg:py-32">
+      <section className="py-8 lg:py-12">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center reveal-in">
             <h1 className="text-4xl lg:text-6xl font-bold mb-6 leading-tight text-white">
@@ -40,7 +40,7 @@ export default function Gallery() {
       </section>
 
       {/* Featured Videos Section */}
-      <section className="py-20">
+      <section className="py-6">
         <div className="max-w-6xl mx-auto px-6">
           <h2 className="text-3xl lg:text-4xl font-bold text-center mb-12 reveal-in gradient-text">Featured Videos</h2>
           
@@ -78,7 +78,7 @@ export default function Gallery() {
       </section>
 
       {/* Video Gallery */}
-      <section className="py-20">
+      <section className="py-6">
         <div className="max-w-6xl mx-auto px-6">
           <h2 className="text-3xl lg:text-4xl font-bold text-center mb-12 reveal-in gradient-text">Video Library</h2>
           
@@ -101,7 +101,7 @@ export default function Gallery() {
       </section>
 
       {/* Photo Gallery */}
-      <section className="py-20">
+      <section className="py-6">
         <div className="max-w-6xl mx-auto px-6">
           <h2 className="text-3xl lg:text-4xl font-bold text-center mb-12 reveal-in gradient-text">Photo Gallery</h2>
           
@@ -121,7 +121,7 @@ export default function Gallery() {
       </section>
 
       {/* Upload Instructions */}
-      <section className="py-20">
+      <section className="py-6">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <GlassCard className="p-12 reveal-in">
             <h2 className="text-3xl lg:text-4xl font-bold mb-6 gradient-text">Share Your Memories</h2>

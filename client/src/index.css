@@ -57,14 +57,14 @@
 
   /* Reduce section spacing */
   section {
-    padding-top: 3rem;
-    padding-bottom: 3rem;
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
   }
 
   @media (min-width: 1024px) {
     section {
-      padding-top: 4rem;
-      padding-bottom: 4rem;
+      padding-top: 2rem;
+      padding-bottom: 2rem;
     }
   }
 }

@@ -28,7 +28,7 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative py-12 lg:py-20 overflow-hidden">
+      <section className="relative py-8 lg:py-12 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-indigo-custom/20 to-teal-custom/20"></div>
         <div className="max-w-6xl mx-auto px-6 relative z-10">
           <div className="text-center reveal-in">
@@ -51,7 +51,7 @@ export default function Home() {
       </section>
 
       {/* Welcome Video Section */}
-      <section className="py-12">
+      <section className="py-6">
         <div className="max-w-4xl mx-auto px-6">
           <GlassCard className="p-8 reveal-in" hover>
             <div className="text-center mb-8">
@@ -74,7 +74,7 @@ export default function Home() {
       </section>
 
       {/* Highlights Section */}
-      <section className="py-12">
+      <section className="py-6">
         <div className="max-w-6xl mx-auto px-6">
           <div className="grid md:grid-cols-3 gap-8">
             <GlassCard className="p-8 reveal-in animate-slide-up" hover>
@@ -105,7 +105,7 @@ export default function Home() {
       </section>
 
       {/* Info Stripe */}
-      <section className="py-10 bg-black/20">
+      <section className="py-6 bg-black/20">
         <div className="max-w-6xl mx-auto px-6">
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 text-center">
             <div className="reveal-in">
@@ -129,7 +129,7 @@ export default function Home() {
       </section>
 
       {/* Get in Touch Section */}
-      <section className="py-12">
+      <section className="py-6">
         <div className="max-w-6xl mx-auto px-6">
           <h2 className="text-3xl lg:text-4xl font-bold text-center mb-12 reveal-in gradient-text">Get in Touch</h2>
           
@@ -215,7 +215,7 @@ export default function Home() {
       </section>
 
       {/* Gallery Section */}
-      <section className="py-12">
+      <section className="py-6">
         <div className="max-w-6xl mx-auto px-6">
           <h2 className="text-3xl lg:text-4xl font-bold text-center mb-12 reveal-in gradient-text">Experience the Magic</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -240,7 +240,7 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-12">
+      <section className="py-6">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <GlassCard className="p-12 reveal-in">
             <h2 className="text-3xl lg:text-4xl font-bold mb-6 gradient-text">Ready to sing?</h2>

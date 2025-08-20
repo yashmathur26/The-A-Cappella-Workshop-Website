@@ -109,8 +109,8 @@ export default function FAQ() {
 
   return (
     <div className="min-h-screen">
-      <div className="max-w-4xl mx-auto px-6 py-20">
-        <h1 className="text-4xl lg:text-5xl font-bold text-center mb-16 gradient-text">Frequently Asked Questions</h1>
+      <div className="max-w-4xl mx-auto px-6 py-8">
+        <h1 className="text-4xl lg:text-5xl font-bold text-center mb-8 gradient-text">Frequently Asked Questions</h1>
         
         <div className="space-y-4">
           {FAQ_SECTIONS.map((section) => (
@@ -136,7 +136,7 @@ export default function FAQ() {
           ))}
         </div>
 
-        <div className="text-center mt-12">
+        <div className="text-center mt-6">
           <p className="text-white/80">Still have questions?</p>
           <a 
             href="mailto:info@acappellaworkshop.com" 
