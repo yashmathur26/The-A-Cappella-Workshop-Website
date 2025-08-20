@@ -65,7 +65,7 @@ export default function Register() {
     // Guest checkout flow
     setIsLoading(true);
     try {
-      const selectedWeeks = WEEKS.filter(week => cart.includes(week.id)).map(week => week.label);
+      const selectedWeeks = cart.map(item => item.label);
       
       const response = await apiRequest('POST', '/api/create-checkout-session', {
         weeks: selectedWeeks
@@ -152,7 +152,7 @@ export default function Register() {
                 {WEEKS.map((week, index) => (
                   <GlassCard 
                     key={week.id} 
-                    className={`p-6 week-card ${cart.includes(week.id) ? 'selected' : ''}`}
+                    className={`p-6 week-card ${CartManager.isInCart(week.id) ? 'selected' : ''}`}
                   >
                     <div className="flex justify-between items-start mb-4">
                       <div>
@@ -270,7 +270,16 @@ export default function Register() {
                   {!showForm ? (
                     <GradientButton
                       className="w-full"
-                      onClick={() => setShowForm(true)}
+                      onClick={() => {
+                        setShowForm(true);
+                        // Auto scroll to the registration form
+                        setTimeout(() => {
+                          const formSection = document.querySelector('section:has(iframe)');
+                          if (formSection) {
+                            formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          }
+                        }, 100);
+                      }}
                       disabled={cart.length === 0}
                     >
                       Proceed to Registration Form
