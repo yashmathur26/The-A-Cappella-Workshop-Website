@@ -396,7 +396,7 @@ export default function Register() {
                   >
                     <div className="flex justify-between items-start mb-4">
                       <div>
-                        <h3 className="text-xl font-bold text-teal-custom">Week {index + 1}: {week.label}</h3>
+                        <h3 className="text-xl font-bold text-teal-custom">Week {index + 1}: <span className="font-normal">{week.label}</span></h3>
                       </div>
                     </div>
                     <div className="mb-4">
