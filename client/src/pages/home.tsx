@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Link } from 'wouter';
-import { Users, GraduationCap, Star, Phone, Mail, MapPin, Clock } from 'lucide-react';
+import { Users, GraduationCap, Star, Phone, Mail, MapPin, Clock, Play } from 'lucide-react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { GradientButton } from '@/components/ui/gradient-button';
 
@@ -47,6 +47,29 @@ export default function Home() {
               </Link>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Welcome Video Section */}
+      <section className="py-20">
+        <div className="max-w-4xl mx-auto px-6">
+          <GlassCard className="p-8 reveal-in" hover>
+            <div className="text-center mb-8">
+              <h2 className="text-3xl lg:text-4xl font-bold mb-4 gradient-text">Welcome to Camp</h2>
+              <p className="text-xl text-white/80">Watch our welcome message and see what makes The A Cappella Workshop special</p>
+            </div>
+            
+            <div className="aspect-video bg-gradient-to-br from-indigo-custom/30 to-teal-custom/30 rounded-lg flex items-center justify-center relative overflow-hidden border border-white/20">
+              <div className="absolute inset-0 bg-black/20"></div>
+              <div className="relative z-10 text-center">
+                <div className="w-24 h-24 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mb-6 mx-auto hover:bg-white/30 transition-colors cursor-pointer">
+                  <Play className="text-white ml-2" size={40} />
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-2">Welcome Video</h3>
+                <p className="text-white/80">Click here when your welcome video is ready to upload</p>
+              </div>
+            </div>
+          </GlassCard>
         </div>
       </section>
 

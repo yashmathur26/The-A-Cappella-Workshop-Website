@@ -57,6 +57,7 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
     { href: '/', label: 'Home' },
     { href: '/about', label: 'About Us' },
     { href: '/faq', label: 'FAQ' },
+    { href: '/gallery', label: 'Gallery' },
   ];
 
   return (
