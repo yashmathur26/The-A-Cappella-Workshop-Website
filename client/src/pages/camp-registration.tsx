@@ -54,16 +54,13 @@ export default function Register() {
   const proceedToPayment = async () => {
     if (cart.length === 0) return;
     
-    if (!isAuthenticated) {
-      toast({
-        title: "Authentication Required",
-        description: "Please sign in to complete your registration.",
-        variant: "destructive",
-      });
-      setLocation("/login");
+    if (isAuthenticated) {
+      // Show payment options for authenticated users
+      setShowPayment(true);
       return;
     }
     
+    // Guest checkout flow
     setIsLoading(true);
     try {
       const selectedWeeks = WEEKS.filter(week => cart.includes(week.id)).map(week => week.label);
@@ -88,6 +85,10 @@ export default function Register() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSignInFirst = () => {
+    setLocation("/login");
   };
 
   const cartItems = CartManager.getCartItems();
@@ -210,13 +211,33 @@ export default function Register() {
                   <span className="text-white">${cartTotal}</span>
                 </div>
                 <div className="space-y-3">
-                  <GradientButton
-                    className="w-full"
-                    onClick={proceedToPayment}
-                    disabled={cart.length === 0 || isLoading || !showForm}
-                  >
-                    {isLoading ? 'Processing...' : 'Proceed to Payment'}
-                  </GradientButton>
+                  {isAuthenticated ? (
+                    <GradientButton
+                      className="w-full"
+                      onClick={proceedToPayment}
+                      disabled={cart.length === 0 || isLoading || !showForm}
+                    >
+                      {isLoading ? 'Processing...' : 'Choose Payment Option'}
+                    </GradientButton>
+                  ) : (
+                    <>
+                      <GradientButton
+                        className="w-full"
+                        onClick={proceedToPayment}
+                        disabled={cart.length === 0 || isLoading || !showForm}
+                      >
+                        {isLoading ? 'Processing...' : 'Pay as Guest'}
+                      </GradientButton>
+                      <GradientButton
+                        variant="outline"
+                        className="w-full bg-transparent border-white/20 text-white hover:bg-white/10"
+                        onClick={handleSignInFirst}
+                        disabled={cart.length === 0 || !showForm}
+                      >
+                        Sign In for Account Benefits
+                      </GradientButton>
+                    </>
+                  )}
                   <GradientButton
                     variant="ghost"
                     className="w-full"
@@ -229,6 +250,19 @@ export default function Register() {
             </GlassCard>
           </div>
         </div>
+
+        {/* Payment Options Modal for Authenticated Users */}
+        {showPayment && isAuthenticated && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="w-full max-w-2xl">
+              <PaymentOptions
+                registrationIds={[]} // No registrations yet for new users
+                totalAmount={cartTotal}
+                onCancel={() => setShowPayment(false)}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
