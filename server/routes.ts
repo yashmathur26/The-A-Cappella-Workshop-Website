@@ -476,38 +476,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Set admin role for theacappellaworkshop@gmail.com account
-  app.post("/api/make-admin", async (req, res) => {
+  // Create admin account directly
+  app.post("/api/create-admin", async (req, res) => {
     try {
-      const { email } = req.body;
+      const email = 'theacappellaworkshop@gmail.com';
+      const password = 'shop';
       
-      // Only allow setting admin for the specific email
-      if (email !== 'theacappellaworkshop@gmail.com') {
-        return res.status(403).json({ error: 'Unauthorized email' });
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.json({ success: true, message: 'Admin user already exists' });
       }
       
-      const user = await storage.getUserByEmail(email);
-      if (!user) {
-        return res.status(404).json({ error: 'User not found. Please register first.' });
-      }
+      // Hash the password
+      const argon2 = await import('argon2');
+      const hashedPassword = await argon2.hash(password);
       
-      // Update user role through upsert
-      const updatedUser = await storage.upsertUser({
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
+      // Create admin user
+      const adminUser = await storage.upsertUser({
+        email: email,
+        firstName: 'Admin',
+        lastName: '',
         role: 'admin',
-        emailVerified: user.emailVerified,
-        googleId: user.googleId,
-        stripeCustomerId: user.stripeCustomerId
+        passwordHash: hashedPassword,
+        emailVerified: true
       });
       
-      console.log('Updated user to admin role:', updatedUser.email);
-      res.json({ success: true, user: { email: updatedUser.email, role: updatedUser.role } });
+      console.log('Created admin user:', adminUser.email);
+      res.json({ success: true, user: { email: adminUser.email, role: adminUser.role } });
     } catch (error) {
-      console.error('Error making user admin:', error);
-      res.status(500).json({ error: 'Failed to set admin role' });
+      console.error('Error creating admin user:', error);
+      res.status(500).json({ error: 'Failed to create admin user' });
     }
   });
 
