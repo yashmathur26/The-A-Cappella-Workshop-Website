@@ -548,6 +548,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Student API routes
+  app.get("/api/students", requireAuth, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const students = await storage.getStudents(user.id);
+      res.json(students);
+    } catch (error) {
+      console.error("Error fetching students:", error);
+      res.status(500).json({ message: "Failed to fetch students" });
+    }
+  });
+
+  app.post("/api/students", requireAuth, express.json(), async (req, res) => {
+    try {
+      const user = req.user as any;
+      const { firstName, lastName, notes } = req.body;
+
+      // Basic validation
+      if (!firstName || !lastName) {
+        return res.status(400).json({ message: "First name and last name are required" });
+      }
+
+      if (firstName.length > 40 || lastName.length > 40) {
+        return res.status(400).json({ message: "Names must be 40 characters or less" });
+      }
+
+      if (notes && notes.length > 400) {
+        return res.status(400).json({ message: "Notes must be 400 characters or less" });
+      }
+
+      const newStudent = await storage.createStudent({
+        userId: user.id,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        notes: notes ? notes.trim() : undefined,
+      });
+
+      res.json(newStudent);
+    } catch (error) {
+      console.error("Error creating student:", error);
+      res.status(500).json({ message: "Failed to create student" });
+    }
+  });
+
+  app.put("/api/students/:id", requireAuth, express.json(), async (req, res) => {
+    try {
+      const user = req.user as any;
+      const { id } = req.params;
+      const { firstName, lastName, notes } = req.body;
+
+      // Check if student belongs to user
+      const existingStudent = await storage.getStudent(id);
+      if (!existingStudent || existingStudent.userId !== user.id) {
+        return res.status(404).json({ message: "Student not found" });
+      }
+
+      // Basic validation
+      if (firstName && firstName.length > 40) {
+        return res.status(400).json({ message: "First name must be 40 characters or less" });
+      }
+
+      if (lastName && lastName.length > 40) {
+        return res.status(400).json({ message: "Last name must be 40 characters or less" });
+      }
+
+      if (notes && notes.length > 400) {
+        return res.status(400).json({ message: "Notes must be 400 characters or less" });
+      }
+
+      const updates: any = {};
+      if (firstName !== undefined) updates.firstName = firstName.trim();
+      if (lastName !== undefined) updates.lastName = lastName.trim();
+      if (notes !== undefined) updates.notes = notes ? notes.trim() : null;
+
+      const updatedStudent = await storage.updateStudent(id, updates);
+      res.json(updatedStudent);
+    } catch (error) {
+      console.error("Error updating student:", error);
+      res.status(500).json({ message: "Failed to update student" });
+    }
+  });
+
+  // Registration API routes
+  app.get("/api/registrations", requireAuth, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const registrations = await storage.getRegistrations(user.id);
+      res.json(registrations);
+    } catch (error) {
+      console.error("Error fetching registrations:", error);
+      res.status(500).json({ message: "Failed to fetch registrations" });
+    }
+  });
+
+  // Payment API routes  
+  app.get("/api/payments", requireAuth, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const payments = await storage.getPayments(user.id);
+      res.json(payments);
+    } catch (error) {
+      console.error("Error fetching payments:", error);
+      res.status(500).json({ message: "Failed to fetch payments" });
+    }
+  });
+
   // Admin roster API routes - integrated with regular auth
   app.get("/api/roster/weeks", requireAuth, async (req, res) => {
     const user = req.user as any;
