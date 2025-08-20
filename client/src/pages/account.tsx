@@ -291,6 +291,49 @@ export default function Account() {
                 )}
               </CardContent>
             </Card>
+            
+            {/* Unpaid Balances Section */}
+            {registrations.some(r => (r.balanceDueCents || 0) > 0) && (
+              <Card className="bg-black/20 backdrop-blur-lg border border-white/10">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center">
+                    <DollarSign className="w-5 h-5 mr-2 text-orange-400" />
+                    Outstanding Balances
+                  </CardTitle>
+                  <CardDescription className="text-white/60">
+                    Complete your deposit payments to secure your spots
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {registrations
+                      .filter(r => (r.balanceDueCents || 0) > 0)
+                      .map((registration) => (
+                      <div key={registration.id} className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10">
+                        <div className="space-y-1">
+                          <p className="text-white font-medium">{getStudentName(registration.studentId)}</p>
+                          <p className="text-white/60 text-sm">{getWeekName(registration.weekId)}</p>
+                          <p className="text-orange-400 text-sm font-medium">
+                            Balance Due: ${((registration.balanceDueCents || 0) / 100).toFixed(2)}
+                          </p>
+                        </div>
+                        <Button 
+                          className="btn-gradient" 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedRegistrations([registration.id]);
+                            setShowPayment(true);
+                          }}
+                        >
+                          <CreditCard className="w-4 h-4 mr-2" />
+                          Pay Balance
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           {/* Students Tab */}
@@ -363,7 +406,10 @@ export default function Account() {
                   <Calendar className="w-16 h-16 text-white/40 mx-auto mb-4" />
                   <h3 className="text-xl font-bold text-white mb-2">No registrations yet</h3>
                   <p className="text-white/60 mb-6">Register your students for summer camp sessions</p>
-                  <Button className="btn-gradient">
+                  <Button 
+                    className="btn-gradient" 
+                    onClick={() => setLocation("/camp-registration")}
+                  >
                     <Plus className="w-4 h-4 mr-2" />
                     Start Registration
                   </Button>
