@@ -85,9 +85,7 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
             ))}
             <Link
               href="/register"
-              className={`btn-gradient px-6 py-2 rounded-full text-white font-medium nav-link ${
-                isActive('/register') ? 'active' : ''
-              }`}
+              className="btn-gradient px-6 py-2 rounded-full text-white font-medium hover:text-white"
             >
               Register
             </Link>
