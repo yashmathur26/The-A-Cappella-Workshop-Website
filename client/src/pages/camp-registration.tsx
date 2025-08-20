@@ -7,10 +7,22 @@ import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { PaymentOptions } from '@/components/PaymentOptions';
+import { AddStudentModal } from '@/components/AddStudentModal';
 import { useLocation } from 'wouter';
+import { useQuery } from '@tanstack/react-query';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tag, X, AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tag, X, AlertTriangle, Plus, Users } from "lucide-react";
+
+interface Student {
+  id: string;
+  firstName: string;
+  lastName: string;
+  notes?: string;
+  createdAt: string;
+}
 
 export default function Register() {
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -25,9 +37,16 @@ export default function Register() {
   const [paymentStatus, setPaymentStatus] = useState<'none' | 'pending' | 'completed' | 'incomplete'>('none');
   const paymentWindowRef = useRef<Window | null>(null);
   const statusCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [showAddStudentModal, setShowAddStudentModal] = useState(false);
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
+
+  // Fetch students for authenticated users
+  const { data: students = [] } = useQuery<Student[]>({
+    queryKey: ["/api/students"],
+    enabled: isAuthenticated,
+  });
 
   useEffect(() => {
     setCart(CartManager.getCart());
@@ -56,6 +75,15 @@ export default function Register() {
     CartManager.addToCart(weekId, paymentType);
     setCart(CartManager.getCart());
     window.dispatchEvent(new Event('cartUpdated'));
+  };
+
+  const updateStudentForWeek = (weekId: string, studentId: string) => {
+    const student = students.find(s => s.id === studentId);
+    if (student) {
+      CartManager.updateStudentForWeek(weekId, studentId, `${student.firstName} ${student.lastName}`);
+      setCart(CartManager.getCart());
+      window.dispatchEvent(new Event('cartUpdated'));
+    }
   };
 
   const removeWeekFromCart = (weekId: string) => {
@@ -427,6 +455,54 @@ export default function Register() {
           {/* Cart Sidebar */}
           <div className="lg:col-span-1 mt-12 lg:mt-0">
             <GlassCard className="p-6 sticky top-24">
+              {/* Student Assignment for Authenticated Users */}
+              {isAuthenticated && cartItems.length > 0 && (
+                <div className="mb-8">
+                  <h3 className="text-xl font-bold mb-4 text-white">Assign Students</h3>
+                  <div className="space-y-4">
+                    {cartItems.map((item) => {
+                      const studentInfo = CartManager.getStudentForWeek(item.weekId);
+                      return (
+                        <div key={item.weekId} className="p-3 bg-white/5 rounded-lg">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <p className="font-medium text-white text-sm">{item.label}</p>
+                              <p className="text-xs text-white/60">{item.paymentType === 'full' ? 'Full Payment' : 'Deposit'} - ${item.price}</p>
+                            </div>
+                          </div>
+                          <Select
+                            value={studentInfo.studentId || ""}
+                            onValueChange={(value) => updateStudentForWeek(item.weekId, value)}
+                          >
+                            <SelectTrigger className="w-full bg-white/10 border-white/20 text-white">
+                              <SelectValue placeholder="Select student" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-slate-800 border-white/20">
+                              {students.map((student) => (
+                                <SelectItem key={student.id} value={student.id} className="text-white">
+                                  {student.firstName} {student.lastName}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      );
+                    })}
+                    
+                    <div className="text-center">
+                      <Button
+                        onClick={() => setShowAddStudentModal(true)}
+                        size="sm"
+                        className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 w-full"
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        Add Student
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <h3 className="text-xl font-bold mb-6 text-white">Your Cart</h3>
               <div className="space-y-3 mb-6">
                 {cartItems.length === 0 ? (
@@ -439,6 +515,11 @@ export default function Register() {
                         <span className="ml-2 text-xs px-2 py-1 rounded bg-white/10 text-white/70">
                           {item.paymentType === 'deposit' ? 'Deposit' : 'Full Payment'}
                         </span>
+                        {isAuthenticated && item.studentName && (
+                          <div className="text-xs text-teal-400 mt-1">
+                            {item.studentName}
+                          </div>
+                        )}
                       </div>
                       <span className="text-white/90">${item.price}</span>
                     </div>
@@ -485,8 +566,8 @@ export default function Register() {
                 </div>
               )}
               
-              {/* Names Section */}
-              {cartItems.length > 0 && showForm && (
+              {/* Names Section - Only for guest checkout */}
+              {cartItems.length > 0 && showForm && !isAuthenticated && (
                 <div className="mb-6 space-y-4">
                   <div>
                     <Label className="text-white text-sm mb-2 block">Parent/Guardian Name</Label>
@@ -505,6 +586,20 @@ export default function Register() {
                       placeholder="Enter child's name"
                       className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
                     />
+                  </div>
+                </div>
+              )}
+
+              {/* Student assignment reminder for authenticated users */}
+              {cartItems.length > 0 && showForm && isAuthenticated && (
+                <div className="mb-6 p-4 bg-blue-500/20 border border-blue-400/30 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <Users className="w-5 h-5 text-blue-300" />
+                    <p className="text-blue-200 text-sm">
+                      {cartItems.every(item => CartManager.getStudentForWeek(item.weekId).studentId) 
+                        ? 'All students assigned! Ready for checkout.' 
+                        : 'Please assign students to each week in the cart above.'}
+                    </p>
                   </div>
                 </div>
               )}
@@ -550,18 +645,22 @@ export default function Register() {
                         <GradientButton
                           className="w-full"
                           onClick={proceedToPayment}
-                          disabled={cart.length === 0 || isLoading}
+                          disabled={cart.length === 0 || isLoading || !cartItems.every(item => CartManager.getStudentForWeek(item.weekId).studentId)}
                         >
-                          {isLoading ? 'Processing...' : 'Choose Payment Option'}
+                          {isLoading ? 'Processing...' : 
+                           !cartItems.every(item => CartManager.getStudentForWeek(item.weekId).studentId) ? 'Assign Students First' :
+                           'Choose Payment Option'}
                         </GradientButton>
                       ) : (
                         <>
                           <GradientButton
                             className="w-full"
                             onClick={proceedToPayment}
-                            disabled={cart.length === 0 || isLoading}
+                            disabled={cart.length === 0 || isLoading || !parentName.trim() || !childName.trim()}
                           >
-                            {isLoading ? 'Processing...' : 'Pay as Guest'}
+                            {isLoading ? 'Processing...' : 
+                             !parentName.trim() || !childName.trim() ? 'Fill in Names First' :
+                             'Pay as Guest'}
                           </GradientButton>
                           <GradientButton
                             variant="ghost"
@@ -600,6 +699,12 @@ export default function Register() {
             </div>
           </div>
         )}
+
+        {/* Add Student Modal */}
+        <AddStudentModal
+          isOpen={showAddStudentModal}
+          onClose={() => setShowAddStudentModal(false)}
+        />
       </div>
     </div>
   );

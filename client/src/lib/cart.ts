@@ -5,6 +5,8 @@ export interface CartItem {
   label: string;
   price: number;
   paymentType: 'full' | 'deposit';
+  studentId?: string; // For authenticated users
+  studentName?: string; // For display purposes
 }
 
 export interface CartState {
@@ -56,7 +58,7 @@ export class CartManager {
     localStorage.setItem(this.STORAGE_KEY, JSON.stringify(items));
   }
 
-  static addToCart(weekId: string, paymentType: 'full' | 'deposit'): void {
+  static addToCart(weekId: string, paymentType: 'full' | 'deposit', studentId?: string, studentName?: string): void {
     const cart = this.getCart();
     // Remove any existing entry for this week
     const filteredCart = cart.filter(item => item.weekId !== weekId);
@@ -68,7 +70,9 @@ export class CartManager {
         weekId,
         label: week.label,
         price,
-        paymentType
+        paymentType,
+        studentId,
+        studentName
       });
       this.setCart(filteredCart);
       this.triggerCartUpdate();
@@ -173,5 +177,22 @@ export class CartManager {
   static getPaymentType(weekId: string): 'full' | 'deposit' | null {
     const item = this.getCart().find(item => item.weekId === weekId);
     return item ? item.paymentType : null;
+  }
+
+  static updateStudentForWeek(weekId: string, studentId: string, studentName: string): void {
+    const cart = this.getCart();
+    const updatedCart = cart.map(item => {
+      if (item.weekId === weekId) {
+        return { ...item, studentId, studentName };
+      }
+      return item;
+    });
+    this.setCart(updatedCart);
+    this.triggerCartUpdate();
+  }
+
+  static getStudentForWeek(weekId: string): { studentId?: string; studentName?: string } {
+    const item = this.getCart().find(item => item.weekId === weekId);
+    return { studentId: item?.studentId, studentName: item?.studentName };
   }
 }
