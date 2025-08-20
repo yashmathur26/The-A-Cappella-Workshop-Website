@@ -121,8 +121,8 @@ export default function FAQ() {
               >
                 <h3 className="text-2xl font-semibold text-teal-custom">{section.title}</h3>
                 <ChevronDown 
-                  className={`text-white transition-transform ${
-                    openSection === section.id ? 'rotate-180' : ''
+                  className={`text-white transition-all duration-500 ease-out ${
+                    openSection === section.id ? 'rotate-180 text-sky-custom' : 'text-white/70'
                   }`}
                   size={20}
                 />
