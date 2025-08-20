@@ -989,57 +989,58 @@ export default function Account() {
                 </Badge>
               </div>
 
-              {Object.keys(registrationsByWeek).length === 0 ? (
-                <Card className="bg-black/20 backdrop-blur-lg border border-white/10">
-                  <CardContent className="text-center py-12">
-                    <FileText className="w-16 h-16 text-white/40 mx-auto mb-4" />
-                    <h3 className="text-xl font-bold text-white mb-2">No registrations yet</h3>
-                    <p className="text-white/60">Registration data will appear here as students register for camp weeks</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-6">
-                  {Object.entries(registrationsByWeek).map(([weekId, weekRegistrations]) => {
-                    const totalRegistrations = weekRegistrations.length;
-                    const totalRevenue = weekRegistrations.reduce((sum, reg) => {
-                      return sum + (reg.priceCents - (reg.balanceDueCents || 0));
-                    }, 0);
-                    const outstandingBalance = weekRegistrations.reduce((sum, reg) => {
-                      return sum + (reg.balanceDueCents || 0);
-                    }, 0);
-                    
-                    return (
-                      <Card key={weekId} className="bg-black/20 backdrop-blur-lg border border-white/10">
-                        <CardHeader>
-                          <div className="flex justify-between items-center">
-                            <div>
-                              <CardTitle className="text-white flex items-center">
-                                <Calendar className="w-5 h-5 mr-2 text-teal-custom" />
-                                {getWeekLabel(weekId)}
-                              </CardTitle>
-                              <CardDescription className="text-white/60">
-                                {totalRegistrations} registrations • ${(totalRevenue / 100).toFixed(2)} collected • ${(outstandingBalance / 100).toFixed(2)} remaining
-                              </CardDescription>
-                            </div>
-                            <Badge className="bg-teal-500/20 text-teal-300 border-teal-500/30">
-                              {totalRegistrations} students
-                            </Badge>
+              <div className="space-y-6">
+                {weeks.map((week) => {
+                  const weekRegistrations = registrationsByWeek[week.id] || [];
+                  const totalRegistrations = weekRegistrations.length;
+                  const totalRevenue = weekRegistrations.reduce((sum, reg) => {
+                    const week = weeks.find(w => w.id === reg.weekId);
+                    const weekPrice = week ? week.priceCents : 0;
+                    return sum + (weekPrice - (reg.balanceDueCents || 0));
+                  }, 0);
+                  const outstandingBalance = weekRegistrations.reduce((sum, reg) => {
+                    return sum + (reg.balanceDueCents || 0);
+                  }, 0);
+                  
+                  return (
+                    <Card key={week.id} className="bg-black/20 backdrop-blur-lg border border-white/10">
+                      <CardHeader>
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <CardTitle className="text-white flex items-center">
+                              <Calendar className="w-5 h-5 mr-2 text-teal-custom" />
+                              {week.label}
+                            </CardTitle>
+                            <CardDescription className="text-white/60">
+                              {totalRegistrations} registrations • ${(totalRevenue / 100).toFixed(2)} collected • ${(outstandingBalance / 100).toFixed(2)} remaining
+                            </CardDescription>
                           </div>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="overflow-x-auto">
-                            <table className="w-full">
-                              <thead>
-                                <tr className="border-b border-white/10">
-                                  <th className="text-left py-3 text-white/80 font-medium">Student Name</th>
-                                  <th className="text-left py-3 text-white/80 font-medium">Parent Name</th>
-                                  <th className="text-left py-3 text-white/80 font-medium">Parent Email</th>
-                                  <th className="text-right py-3 text-white/80 font-medium">Total Cost</th>
-                                  <th className="text-right py-3 text-white/80 font-medium">Cost Remaining</th>
+                          <Badge className="bg-teal-500/20 text-teal-300 border-teal-500/30">
+                            {totalRegistrations} students
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="overflow-x-auto">
+                          <table className="w-full">
+                            <thead>
+                              <tr className="border-b border-white/10">
+                                <th className="text-left py-3 text-white/80 font-medium">Student Name</th>
+                                <th className="text-left py-3 text-white/80 font-medium">Parent Name</th>
+                                <th className="text-left py-3 text-white/80 font-medium">Parent Email</th>
+                                <th className="text-right py-3 text-white/80 font-medium">Total Cost</th>
+                                <th className="text-right py-3 text-white/80 font-medium">Cost Remaining</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {weekRegistrations.length === 0 ? (
+                                <tr>
+                                  <td colSpan={5} className="py-8 text-center text-white/60">
+                                    No registrations for this week yet
+                                  </td>
                                 </tr>
-                              </thead>
-                              <tbody>
-                                {weekRegistrations
+                              ) : (
+                                weekRegistrations
                                   .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
                                   .map((registration) => {
                                     const student = students.find(s => s.id === registration.studentId);
@@ -1059,7 +1060,7 @@ export default function Account() {
                                         </td>
                                         <td className="py-3 text-right">
                                           <span className="text-blue-400 font-medium">
-                                            ${(registration.priceCents / 100).toFixed(2)}
+                                            ${((weeks.find(w => w.id === registration.weekId)?.priceCents || 0) / 100).toFixed(2)}
                                           </span>
                                         </td>
                                         <td className="py-3 text-right">
@@ -1073,16 +1074,16 @@ export default function Account() {
                                         </td>
                                       </tr>
                                     );
-                                  })}
-                              </tbody>
-                            </table>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-              )}
+                                  })
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
             </TabsContent>
           )}
         </Tabs>
