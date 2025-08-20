@@ -28,7 +28,7 @@ export default function About() {
         <h1 className="text-4xl lg:text-5xl font-bold text-center mb-8 gradient-text">About The A Cappella Workshop</h1>
         
         {/* What is section */}
-        <section className="mb-6">
+        <section className="mb-3">
           <GlassCard className="p-8 lg:p-12 reveal-in">
             <h2 className="text-2xl lg:text-3xl font-bold mb-6 text-teal-custom">What is The A Cappella Workshop?</h2>
             <p className="text-lg text-white/90 leading-relaxed">
