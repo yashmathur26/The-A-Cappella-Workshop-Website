@@ -91,6 +91,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Update user profile
+  app.put("/api/profile", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    try {
+      const user = req.user as any;
+      const { firstName, lastName, email } = req.body;
+      
+      if (!firstName || !lastName || !email) {
+        return res.status(400).json({ message: "All fields are required" });
+      }
+      
+      // Check if email is already taken by another user
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser && existingUser.id !== user.id) {
+        return res.status(400).json({ message: "Email is already taken" });
+      }
+      
+      const updatedUser = await storage.updateUser(user.id, {
+        firstName,
+        lastName,
+        email
+      });
+      
+      // Update session data
+      req.user = updatedUser;
+      
+      res.json({
+        id: updatedUser.id,
+        email: updatedUser.email,
+        firstName: updatedUser.firstName,
+        lastName: updatedUser.lastName,
+        role: updatedUser.role,
+        emailVerified: updatedUser.emailVerified,
+        stripeCustomerId: updatedUser.stripeCustomerId,
+      });
+    } catch (error) {
+      console.error("Profile update error:", error);
+      res.status(500).json({ message: "Failed to update profile" });
+    }
+  });
+
   // Student management
   app.get("/api/students", requireAuth, async (req, res) => {
     try {

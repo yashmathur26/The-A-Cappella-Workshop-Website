@@ -8,6 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { 
   User, 
   Users, 
@@ -20,7 +25,8 @@ import {
   CheckCircle,
   Clock,
   XCircle,
-  DollarSign
+  DollarSign,
+  Settings
 } from "lucide-react";
 import { PaymentOptions } from "@/components/PaymentOptions";
 
@@ -183,6 +189,10 @@ export default function Account() {
             <TabsTrigger value="payments" className="data-[state=active]:bg-white/20">
               <CreditCard className="w-4 h-4 mr-2" />
               Payments
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="data-[state=active]:bg-white/20">
+              <Settings className="w-4 h-4 mr-2" />
+              Settings
             </TabsTrigger>
           </TabsList>
 
@@ -521,6 +531,117 @@ export default function Account() {
                 ))}
               </div>
             )}
+          </TabsContent>
+
+          {/* Settings Tab */}
+          <TabsContent value="settings" className="space-y-6">
+            <h2 className="text-2xl font-bold text-white">Account Settings</h2>
+            
+            <Card className="bg-black/20 backdrop-blur-lg border border-white/10">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center">
+                  <User className="w-5 h-5 mr-2 text-sky-custom" />
+                  Profile Information
+                </CardTitle>
+                <CardDescription className="text-white/60">
+                  Update your personal information and contact details
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <Form {...profileForm}>
+                  <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <FormField
+                        control={profileForm.control}
+                        name="firstName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-white">First Name</FormLabel>
+                            <FormControl>
+                              <Input 
+                                {...field} 
+                                className="bg-white/10 border-white/20 text-white placeholder:text-white/60"
+                                placeholder="Enter your first name"
+                              />
+                            </FormControl>
+                            <FormMessage className="text-red-400" />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={profileForm.control}
+                        name="lastName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-white">Last Name</FormLabel>
+                            <FormControl>
+                              <Input 
+                                {...field} 
+                                className="bg-white/10 border-white/20 text-white placeholder:text-white/60"
+                                placeholder="Enter your last name"
+                              />
+                            </FormControl>
+                            <FormMessage className="text-red-400" />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    <FormField
+                      control={profileForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-white">Email Address</FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              type="email"
+                              className="bg-white/10 border-white/20 text-white placeholder:text-white/60"
+                              placeholder="Enter your email address"
+                            />
+                          </FormControl>
+                          <FormMessage className="text-red-400" />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <div className="flex justify-end pt-4">
+                      <Button 
+                        type="submit" 
+                        className="btn-gradient"
+                        disabled={updateProfileMutation.isPending}
+                      >
+                        {updateProfileMutation.isPending ? "Updating..." : "Update Profile"}
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-black/20 backdrop-blur-lg border border-white/10">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center">
+                  <LogOut className="w-5 h-5 mr-2 text-red-400" />
+                  Account Actions
+                </CardTitle>
+                <CardDescription className="text-white/60">
+                  Manage your account security and preferences
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button 
+                  variant="outline" 
+                  className="bg-red-500/10 border-red-500/20 text-red-300 hover:bg-red-500/20"
+                  onClick={handleLogout}
+                  disabled={logoutMutation.isPending}
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  {logoutMutation.isPending ? "Signing Out..." : "Sign Out"}
+                </Button>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
 

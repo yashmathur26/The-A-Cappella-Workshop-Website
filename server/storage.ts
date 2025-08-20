@@ -30,6 +30,7 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByGoogleId(googleId: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
+  updateUser(id: string, userData: Partial<Pick<User, 'firstName' | 'lastName' | 'email'>>): Promise<User>;
   updateStripeCustomerId(userId: string, stripeCustomerId: string): Promise<User>;
 
   // Student operations
@@ -97,6 +98,19 @@ export class DatabaseStorage implements IStorage {
           updatedAt: new Date(),
         },
       })
+      .returning();
+    return user;
+  }
+
+  async updateUser(id: string, userData: Partial<Pick<User, 'firstName' | 'lastName' | 'email'>>): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ 
+        ...userData,
+        email: userData.email?.toLowerCase(),
+        updatedAt: new Date() 
+      })
+      .where(eq(users.id, id))
       .returning();
     return user;
   }
