@@ -627,8 +627,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Student not found" });
       }
 
-      await storage.deleteStudent(req.params.id);
-      res.json({ message: "Student deleted" });
+      // Check if student has any registrations or payments
+      const registrations = await storage.getRegistrations(user.id);
+      const studentRegistrations = registrations.filter(reg => reg.studentId === req.params.id);
+      
+      if (studentRegistrations.length > 0) {
+        // If student has registrations, don't delete - just mark as archived
+        // This preserves them in admin records for financial tracking
+        const updatedStudent = await storage.updateStudent(req.params.id, {
+          notes: existingStudent.notes ? `${existingStudent.notes} (ARCHIVED)` : '(ARCHIVED)'
+        });
+        res.json({ message: "Student archived (has payment records)" });
+      } else {
+        // Safe to delete if no payment history
+        await storage.deleteStudent(req.params.id);
+        res.json({ message: "Student deleted" });
+      }
     } catch (error) {
       console.error("Error deleting student:", error);
       res.status(500).json({ message: "Failed to delete student" });

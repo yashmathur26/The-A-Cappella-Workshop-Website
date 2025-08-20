@@ -91,6 +91,43 @@ export default function Account() {
   const [showAddStudentModal, setShowAddStudentModal] = useState(false);
   const [showEditStudentModal, setShowEditStudentModal] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+  
+  // Additional emails state
+  const [additionalEmails, setAdditionalEmails] = useState<string[]>([]);
+  const [newEmailInput, setNewEmailInput] = useState("");
+  
+  // Add email function
+  const handleAddEmail = () => {
+    if (newEmailInput.trim() && newEmailInput.includes('@') && !additionalEmails.includes(newEmailInput.trim())) {
+      setAdditionalEmails([...additionalEmails, newEmailInput.trim()]);
+      setNewEmailInput("");
+      toast({
+        title: "Email Added",
+        description: `${newEmailInput} will receive camp notifications.`,
+      });
+    } else if (!newEmailInput.includes('@')) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      });
+    } else if (additionalEmails.includes(newEmailInput.trim())) {
+      toast({
+        title: "Email Already Added",
+        description: "This email is already in your additional emails list.",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  // Remove email function
+  const handleRemoveEmail = (emailToRemove: string) => {
+    setAdditionalEmails(additionalEmails.filter(email => email !== emailToRemove));
+    toast({
+      title: "Email Removed",
+      description: `${emailToRemove} will no longer receive notifications.`,
+    });
+  };
 
   // Profile update form schema
   const profileSchema = z.object({
@@ -946,11 +983,29 @@ export default function Account() {
                 <div>
                   <label className="text-white text-sm font-medium mb-2 block">Additional Emails</label>
                   <div className="space-y-2 mb-3">
-                    {/* Placeholder for additional emails - would need backend support */}
-                    <div className="flex items-center p-3 bg-white/5 rounded-lg border border-white/10">
-                      <Mail className="w-4 h-4 text-white/60 mr-3" />
-                      <span className="text-white/60">No additional emails added</span>
-                    </div>
+                    {additionalEmails.length === 0 ? (
+                      <div className="flex items-center p-3 bg-white/5 rounded-lg border border-white/10">
+                        <Mail className="w-4 h-4 text-white/60 mr-3" />
+                        <span className="text-white/60">No additional emails added</span>
+                      </div>
+                    ) : (
+                      additionalEmails.map((email, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
+                          <div className="flex items-center">
+                            <Mail className="w-4 h-4 text-white/60 mr-3" />
+                            <span className="text-white">{email}</span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveEmail(email)}
+                            className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))
+                    )}
                   </div>
                   
                   {/* Add Email Form */}
@@ -958,9 +1013,13 @@ export default function Account() {
                     <Input 
                       placeholder="Enter additional email address"
                       type="email"
+                      value={newEmailInput}
+                      onChange={(e) => setNewEmailInput(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleAddEmail()}
                       className="bg-white/10 border-white/20 text-white placeholder:text-white/50 flex-1"
                     />
                     <Button 
+                      onClick={handleAddEmail}
                       className="bg-sky-custom/20 border border-sky-custom/30 text-sky-200 hover:bg-sky-custom/30"
                     >
                       <Plus className="w-4 h-4 mr-1" />
