@@ -129,13 +129,31 @@ export default function Register() {
   const proceedToPayment = async () => {
     if (cart.length === 0) return;
     
-    if (!parentName.trim() || !childName.trim()) {
+    // Only require names for guest users
+    if (!isAuthenticated && (!parentName.trim() || !childName.trim())) {
       toast({
         title: "Names required",
         description: "Please enter both parent and child names before checkout.",
         variant: "destructive",
       });
       return;
+    }
+
+    // For authenticated users, verify students are assigned to all cart items
+    if (isAuthenticated) {
+      const unassignedItems = cart.filter(item => {
+        const studentInfo = CartManager.getStudentForWeek(item.weekId);
+        return !studentInfo.studentId;
+      });
+      
+      if (unassignedItems.length > 0) {
+        toast({
+          title: "Students not assigned",
+          description: "Please assign a student to each week in your cart before checkout.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
     
     // Go directly to Stripe checkout for both authenticated and guest users
@@ -146,8 +164,8 @@ export default function Register() {
       const response = await apiRequest('POST', '/api/create-checkout-session', {
         cartItems: cart,
         promoCode: CartManager.getPromoCode(),
-        parentName: parentName.trim(),
-        childName: childName.trim(),
+        parentName: isAuthenticated ? `${user?.firstName} ${user?.lastName}` : parentName.trim(),
+        childName: isAuthenticated ? 'Student Registration' : childName.trim(),
       });
       
       const data = await response.json();
