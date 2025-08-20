@@ -476,6 +476,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Set admin role for theacappellaworkshop@gmail.com account
+  app.post("/api/make-admin", async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      // Only allow setting admin for the specific email
+      if (email !== 'theacappellaworkshop@gmail.com') {
+        return res.status(403).json({ error: 'Unauthorized email' });
+      }
+      
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found. Please register first.' });
+      }
+      
+      // Update user role through upsert
+      const updatedUser = await storage.upsertUser({
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: 'admin',
+        emailVerified: user.emailVerified,
+        googleId: user.googleId,
+        stripeCustomerId: user.stripeCustomerId
+      });
+      
+      console.log('Updated user to admin role:', updatedUser.email);
+      res.json({ success: true, user: { email: updatedUser.email, role: updatedUser.role } });
+    } catch (error) {
+      console.error('Error making user admin:', error);
+      res.status(500).json({ error: 'Failed to set admin role' });
+    }
+  });
+
   // User info route (returns null if not authenticated instead of 401)
   app.get("/api/me", async (req, res) => {
     if (!req.isAuthenticated()) {
@@ -492,6 +527,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
       emailVerified: user.emailVerified,
       stripeCustomerId: user.stripeCustomerId,
     });
+  });
+
+  // Admin roster API routes - integrated with regular auth
+  app.get("/api/roster/weeks", requireAuth, async (req, res) => {
+    const user = req.user as any;
+    if (user.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+    
+    try {
+      ensureRosterDirectory();
+      const rosterDir = path.join(process.cwd(), 'data', 'rosters');
+      const files = fs.readdirSync(rosterDir);
+      const weeks = files
+        .filter(file => file.endsWith('.jsonl') && file !== '_index.jsonl')
+        .map(file => file.replace('.jsonl', ''))
+        .sort();
+      
+      res.json({ weeks });
+    } catch (error) {
+      console.error('Error reading roster directory:', error);
+      res.json({ weeks: [] });
+    }
+  });
+
+  app.get("/api/roster/:weekId", requireAuth, async (req, res) => {
+    const user = req.user as any;
+    if (user.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+    
+    try {
+      const { weekId } = req.params;
+      const rosterDir = path.join(process.cwd(), 'data', 'rosters');
+      const weekFile = path.join(rosterDir, weekId + '.jsonl');
+      
+      if (!fs.existsSync(weekFile)) {
+        return res.json({ records: [] });
+      }
+      
+      const fileContent = fs.readFileSync(weekFile, 'utf8');
+      const lines = fileContent.trim().split('\n').filter(line => line.trim());
+      
+      const records = lines.map(line => {
+        try {
+          return JSON.parse(line);
+        } catch (error) {
+          console.error('Error parsing roster line:', line, error);
+          return null;
+        }
+      }).filter(record => record !== null);
+      
+      res.json({ records });
+    } catch (error) {
+      console.error('Error reading roster file:', error);
+      res.status(500).json({ message: 'Error reading roster file' });
+    }
   });
 
   // Enhanced checkout creation that accepts cart format with metadata

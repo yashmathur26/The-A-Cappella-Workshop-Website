@@ -27,7 +27,9 @@ import {
   XCircle,
   DollarSign,
   Settings,
-  Mail
+  Mail,
+  Shield,
+  FileText
 } from "lucide-react";
 import { AddStudentModal } from '@/components/AddStudentModal';
 import { EditStudentModal } from '@/components/EditStudentModal';
@@ -64,6 +66,19 @@ interface Payment {
   currency: string;
   status: string;
   receivedAt: string;
+}
+
+interface RosterRecord {
+  ts: string;
+  week_id: string;
+  week_label: string;
+  student_name: string;
+  parent_email: string;
+  parent_name: string;
+  amount_cents: number;
+  payment_intent: string;
+  currency: string;
+  session_id: string;
 }
 
 export default function Account() {
@@ -156,6 +171,27 @@ export default function Account() {
     queryKey: ["/api/payments"],
     enabled: isAuthenticated,
   });
+
+  // Fetch roster data for admin users
+  const { data: rosterWeeks = [] } = useQuery<string[]>({
+    queryKey: ["/api/roster/weeks"],
+    enabled: isAuthenticated && user?.role === 'admin',
+  });
+
+  // Fetch roster records for each week (admin only)
+  const rosterQueries = rosterWeeks.map(weekId => 
+    useQuery<{records: RosterRecord[]}>({
+      queryKey: ["/api/roster", weekId],
+      enabled: isAuthenticated && user?.role === 'admin' && rosterWeeks.length > 0,
+    })
+  );
+
+  const allRosterData = rosterQueries.reduce((acc, query, index) => {
+    if (query.data) {
+      acc[rosterWeeks[index]] = query.data.records;
+    }
+    return acc;
+  }, {} as Record<string, RosterRecord[]>);
 
   const handleLogout = async () => {
     try {
@@ -300,6 +336,12 @@ export default function Account() {
               <Settings className="w-4 h-4 mr-2" />
               Settings
             </TabsTrigger>
+            {user?.role === 'admin' && (
+              <TabsTrigger value="admin" className="data-[state=active]:bg-white/20">
+                <Shield className="w-4 h-4 mr-2" />
+                Admin
+              </TabsTrigger>
+            )}
           </TabsList>
 
           {/* Overview Tab */}
@@ -931,6 +973,107 @@ export default function Account() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Admin Tab */}
+          {user?.role === 'admin' && (
+            <TabsContent value="admin" className="space-y-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-2xl font-bold text-white">Camp Registrations</h2>
+                  <p className="text-white/60">View all student registrations by week</p>
+                </div>
+                <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">
+                  <Shield className="w-3 h-3 mr-1" />
+                  Admin Access
+                </Badge>
+              </div>
+
+              {rosterWeeks.length === 0 ? (
+                <Card className="bg-black/20 backdrop-blur-lg border border-white/10">
+                  <CardContent className="text-center py-12">
+                    <FileText className="w-16 h-16 text-white/40 mx-auto mb-4" />
+                    <h3 className="text-xl font-bold text-white mb-2">No registrations yet</h3>
+                    <p className="text-white/60">Registration data will appear here as students register for camp weeks</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-6">
+                  {rosterWeeks.map((weekId) => {
+                    const records = allRosterData[weekId] || [];
+                    const totalAmount = records.reduce((sum, record) => sum + record.amount_cents, 0);
+                    
+                    return (
+                      <Card key={weekId} className="bg-black/20 backdrop-blur-lg border border-white/10">
+                        <CardHeader>
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <CardTitle className="text-white flex items-center">
+                                <Calendar className="w-5 h-5 mr-2 text-teal-custom" />
+                                Week {weekId}
+                              </CardTitle>
+                              <CardDescription className="text-white/60">
+                                {records.length} registrations • ${(totalAmount / 100).toFixed(2)} total
+                              </CardDescription>
+                            </div>
+                            <Badge className="bg-teal-500/20 text-teal-300 border-teal-500/30">
+                              {records.length} students
+                            </Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          {records.length === 0 ? (
+                            <div className="text-center py-8">
+                              <Users className="w-12 h-12 text-white/40 mx-auto mb-4" />
+                              <p className="text-white/60">No registrations for this week yet</p>
+                            </div>
+                          ) : (
+                            <div className="overflow-x-auto">
+                              <table className="w-full">
+                                <thead>
+                                  <tr className="border-b border-white/10">
+                                    <th className="text-left py-3 text-white/80 font-medium">Date</th>
+                                    <th className="text-left py-3 text-white/80 font-medium">Student</th>
+                                    <th className="text-left py-3 text-white/80 font-medium">Parent</th>
+                                    <th className="text-left py-3 text-white/80 font-medium">Email</th>
+                                    <th className="text-right py-3 text-white/80 font-medium">Amount</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {records
+                                    .sort((a, b) => new Date(b.ts).getTime() - new Date(a.ts).getTime())
+                                    .map((record, index) => (
+                                    <tr key={index} className="border-b border-white/5 hover:bg-white/5">
+                                      <td className="py-3 text-white/60 text-sm">
+                                        {new Date(record.ts).toLocaleDateString()}
+                                      </td>
+                                      <td className="py-3 text-white font-medium">
+                                        {record.student_name || '(not provided)'}
+                                      </td>
+                                      <td className="py-3 text-white">
+                                        {record.parent_name || '(not provided)'}
+                                      </td>
+                                      <td className="py-3 text-white/60">
+                                        {record.parent_email || '(not provided)'}
+                                      </td>
+                                      <td className="py-3 text-right">
+                                        <span className="text-green-400 font-medium">
+                                          ${(record.amount_cents / 100).toFixed(2)}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </TabsContent>
+          )}
         </Tabs>
 
       </div>
