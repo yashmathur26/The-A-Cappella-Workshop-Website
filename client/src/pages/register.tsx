@@ -109,7 +109,7 @@ export default function Register() {
                 <p className="text-white/80 mb-4">Submit the form, then pick your week(s) below.</p>
                 <div className="bg-white/5 rounded-lg p-4 border border-white/10">
                   <iframe 
-                    src="https://docs.google.com/forms/d/1qWkQo_KVcq3wb1aH1RTZ3tjbULNDvudW_oFXD3BdPZY/viewform?embedded=true" 
+                    src="https://docs.google.com/forms/d/e/1FAIpQLSfU3ReIcBMTJge0QnuX-G1JaQo9av-pqt7AGHGA7PclvlRfKg/viewform?embedded=true" 
                     width="100%" 
                     height="400" 
                     frameBorder="0" 
