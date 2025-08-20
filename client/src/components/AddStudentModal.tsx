@@ -16,7 +16,7 @@ import { X, Plus } from "lucide-react";
 const addStudentSchema = z.object({
   firstName: z.string().min(1, "First name is required").max(40, "First name must be 40 characters or less"),
   lastName: z.string().min(1, "Last name is required").max(40, "Last name must be 40 characters or less"),
-  notes: z.string().max(400, "Notes must be 400 characters or less").optional()
+  notes: z.string().max(400, "Notes must be 400 characters or less").optional().or(z.literal(""))
 });
 
 interface AddStudentModalProps {
@@ -39,7 +39,10 @@ export function AddStudentModal({ isOpen, onClose }: AddStudentModalProps) {
 
   const addStudentMutation = useMutation({
     mutationFn: async (data: z.infer<typeof addStudentSchema>) => {
-      return await apiRequest("POST", "/api/students", data);
+      console.log('Submitting student data:', data);
+      const response = await apiRequest("POST", "/api/students", data);
+      console.log('Student created:', response);
+      return response;
     },
     onSuccess: () => {
       toast({
@@ -51,6 +54,7 @@ export function AddStudentModal({ isOpen, onClose }: AddStudentModalProps) {
       onClose();
     },
     onError: (error: any) => {
+      console.error('Error adding student:', error);
       toast({
         title: "Failed to Add Student",
         description: error.message || "An error occurred while adding the student.",
@@ -60,7 +64,15 @@ export function AddStudentModal({ isOpen, onClose }: AddStudentModalProps) {
   });
 
   const onSubmit = (data: z.infer<typeof addStudentSchema>) => {
-    addStudentMutation.mutate(data);
+    console.log('Form submitted with data:', data);
+    // Clean up empty notes field
+    const cleanData = {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      notes: data.notes || undefined
+    };
+    console.log('Cleaned data:', cleanData);
+    addStudentMutation.mutate(cleanData);
   };
 
   return (
@@ -74,7 +86,13 @@ export function AddStudentModal({ isOpen, onClose }: AddStudentModalProps) {
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form 
+            onSubmit={(e) => {
+              console.log('Form onSubmit triggered');
+              form.handleSubmit(onSubmit)(e);
+            }} 
+            className="space-y-4"
+          >
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -136,7 +154,10 @@ export function AddStudentModal({ isOpen, onClose }: AddStudentModalProps) {
               <Button
                 type="button"
                 variant="outline"
-                onClick={onClose}
+                onClick={() => {
+                  console.log('Cancel clicked');
+                  onClose();
+                }}
                 className="bg-white/10 border-white/20 text-white hover:bg-white/20"
               >
                 Cancel
@@ -145,6 +166,10 @@ export function AddStudentModal({ isOpen, onClose }: AddStudentModalProps) {
                 type="submit"
                 disabled={addStudentMutation.isPending}
                 className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
+                onClick={(e) => {
+                  console.log('Add Student button clicked', e.type);
+                  // Don't prevent default - let form handle submission
+                }}
               >
                 {addStudentMutation.isPending ? "Adding..." : "Add Student"}
               </Button>
