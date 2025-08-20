@@ -332,15 +332,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const session = await stripe.checkout.sessions.create({
         customer: stripeCustomerId,
-        payment_method_types: [
-          'card',
-          'us_bank_account',
-          'paypal',
-        ],
-        automatic_payment_methods: {
-          enabled: true,
-          allow_redirects: 'never'
-        },
+        payment_method_types: ['card'],
         line_items: lineItems,
         mode: 'payment',
         success_url: `${host}/account?success=1&session_id={CHECKOUT_SESSION_ID}&payment_type=${paymentType}`,
@@ -390,8 +382,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         payment_method_types: ['card'],
         line_items: lineItems,
         mode: 'payment',
-        success_url: `${host}/status?ok=1&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${host}/status?ok=0`,
+        success_url: `${host}/camp-registration?success=1&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${host}/camp-registration?cancelled=1`,
       });
 
       res.json({ url: session.url });

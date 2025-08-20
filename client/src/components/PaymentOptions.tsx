@@ -132,15 +132,11 @@ export function PaymentOptions({ registrationIds, totalAmount, onCancel }: Payme
           </RadioGroup>
 
           <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-            <h4 className="text-white font-medium mb-2">Payment Methods Accepted</h4>
-            <div className="flex flex-wrap gap-2 text-sm text-white/60">
-              <span className="bg-white/10 px-2 py-1 rounded">💳 Credit/Debit Cards</span>
-              <span className="bg-white/10 px-2 py-1 rounded">🏦 Bank Transfer</span>
-              <span className="bg-white/10 px-2 py-1 rounded">📱 Apple Pay</span>
-              <span className="bg-white/10 px-2 py-1 rounded">📱 Google Pay</span>
-              <span className="bg-white/10 px-2 py-1 rounded">💙 PayPal</span>
-              <span className="bg-white/10 px-2 py-1 rounded">💜 Venmo</span>
+            <h4 className="text-white font-medium mb-2">Payment Method</h4>
+            <div className="flex gap-2 text-sm text-white/60">
+              <span className="bg-white/10 px-3 py-2 rounded">💳 Credit/Debit Cards</span>
             </div>
+            <p className="text-white/50 text-xs mt-2">Secure checkout powered by Stripe</p>
           </div>
 
           <div className="flex space-x-3">
