@@ -112,16 +112,10 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
                   Sign In
                 </Link>
                 <Link
-                  href="/register"
-                  className="btn-gradient px-5 py-2 rounded-full text-white font-medium hover:text-white text-sm"
-                >
-                  Sign Up
-                </Link>
-                <Link
                   href="/camp-registration"
                   className="btn-gradient px-6 py-2 rounded-full text-white font-medium hover:text-white"
                 >
-                  Register for Camp
+                  Register
                 </Link>
               </div>
             )}
@@ -186,18 +180,11 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
                     Sign In
                   </Link>
                   <Link
-                    href="/register"
-                    className="btn-gradient px-6 py-2 rounded-full text-white font-medium inline-block text-center"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Sign Up
-                  </Link>
-                  <Link
                     href="/camp-registration"
                     className="btn-gradient px-6 py-2 rounded-full text-white font-medium inline-block text-center"
                     onClick={() => setIsMenuOpen(false)}
                   >
-                    Register for Camp
+                    Register
                   </Link>
                 </div>
               )}

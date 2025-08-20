@@ -75,9 +75,9 @@ export default function Login() {
       <div className="w-full max-w-md">
         <Card className="bg-black/20 backdrop-blur-lg border border-white/10 shadow-2xl">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold text-white">Welcome Back</CardTitle>
+            <CardTitle className="text-2xl font-bold text-white">Your Account</CardTitle>
             <CardDescription className="text-white/70">
-              Sign in to your A Cappella Workshop account
+              Sign in for easy registration tracking and more.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -119,13 +119,23 @@ export default function Login() {
                 )}
               </div>
 
-              <Button
-                type="submit"
-                className="w-full btn-gradient"
-                disabled={loginMutation.isPending}
-              >
-                {loginMutation.isPending ? "Signing in..." : "Sign In"}
-              </Button>
+              <div className="flex space-x-3">
+                <Button
+                  type="submit"
+                  className="flex-1 btn-gradient-secondary"
+                  disabled={loginMutation.isPending}
+                >
+                  {loginMutation.isPending ? "Signing in..." : "Sign In"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1 bg-transparent border-white/20 text-white hover:bg-white/10"
+                  onClick={() => setLocation("/register")}
+                >
+                  Join
+                </Button>
+              </div>
             </form>
 
             <div className="relative">
@@ -147,16 +157,6 @@ export default function Login() {
               Sign in with Google
             </Button>
 
-            <div className="text-center">
-              <p className="text-white/70 text-sm">
-                Don't have an account?{" "}
-                <Link href="/register">
-                  <span className="text-sky-custom hover:text-teal-custom font-medium cursor-pointer">
-                    Sign up
-                  </span>
-                </Link>
-              </p>
-            </div>
           </CardContent>
         </Card>
       </div>
