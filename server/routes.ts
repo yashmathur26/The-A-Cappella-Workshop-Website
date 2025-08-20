@@ -484,8 +484,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check if user already exists
       const existingUser = await storage.getUserByEmail(email);
+      
       if (existingUser) {
-        return res.json({ success: true, message: 'Admin user already exists' });
+        // Update existing user to admin with correct password
+        const argon2 = await import('argon2');
+        const hashedPassword = await argon2.hash(password);
+        
+        const updatedUser = await storage.upsertUser({
+          id: existingUser.id,
+          email: existingUser.email,
+          firstName: 'Admin',
+          lastName: existingUser.lastName || '',
+          role: 'admin',
+          passwordHash: hashedPassword,
+          emailVerified: true,
+          googleId: existingUser.googleId,
+          stripeCustomerId: existingUser.stripeCustomerId
+        });
+        
+        console.log('Updated existing user to admin:', updatedUser.email, 'Role:', updatedUser.role);
+        return res.json({ success: true, message: 'Admin user updated', user: { email: updatedUser.email, role: updatedUser.role } });
       }
       
       // Hash the password
@@ -502,13 +520,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         emailVerified: true
       });
       
-      console.log('Created admin user:', adminUser.email);
+      console.log('Created new admin user:', adminUser.email, 'Role:', adminUser.role);
       res.json({ success: true, user: { email: adminUser.email, role: adminUser.role } });
     } catch (error) {
       console.error('Error creating admin user:', error);
       res.status(500).json({ error: 'Failed to create admin user' });
     }
   });
+
+  // Cleanup: remove debug route
 
   // User info route (returns null if not authenticated instead of 401)
   app.get("/api/me", async (req, res) => {
