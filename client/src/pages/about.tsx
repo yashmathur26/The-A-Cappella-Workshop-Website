@@ -30,7 +30,7 @@ export default function About() {
         {/* What is section */}
         <section className="mb-16">
           <GlassCard className="p-8 lg:p-12 reveal-in">
-            <h2 className="text-2xl lg:text-3xl font-bold mb-6 text-white">What is The A Cappella Workshop?</h2>
+            <h2 className="text-2xl lg:text-3xl font-bold mb-6 text-teal-custom">What is The A Cappella Workshop?</h2>
             <p className="text-lg text-white/90 leading-relaxed">
               Running since 2015, The A Cappella Workshop is a summer program for middle-school singers who want to explore contemporary a cappella in a friendly, high-energy environment. We focus on student-led, small-group singing: learning how to listen, blend, arrange, keep time, and perform with confidence. Our sessions are welcoming to both beginners and experienced singers, and every week ends with a performance for family and friends.
             </p>
@@ -40,7 +40,7 @@ export default function About() {
         {/* How the week works */}
         <section className="mb-16">
           <GlassCard className="p-8 lg:p-12 reveal-in">
-            <h2 className="text-2xl lg:text-3xl font-bold mb-6 text-white">How the week works</h2>
+            <h2 className="text-2xl lg:text-3xl font-bold mb-6 text-sky-custom">How the week works</h2>
             <p className="text-lg text-white/90 leading-relaxed">
               The first day centers on group bonding, vocal range checks, and song selection — setting the foundation for a fun, successful week. From there, students rehearse repertoire for the Friday showcase, rotate through skill "tracks" (beatboxing, arranging, and music theory), and prepare short mock solos to receive supportive feedback from teachers.
             </p>
@@ -49,7 +49,7 @@ export default function About() {
 
         {/* Meet the Co-Presidents */}
         <section>
-          <h2 className="text-2xl lg:text-3xl font-bold text-center mb-12 text-white">Meet the Co-Presidents</h2>
+          <h2 className="text-2xl lg:text-3xl font-bold text-center mb-12 gradient-text">Meet the Co-Presidents</h2>
           <div className="space-y-8">
             {STAFF_BIOS.map((staff) => (
               <GlassCard key={staff.id} className="p-8 reveal-in" hover>
@@ -60,7 +60,7 @@ export default function About() {
                     className="w-32 h-32 rounded-2xl object-cover mx-auto lg:mx-0 flex-shrink-0"
                   />
                   <div className="flex-1">
-                    <h3 className="text-xl font-bold mb-2 gradient-text">{staff.name} — {staff.title}</h3>
+                    <h3 className="text-xl font-bold mb-2 text-sky-custom">{staff.name} — {staff.title}</h3>
                     <p className="text-white/90 leading-relaxed">
                       {staff.bio}
                     </p>

@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 export default function Register() {
   const [cart, setCart] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [showForm, setShowForm] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -102,30 +103,9 @@ export default function Register() {
         <div className="lg:grid lg:grid-cols-3 lg:gap-12">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-12">
-            {/* Step 1: Student Information */}
+            {/* Step 1: Choose Weeks */}
             <section>
-              <h2 className="text-2xl font-bold mb-6 text-white">Step 1 — Student Information</h2>
-              <GlassCard className="p-6">
-                <p className="text-white/80 mb-4">Submit the form, then pick your week(s) below.</p>
-                <div className="bg-white/5 rounded-lg p-4 border border-white/10">
-                  <iframe 
-                    src="https://docs.google.com/forms/d/e/1FAIpQLSfU3ReIcBMTJge0QnuX-G1JaQo9av-pqt7AGHGA7PclvlRfKg/viewform?embedded=true" 
-                    width="100%" 
-                    height="400" 
-                    frameBorder="0" 
-                    marginHeight={0}
-                    marginWidth={0}
-                    className="rounded"
-                  >
-                    Loading…
-                  </iframe>
-                </div>
-              </GlassCard>
-            </section>
-
-            {/* Step 2: Choose Weeks */}
-            <section>
-              <h2 className="text-2xl font-bold mb-6 text-white">Step 2 — Choose Your Week(s)</h2>
+              <h2 className="text-2xl font-bold mb-6 text-teal-custom">Step 1 — Choose Your Week(s)</h2>
               <div className="grid gap-6">
                 {WEEKS.map((week, index) => (
                   <GlassCard 
@@ -134,16 +114,16 @@ export default function Register() {
                   >
                     <div className="flex justify-between items-start mb-4">
                       <div>
-                        <h3 className="text-xl font-bold text-white">Week {index + 1}</h3>
-                        <p className="text-white/80">{week.label}</p>
+                        <h3 className="text-xl font-bold text-teal-custom">Week {index + 1}</h3>
+                        <p className="text-white/90">{week.label}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-2xl font-bold gradient-text">${week.price}</p>
+                        <p className="text-2xl font-bold text-sky-custom">${week.price}</p>
                       </div>
                     </div>
-                    <p className="text-white/70 mb-4">Learn, rehearse, and perform — perfect for beginners and returning singers.</p>
+                    <p className="text-white/80 mb-4">Learn, rehearse, and perform — perfect for beginners and returning singers.</p>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-white/60">{week.spots} spots remaining</span>
+                      <span className="text-sm text-sky-custom/80">{week.spots} spots remaining</span>
                       <GradientButton
                         variant={cart.includes(week.id) ? 'ghost' : 'primary'}
                         size="sm"
@@ -155,7 +135,40 @@ export default function Register() {
                   </GlassCard>
                 ))}
               </div>
+              {cart.length > 0 && !showForm && (
+                <div className="text-center mt-8">
+                  <GradientButton
+                    size="lg"
+                    onClick={() => setShowForm(true)}
+                  >
+                    Proceed to Registration Form
+                  </GradientButton>
+                </div>
+              )}
             </section>
+
+            {/* Step 2: Registration Form - Only show after weeks are selected */}
+            {showForm && (
+              <section>
+                <h2 className="text-2xl font-bold mb-6 text-teal-custom">Step 2 — Complete Registration Form</h2>
+                <GlassCard className="p-6">
+                  <p className="text-white/80 mb-4">Please fill out your student information below.</p>
+                  <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                    <iframe 
+                      src="https://docs.google.com/forms/d/e/1FAIpQLSfU3ReIcBMTJge0QnuX-G1JaQo9av-pqt7AGHGA7PclvlRfKg/viewform?embedded=true" 
+                      width="100%" 
+                      height="400" 
+                      frameBorder="0" 
+                      marginHeight={0}
+                      marginWidth={0}
+                      className="rounded"
+                    >
+                      Loading…
+                    </iframe>
+                  </div>
+                </GlassCard>
+              </section>
+            )}
           </div>
 
           {/* Cart Sidebar */}
@@ -183,7 +196,7 @@ export default function Register() {
                   <GradientButton
                     className="w-full"
                     onClick={proceedToPayment}
-                    disabled={cart.length === 0 || isLoading}
+                    disabled={cart.length === 0 || isLoading || !showForm}
                   >
                     {isLoading ? 'Processing...' : 'Proceed to Payment'}
                   </GradientButton>

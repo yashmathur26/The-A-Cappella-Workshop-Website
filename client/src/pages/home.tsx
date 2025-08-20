@@ -58,7 +58,7 @@ export default function Home() {
               <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-custom to-sky-custom flex items-center justify-center mb-6">
                 <Users className="text-white" size={32} />
               </div>
-              <h3 className="text-2xl font-bold mb-4 text-white">Student-led small-group singing</h3>
+              <h3 className="text-2xl font-bold mb-4 text-teal-custom">Student-led small-group singing</h3>
               <p className="text-white/80">Build confidence through harmony, blend, and teamwork in supportive peer groups.</p>
             </GlassCard>
             
@@ -66,7 +66,7 @@ export default function Home() {
               <div className="w-16 h-16 rounded-full bg-gradient-to-br from-sky-custom to-teal-custom flex items-center justify-center mb-6">
                 <GraduationCap className="text-white" size={32} />
               </div>
-              <h3 className="text-2xl font-bold mb-4 text-white">Skills that last</h3>
+              <h3 className="text-2xl font-bold mb-4 text-sky-custom">Skills that last</h3>
               <p className="text-white/80">Beatboxing, arranging, music theory, and rehearsal strategies you'll use forever.</p>
             </GlassCard>
             
@@ -74,7 +74,7 @@ export default function Home() {
               <div className="w-16 h-16 rounded-full bg-gradient-to-br from-teal-custom to-indigo-custom flex items-center justify-center mb-6">
                 <Star className="text-white" size={32} />
               </div>
-              <h3 className="text-2xl font-bold mb-4 text-white">End-of-week performance</h3>
+              <h3 className="text-2xl font-bold mb-4 text-indigo-custom">End-of-week performance</h3>
               <p className="text-white/80">Families invited Friday at 4:00 PM to celebrate your musical journey.</p>
             </GlassCard>
           </div>
@@ -99,7 +99,7 @@ export default function Home() {
             </div>
             <div className="reveal-in">
               <h4 className="text-lg font-semibold text-sky-custom mb-2">Tuition</h4>
-              <p className="text-white/80 text-2xl font-bold">$500 per week</p>
+              <p className="text-teal-custom text-2xl font-bold">$500 per week</p>
             </div>
           </div>
         </div>
@@ -108,7 +108,7 @@ export default function Home() {
       {/* Gallery Section */}
       <section className="py-20">
         <div className="max-w-6xl mx-auto px-6">
-          <h2 className="text-3xl lg:text-4xl font-bold text-center mb-12 reveal-in text-white">Experience the Magic</h2>
+          <h2 className="text-3xl lg:text-4xl font-bold text-center mb-12 reveal-in gradient-text">Experience the Magic</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
               "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
@@ -134,7 +134,7 @@ export default function Home() {
       <section className="py-20">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <GlassCard className="p-12 reveal-in">
-            <h2 className="text-3xl lg:text-4xl font-bold mb-6 text-white">Ready to sing?</h2>
+            <h2 className="text-3xl lg:text-4xl font-bold mb-6 gradient-text">Ready to sing?</h2>
             <p className="text-xl text-white/80 mb-8">Join us for an unforgettable week of music, friendship, and growth.</p>
             <Link href="/register">
               <GradientButton size="lg">Register Now</GradientButton>

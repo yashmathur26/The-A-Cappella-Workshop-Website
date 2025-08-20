@@ -119,7 +119,7 @@ export default function FAQ() {
                 className="flex justify-between items-center p-6 cursor-pointer hover:bg-white/5 transition-colors"
                 onClick={() => toggleSection(section.id)}
               >
-                <h3 className="text-xl font-semibold text-white">{section.title}</h3>
+                <h3 className="text-xl font-semibold text-teal-custom">{section.title}</h3>
                 <ChevronDown 
                   className={`text-white transition-transform ${
                     openSection === section.id ? 'rotate-180' : ''
