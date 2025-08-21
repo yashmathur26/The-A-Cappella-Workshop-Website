@@ -422,10 +422,14 @@ export default function Register() {
                           <span className="text-xl font-bold text-sky-custom">${week.price}</span>
                         </div>
                         <p className="text-xs text-white/60 mb-3">Pay today, no additional fees</p>
-                        <GradientButton
-                          variant={CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'full' ? 'ghost' : 'primary'}
+                        <Button
+                          variant={CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'full' ? 'outline' : 'default'}
                           size="sm"
-                          className="w-full py-2.5 text-sm font-medium min-h-[44px]"
+                          className={`w-full py-2.5 text-sm font-medium min-h-[44px] rounded-full transition-all ${
+                            CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'full' 
+                              ? 'bg-white/10 border-white/20 text-white hover:bg-white/20' 
+                              : 'bg-teal-600 hover:bg-teal-700 text-white border-0'
+                          }`}
                           disabled={CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'deposit'}
                           onClick={() => {
                             if (CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'full') {
@@ -436,7 +440,7 @@ export default function Register() {
                           }}
                         >
                           {CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'full' ? 'Remove' : 'Add to Cart'}
-                        </GradientButton>
+                        </Button>
                       </div>
                       
                       <div className="bg-white/5 border border-white/10 rounded-lg p-4 hover:bg-white/10 transition-colors">
@@ -445,10 +449,14 @@ export default function Register() {
                           <span className="text-xl font-bold text-teal-custom">$150</span>
                         </div>
                         <p className="text-xs text-white/60 mb-3">$350 remaining via invoice</p>
-                        <GradientButton
-                          variant={CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'deposit' ? 'ghost' : 'primary'}
+                        <Button
+                          variant={CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'deposit' ? 'outline' : 'default'}
                           size="sm"
-                          className="w-full py-2.5 text-sm font-medium min-h-[44px]"
+                          className={`w-full py-2.5 text-sm font-medium min-h-[44px] rounded-full transition-all ${
+                            CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'deposit' 
+                              ? 'bg-white/10 border-white/20 text-white hover:bg-white/20' 
+                              : 'bg-sky-600 hover:bg-sky-700 text-white border-0'
+                          }`}
                           disabled={CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'full'}
                           onClick={() => {
                             if (CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'deposit') {
@@ -459,7 +467,7 @@ export default function Register() {
                           }}
                         >
                           {CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'deposit' ? 'Remove' : 'Add to Cart'}
-                        </GradientButton>
+                        </Button>
                       </div>
                     </div>
                   </GlassCard>
@@ -672,8 +680,8 @@ export default function Register() {
                 </div>
                 <div className="space-y-3">
                   {!showForm ? (
-                    <GradientButton
-                      className="w-full"
+                    <Button
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white border-0 rounded-full py-3 font-semibold"
                       onClick={() => {
                         setShowForm(true);
                         // Auto scroll to the registration form
@@ -687,30 +695,30 @@ export default function Register() {
                       disabled={cart.length === 0}
                     >
                       Proceed to Registration Form
-                    </GradientButton>
+                    </Button>
                   ) : (
                     <>
                       {isAuthenticated ? (
-                        <GradientButton
-                          className="w-full"
+                        <Button
+                          className="w-full bg-green-600 hover:bg-green-700 text-white border-0 rounded-full py-3 font-semibold"
                           onClick={proceedToPayment}
                           disabled={cart.length === 0 || isLoading || !cartItems.every(item => CartManager.getStudentForWeek(item.weekId).studentId)}
                         >
                           {isLoading ? 'Processing...' : 
                            !cartItems.every(item => CartManager.getStudentForWeek(item.weekId).studentId) ? 'Assign Students First' :
                            'Choose Payment Option'}
-                        </GradientButton>
+                        </Button>
                       ) : (
                         <>
-                          <GradientButton
-                            className="w-full"
+                          <Button
+                            className="w-full bg-green-600 hover:bg-green-700 text-white border-0 rounded-full py-3 font-semibold"
                             onClick={proceedToPayment}
                             disabled={cart.length === 0 || isLoading || !parentName.trim() || !childName.trim()}
                           >
                             {isLoading ? 'Processing...' : 
                              !parentName.trim() || !childName.trim() ? 'Fill in Names First' :
                              'Pay as Guest'}
-                          </GradientButton>
+                          </Button>
                           <GradientButton
                             variant="ghost"
                             className="w-full bg-transparent border border-white/20 text-white hover:bg-white/10"
@@ -723,13 +731,13 @@ export default function Register() {
                       )}
                     </>
                   )}
-                  <GradientButton
-                    variant="ghost"
-                    className="w-full"
+                  <Button
+                    variant="outline"
+                    className="w-full bg-white/10 border-white/20 text-white hover:bg-white/20 rounded-full py-3"
                     onClick={clearCart}
                   >
                     Clear Cart
-                  </GradientButton>
+                  </Button>
                 </div>
               </div>
             </GlassCard>
