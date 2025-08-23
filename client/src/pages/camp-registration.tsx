@@ -664,17 +664,17 @@ export default function Register() {
                   <div className="space-y-2 mb-4 text-sm">
                     <div className="flex justify-between text-white/80">
                       <span>Subtotal:</span>
-                      <span>${cartSubtotal}</span>
+                      <span>${cartSubtotal.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-green-400">
                       <span>Discount ({CartManager.getPromoCode()}):</span>
-                      <span>-${discountAmount}</span>
+                      <span>-${discountAmount.toFixed(2)}</span>
                     </div>
                   </div>
                 )}
                 <div className="flex justify-between text-lg font-semibold mb-6">
                   <span className="text-white">Total:</span>
-                  <span className="text-white">${cartTotal}</span>
+                  <span className="text-white">${cartTotal.toFixed(2)}</span>
                 </div>
                 <div className="space-y-3">
                   {!showForm ? (
