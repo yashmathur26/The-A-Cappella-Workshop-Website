@@ -57,27 +57,22 @@ app.post('/api/webhook',
           
           console.log(`👤 Processing payment for user ID ${loggedInUserId || 'guest'}, ${items.length} items`);
 
-          // Use logged-in user if available, otherwise fall back to email lookup
+          // Always use the parent information from metadata, even if someone is logged in
           let user = null;
-          if (loggedInUserId) {
-            // Use the logged-in user who initiated the checkout
+          if (parentEmail && parentName) {
+            // Create or update user with the actual parent information provided
+            user = await storage.upsertUser({
+              firstName: parentName.split(' ')[0] || 'Guest',
+              lastName: parentName.split(' ').slice(1).join(' ') || 'User',
+              email: parentEmail,
+              role: "parent",
+              emailVerified: false,
+            });
+            console.log(`👨‍👩‍👧‍👦 Using parent info: ${parentName} (${parentEmail})`);
+          } else if (loggedInUserId) {
+            // Fallback to logged-in user only if no parent info provided
             user = await storage.getUser(loggedInUserId);
             console.log(`🔗 Using logged-in user: ${user?.email || 'unknown'}`);
-          } else if (parentEmail) {
-            // Fallback for guest checkouts
-            user = await storage.getUserByEmail(parentEmail);
-            
-            if (!user) {
-              // Create a guest user for this checkout
-              user = await storage.upsertUser({
-                firstName: parentName.split(' ')[0] || 'Guest',
-                lastName: parentName.split(' ').slice(1).join(' ') || 'User',
-                email: parentEmail,
-                role: "parent",
-                emailVerified: false,
-              });
-              console.log(`✨ Created new user for ${parentEmail}`);
-            }
           }
 
           if (user) {
