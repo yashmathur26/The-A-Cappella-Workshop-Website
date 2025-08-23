@@ -476,6 +476,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Checkout session creation route
+  app.post("/api/create-checkout-session", express.json(), async (req, res) => {
+    try {
+      const { cartItems, promoCode, parentName, parentEmail, childName } = req.body;
+      
+      if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
+        return res.status(400).json({ message: "Cart items are required" });
+      }
+
+      // Get the host for redirect URLs
+      const protocol = req.get('x-forwarded-proto') || (req.secure ? 'https' : 'http');
+      const host = `${protocol}://${req.get('host')}`;
+
+      // Calculate pricing with promo codes
+      const upperPromoCode = promoCode?.toUpperCase();
+      let lineItems;
+
+      if (upperPromoCode === 'ADMIN') {
+        // Admin gets everything for free
+        lineItems = [{
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: 'A Cappella Workshop Registration (Admin Comp)',
+            },
+            unit_amount: 0, // $0
+          },
+          quantity: 1,
+        }];
+      } else {
+        // Calculate normal pricing
+        lineItems = cartItems.map(item => {
+          const basePricePerWeek = 50000; // $500 per week
+          let finalPrice = basePricePerWeek;
+
+          // Apply SHOP discount
+          if (upperPromoCode === 'SHOP') {
+            finalPrice = Math.round(basePricePerWeek * 0.8); // 20% off
+          }
+
+          return {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: `A Cappella Workshop - ${item.label}`,
+                description: item.studentName ? `Student: ${item.studentName}` : undefined,
+              },
+              unit_amount: finalPrice,
+            },
+            quantity: 1,
+          };
+        });
+      }
+
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: lineItems,
+        mode: 'payment',
+        success_url: `${host}/status?ok=1&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${host}/status?ok=0`,
+        metadata: {
+          parentName,
+          childName, 
+          parentEmail: parentEmail || '',
+          promoCode: promoCode || '',
+          isAdminDiscount: upperPromoCode === 'ADMIN' ? 'true' : 'false',
+          items_json: JSON.stringify(cartItems.map(item => ({
+            week_id: item.weekId,
+            week_label: item.label,
+            student_name: item.studentName || ''
+          })))
+        },
+      });
+
+      res.json({ url: session.url });
+    } catch (error: any) {
+      console.error('Error creating checkout session:', error);
+      res.status(500).json({ message: "Error creating checkout session: " + error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
