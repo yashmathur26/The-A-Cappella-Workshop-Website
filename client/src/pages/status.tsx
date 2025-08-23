@@ -18,6 +18,15 @@ export default function Status() {
     if (success) {
       CartManager.clearCart();
       console.log('🛒 Cart cleared after successful payment');
+      
+      // Force navigation to update cart count immediately
+      window.dispatchEvent(new Event('cartUpdated'));
+      // Also trigger storage event for cross-tab compatibility
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'acappella-cart',
+        newValue: null,
+        oldValue: localStorage.getItem('acappella-cart')
+      }));
     }
   }, [location]);
 

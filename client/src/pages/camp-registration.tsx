@@ -208,6 +208,8 @@ export default function Register() {
           
           // Clear cart and show success
           CartManager.clearCart();
+          // Force navigation to update immediately
+          window.dispatchEvent(new Event('cartUpdated'));
           toast({
             title: "Payment Successful!",
             description: "Your registration has been completed. You will receive a confirmation email shortly.",
@@ -241,6 +243,8 @@ export default function Register() {
             setPaymentStatus('completed');
             clearInterval(statusCheckIntervalRef.current!);
             CartManager.clearCart();
+            // Force navigation to update immediately
+            window.dispatchEvent(new Event('cartUpdated'));
             toast({
               title: "Payment Successful!",
               description: "Your registration has been completed.",

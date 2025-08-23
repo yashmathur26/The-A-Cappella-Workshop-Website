@@ -158,6 +158,18 @@ export default function Account() {
 
   // Delete student handler
   const handleDeleteStudent = async (student: Student) => {
+    // Check if student has any registrations
+    const studentRegistrations = registrations.filter(reg => reg.studentId === student.id);
+    
+    if (studentRegistrations.length > 0) {
+      toast({
+        title: "Cannot Delete Student",
+        description: `${student.firstName} ${student.lastName} is registered for camp and cannot be deleted. Students with active registrations are protected from deletion.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     const confirmed = window.confirm(`Are you sure you want to delete ${student.firstName} ${student.lastName}? This action cannot be undone.`);
     
     if (!confirmed) return;
