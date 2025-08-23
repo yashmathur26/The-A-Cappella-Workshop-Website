@@ -6,6 +6,7 @@ import Stripe from "stripe";
 import { z } from "zod";
 import fs from "fs";
 import path from "path";
+import argon2 from "argon2";
 import { passport } from "./auth";
 import { storage } from "./storage";
 import { authRoutes } from "./authRoutes";
@@ -93,6 +94,150 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Authentication routes
   app.use("/auth", authRoutes);
+
+  // API routes for frontend compatibility
+  app.get("/api/me", (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const user = req.user as any;
+    res.json({
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      emailVerified: user.emailVerified,
+      stripeCustomerId: user.stripeCustomerId,
+    });
+  });
+
+  app.post("/api/login", generalRateLimit, (req, res, next) => {
+    const loginSchema = z.object({
+      email: z.string().email().min(1),
+      password: z.string().min(1),
+    });
+
+    try {
+      loginSchema.parse(req.body);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation error",
+          errors: error.errors,
+        });
+      }
+    }
+    
+    passport.authenticate("local", (err: any, user: any, info: any) => {
+      if (err) {
+        console.error("Login error:", err);
+        return res.status(500).json({ message: "Login failed" });
+      }
+      
+      if (!user) {
+        return res.status(401).json({ 
+          message: info?.message || "Invalid credentials",
+        });
+      }
+      
+      req.login(user, (err) => {
+        if (err) {
+          console.error("Session login error:", err);
+          return res.status(500).json({ message: "Login failed" });
+        }
+        
+        res.json({ 
+          message: "Login successful",
+          user: {
+            id: user.id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            role: user.role,
+          },
+        });
+      });
+    })(req, res, next);
+  });
+
+  app.post("/api/register", generalRateLimit, async (req, res) => {
+    const registerSchema = z.object({
+      firstName: z.string().min(1, "First name is required"),
+      lastName: z.string().min(1, "Last name is required"),
+      email: z.string().email().min(1),
+      password: z.string().min(10, "Password must be at least 10 characters"),
+    });
+
+    try {
+      const { firstName, lastName, email, password } = registerSchema.parse(req.body);
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ message: "User already exists" });
+      }
+      
+      // Hash password
+      const passwordHash = await argon2.hash(password);
+      
+      // Create user
+      const user = await storage.upsertUser({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: email.toLowerCase(),
+        passwordHash,
+        role: "parent",
+        emailVerified: false,
+      });
+      
+      // Log the registration
+      await storage.createAuditLog({
+        userId: user.id,
+        action: "register",
+        meta: JSON.stringify({ method: "local", email }),
+      });
+      
+      // Log in the user
+      req.login(user, (err) => {
+        if (err) {
+          console.error("Login error after registration:", err);
+          return res.status(500).json({ message: "Registration successful, but login failed" });
+        }
+        
+        res.json({ 
+          message: "Registration successful",
+          user: {
+            id: user.id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            role: user.role,
+          },
+        });
+      });
+    } catch (error) {
+      console.error("Registration error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation error",
+          errors: error.errors,
+        });
+      }
+      res.status(500).json({ message: "Registration failed" });
+    }
+  });
+
+  app.post("/api/logout", (req, res) => {
+    req.logout((err) => {
+      if (err) {
+        console.error("Logout error:", err);
+        return res.status(500).json({ message: "Logout failed" });
+      }
+      res.json({ message: "Logged out successfully" });
+    });
+  });
 
   // Admin login routes
   app.get("/admin/login", (req, res) => {
