@@ -380,12 +380,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/students", requireAuth, async (req, res) => {
     try {
       const user = req.user as any;
-      const studentData = insertStudentSchema.parse({
-        ...req.body,
-        userId: user.id,
-      });
+      const data = insertStudentSchema.parse(req.body);
       
-      const student = await storage.createStudent(studentData);
+      const student = await storage.createStudent({ ...data, userId: user.id });
       res.json(student);
     } catch (error) {
       console.error("Error creating student:", error);
