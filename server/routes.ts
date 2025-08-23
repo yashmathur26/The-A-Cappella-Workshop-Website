@@ -365,9 +365,120 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.redirect('/admin/login');
   });
 
-  // Continue with the rest of the existing routes...
-  // I'll add this step by step to avoid syntax errors
-  
+  // Student management routes
+  app.get("/api/students", requireAuth, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const students = await storage.getStudents(user.id);
+      res.json(students);
+    } catch (error) {
+      console.error("Error fetching students:", error);
+      res.status(500).json({ message: "Failed to fetch students" });
+    }
+  });
+
+  app.post("/api/students", requireAuth, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const studentData = insertStudentSchema.parse({
+        ...req.body,
+        userId: user.id,
+      });
+      
+      const student = await storage.createStudent(studentData);
+      res.json(student);
+    } catch (error) {
+      console.error("Error creating student:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation error",
+          errors: error.errors,
+        });
+      }
+      res.status(500).json({ message: "Failed to create student" });
+    }
+  });
+
+  app.put("/api/students/:id", requireAuth, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const studentId = req.params.id;
+      
+      // Verify ownership
+      const existingStudent = await storage.getStudent(studentId);
+      if (!existingStudent || existingStudent.userId !== user.id) {
+        return res.status(404).json({ message: "Student not found" });
+      }
+      
+      const updateData = insertStudentSchema.partial().parse(req.body);
+      const student = await storage.updateStudent(studentId, updateData);
+      res.json(student);
+    } catch (error) {
+      console.error("Error updating student:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation error",
+          errors: error.errors,
+        });
+      }
+      res.status(500).json({ message: "Failed to update student" });
+    }
+  });
+
+  app.delete("/api/students/:id", requireAuth, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const studentId = req.params.id;
+      
+      // Verify ownership
+      const student = await storage.getStudent(studentId);
+      if (!student || student.userId !== user.id) {
+        return res.status(404).json({ message: "Student not found" });
+      }
+      
+      await storage.deleteStudent(studentId);
+      res.json({ message: "Student deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting student:", error);
+      res.status(500).json({ message: "Failed to delete student" });
+    }
+  });
+
+  // Week routes
+  app.get("/api/weeks", async (req, res) => {
+    try {
+      const weeks = await storage.getWeeks();
+      res.json(weeks);
+    } catch (error) {
+      console.error("Error fetching weeks:", error);
+      res.status(500).json({ message: "Failed to fetch weeks" });
+    }
+  });
+
+  // Registration routes
+  app.get("/api/registrations", requireAuth, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const registrations = await storage.getRegistrations(user.id);
+      res.json(registrations);
+    } catch (error) {
+      console.error("Error fetching registrations:", error);
+      res.status(500).json({ message: "Failed to fetch registrations" });
+    }
+  });
+
+  // Payment routes
+  app.get("/api/payments", requireAuth, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const payments = await storage.getPayments(user.id);
+      res.json(payments);
+    } catch (error) {
+      console.error("Error fetching payments:", error);
+      res.status(500).json({ message: "Failed to fetch payments" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
