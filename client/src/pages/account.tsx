@@ -209,9 +209,9 @@ export default function Account() {
     enabled: isAuthenticated,
   });
 
-  // Fetch registrations
+  // Fetch registrations (all for admin, user-specific for parents)
   const { data: registrations = [] } = useQuery<Registration[]>({
-    queryKey: ["/api/registrations"],
+    queryKey: user?.role === 'admin' ? ["/api/admin/registrations"] : ["/api/registrations"],
     enabled: isAuthenticated,
   });
 
@@ -1082,8 +1082,16 @@ export default function Account() {
                               <Calendar className="w-5 h-5 mr-2 text-teal-custom" />
                               {week.label}
                             </CardTitle>
-                            <CardDescription className="text-white/60">
-                              {totalRegistrations} registrations • ${(totalRevenue / 100).toFixed(2)} collected • ${(outstandingBalance / 100).toFixed(2)} remaining
+                            <CardDescription className="text-white/80 text-lg font-medium space-x-4">
+                              <span className="inline-flex items-center px-3 py-1 rounded-full bg-blue-500/20 text-blue-300">
+                                {totalRegistrations} registrations
+                              </span>
+                              <span className="inline-flex items-center px-3 py-1 rounded-full bg-green-500/20 text-green-300">
+                                ${(totalRevenue / 100).toFixed(2)} collected
+                              </span>
+                              <span className="inline-flex items-center px-3 py-1 rounded-full bg-orange-500/20 text-orange-300">
+                                ${(outstandingBalance / 100).toFixed(2)} remaining
+                              </span>
                             </CardDescription>
                           </div>
                           <Badge className="bg-teal-500/20 text-teal-300 border-teal-500/30">

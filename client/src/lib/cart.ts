@@ -22,7 +22,8 @@ export class CartManager {
   // Promo codes and their discounts
   private static readonly PROMO_CODES = {
     'SHOP': 0.20, // 20% discount
-    'ADMIN': 'FIXED_0' // $0 total for admin
+    'ADMIN': 'FIXED_0', // $0 total for admin
+    'ADMIN1': 'FIXED_0.50' // $0.50 total for admin
   };
 
   static getCart(): CartItem[] {
@@ -100,9 +101,12 @@ export class CartManager {
     const subtotal = this.getCartItems().reduce((total, item) => total + item.price, 0);
     const promoCode = this.getPromoCode();
     
-    // Special handling for ADMIN promo code
+    // Special handling for ADMIN promo codes
     if (promoCode === 'ADMIN') {
       return 0.00; // Fixed $0 for admin
+    }
+    if (promoCode === 'ADMIN1') {
+      return 0.50; // Fixed $0.50 for admin
     }
     
     const discount = this.getDiscount();
@@ -126,9 +130,12 @@ export class CartManager {
     const subtotal = this.getCartSubtotal();
     const promoCode = this.getPromoCode();
     
-    // Special handling for ADMIN promo code
+    // Special handling for ADMIN promo codes
     if (promoCode === 'ADMIN') {
       return Math.round((subtotal - 0.00) * 100) / 100;
+    }
+    if (promoCode === 'ADMIN1') {
+      return Math.round((subtotal - 0.50) * 100) / 100;
     }
     
     const discount = this.getDiscount();

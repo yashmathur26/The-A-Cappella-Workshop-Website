@@ -197,6 +197,11 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(registrations);
   }
 
+  // Admin method to get ALL registrations from all users
+  async getAllRegistrations(): Promise<Registration[]> {
+    return this.getRegistrations(); // No userId = all registrations
+  }
+
   async getRegistration(id: string): Promise<Registration | undefined> {
     const [registration] = await db.select().from(registrations).where(eq(registrations.id, id));
     return registration || undefined;

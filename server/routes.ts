@@ -464,6 +464,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin endpoint to fetch ALL registrations from all users
+  app.get("/api/admin/registrations", requireAuth, async (req, res) => {
+    try {
+      const user = req.user as any;
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      
+      const allRegistrations = await storage.getAllRegistrations();
+      res.json(allRegistrations);
+    } catch (error) {
+      console.error("Error fetching all registrations:", error);
+      res.status(500).json({ message: "Failed to fetch registrations" });
+    }
+  });
+
   // Payment routes
   app.get("/api/payments", requireAuth, async (req, res) => {
     try {
