@@ -511,19 +511,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         // Calculate normal pricing
         lineItems = cartItems.map(item => {
-          const basePricePerWeek = 50000; // $500 per week
-          let finalPrice = basePricePerWeek;
+          // Use the price from the cart item (already set to deposit $150 or full $500)
+          let finalPrice = item.price * 100; // Convert to cents
 
           // Apply SHOP discount
           if (upperPromoCode === 'SHOP') {
-            finalPrice = Math.round(basePricePerWeek * 0.8); // 20% off
+            finalPrice = Math.round(finalPrice * 0.8); // 20% off
           }
 
           return {
             price_data: {
               currency: 'usd',
               product_data: {
-                name: `A Cappella Workshop - ${item.label}`,
+                name: `A Cappella Workshop - ${item.label}${item.paymentType === 'deposit' ? ' (Deposit)' : ''}`,
                 description: item.studentName ? `Student: ${item.studentName}` : undefined,
               },
               unit_amount: finalPrice,
@@ -549,7 +549,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           items_json: JSON.stringify(cartItems.map(item => ({
             week_id: item.weekId,
             week_label: item.label,
-            student_name: item.studentName || ''
+            student_name: item.studentName || '',
+            payment_type: item.paymentType || 'full',
+            amount_paid: item.price || 500
           })))
         },
       });

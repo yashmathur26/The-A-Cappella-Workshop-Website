@@ -109,16 +109,24 @@ app.post('/api/webhook',
                 }
               }
 
-              // Create registration
+              // Create registration with proper payment tracking
               if (student) {
+                const paymentType = item.payment_type || 'full';
+                const amountPaid = item.amount_paid || 500;
+                const fullPrice = 500; // Full camp price
+                const balanceDue = paymentType === 'deposit' ? fullPrice - amountPaid : 0;
+                
                 const registration = await storage.createRegistration({
                   userId: user.id,
                   studentId: student.id,
                   weekId: item.week_id,
                   status: 'paid',
                   stripeCheckoutSessionId: session.id,
+                  paymentType,
+                  amountPaidCents: amountPaid * 100,
+                  balanceDueCents: balanceDue * 100,
                 });
-                console.log(`📝 Created registration for week ${item.week_id}`);
+                console.log(`📝 Created registration for week ${item.week_id} (${paymentType}: $${amountPaid}, balance: $${balanceDue})`);
               }
             }
 

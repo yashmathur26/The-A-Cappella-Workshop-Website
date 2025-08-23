@@ -49,6 +49,12 @@ export default function Register() {
     enabled: isAuthenticated,
   });
 
+  // Fetch registrations to check for duplicates
+  const { data: registrations = [] } = useQuery<any[]>({
+    queryKey: ["/api/registrations"],
+    enabled: isAuthenticated,
+  });
+
   useEffect(() => {
     setCart(CartManager.getCart());
     setPromoCode(CartManager.getPromoCode());
@@ -73,6 +79,18 @@ export default function Register() {
   }, []);
 
   const addWeekToCart = (weekId: string, paymentType: 'full' | 'deposit') => {
+    // Check if user already has a registration for this week
+    const existingRegistration = registrations.find(reg => reg.weekId === weekId);
+    
+    if (existingRegistration) {
+      toast({
+        title: "Already Registered",
+        description: "A student is already registered for this week. Students cannot be registered twice for the same week.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     CartManager.addToCart(weekId, paymentType);
     setCart(CartManager.getCart());
     window.dispatchEvent(new Event('cartUpdated'));
