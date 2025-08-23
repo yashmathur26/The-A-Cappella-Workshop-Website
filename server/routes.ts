@@ -481,6 +481,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { cartItems, promoCode, parentName, parentEmail, childName } = req.body;
       
+      // Get the logged-in user ID (if authenticated)
+      const loggedInUserId = req.user?.id;
+      
       if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
         return res.status(400).json({ message: "Cart items are required" });
       }
@@ -542,6 +545,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           parentEmail: parentEmail || '',
           promoCode: promoCode || '',
           isAdminDiscount: upperPromoCode === 'ADMIN' ? 'true' : 'false',
+          loggedInUserId: loggedInUserId || '', // Pass the logged-in user ID
           items_json: JSON.stringify(cartItems.map(item => ({
             week_id: item.weekId,
             week_label: item.label,

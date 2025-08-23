@@ -49,16 +49,22 @@ app.post('/api/webhook',
           const itemsJson = session.metadata?.items_json;
           const items = itemsJson ? JSON.parse(itemsJson) : [];
           
-          // Get parent info 
+          // Get user info from metadata - prioritize logged-in user ID
+          const loggedInUserId = session.metadata?.loggedInUserId;
           const parentEmail = session.customer_details?.email || session.metadata?.parentEmail || '';
           const parentName = session.metadata?.parentName || '';
           const childName = session.metadata?.childName || '';
           
-          console.log(`👤 Processing payment for ${parentEmail}, ${items.length} items`);
+          console.log(`👤 Processing payment for user ID ${loggedInUserId || 'guest'}, ${items.length} items`);
 
-          // Find or create user for this email
+          // Use logged-in user if available, otherwise fall back to email lookup
           let user = null;
-          if (parentEmail) {
+          if (loggedInUserId) {
+            // Use the logged-in user who initiated the checkout
+            user = await storage.getUser(loggedInUserId);
+            console.log(`🔗 Using logged-in user: ${user?.email || 'unknown'}`);
+          } else if (parentEmail) {
+            // Fallback for guest checkouts
             user = await storage.getUserByEmail(parentEmail);
             
             if (!user) {
