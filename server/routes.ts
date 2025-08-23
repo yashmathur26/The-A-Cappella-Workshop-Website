@@ -552,6 +552,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
           },
           quantity: 1,
         }];
+      } else if (upperPromoCode === 'ADMIND') {
+        // ADMIND tests deposit functionality - $150 paid, $350 remaining
+        lineItems = [{
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: 'A Cappella Workshop Registration (Deposit Test)',
+            },
+            unit_amount: 15000, // $150 in cents
+          },
+          quantity: 1,
+        }];
+      } else if (upperPromoCode === 'ADMINF') {
+        // ADMINF tests full payment functionality - $0.50 total, no balance
+        lineItems = [{
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: 'A Cappella Workshop Registration (Full Payment Test)',
+            },
+            unit_amount: 50, // $0.50 in cents
+          },
+          quantity: 1,
+        }];
       } else {
         // Calculate normal pricing
         lineItems = cartItems.map(item => {
@@ -588,13 +612,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           childName, 
           parentEmail: parentEmail || '',
           promoCode: promoCode || '',
-          isAdminDiscount: upperPromoCode === 'ADMIN' ? 'true' : 'false',
+          isAdminDiscount: ['ADMIN', 'ADMIN1', 'ADMIND', 'ADMINF'].includes(upperPromoCode || '') ? 'true' : 'false',
           loggedInUserId: loggedInUserId || '', // Pass the logged-in user ID
           items_json: JSON.stringify(cartItems.map(item => ({
             week_id: item.weekId,
             week_label: item.label,
             student_name: item.studentName || '',
-            payment_type: item.paymentType || 'full',
+            payment_type: upperPromoCode === 'ADMIND' ? 'deposit' : 'full',
             amount_paid: item.price || 500
           })))
         },
