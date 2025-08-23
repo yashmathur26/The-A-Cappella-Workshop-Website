@@ -173,35 +173,8 @@ export default function Register() {
       const data = await response.json();
       
       if (data.url) {
-        // Extract session ID from URL for status checking
-        const urlParts = data.url.split('/');
-        const sessionId = urlParts[urlParts.length - 1].split('?')[0];
-        
-        // Check if user is on mobile or has limited screen space
-        const isMobileOrSmallScreen = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        
-        if (isMobileOrSmallScreen) {
-          // On mobile/small screens, redirect in the same window for better UX
-          window.location.href = data.url;
-        } else {
-          // On desktop, try to open in new tab, with fallback to same window
-          const paymentWindow = window.open(data.url, '_blank', 'noopener,noreferrer');
-          paymentWindowRef.current = paymentWindow;
-          
-          if (paymentWindow && !paymentWindow.closed) {
-            // Start monitoring payment status
-            startPaymentMonitoring(sessionId);
-          } else {
-            // Fallback: redirect in same window if popup is blocked
-            toast({
-              title: "Redirecting to payment", 
-              description: "Opening secure payment page...",
-            });
-            setTimeout(() => {
-              window.location.href = data.url;
-            }, 1000);
-          }
-        }
+        // Always redirect in the same window for cleaner UX
+        window.location.href = data.url;
         
       } else {
         throw new Error('No checkout URL received');
