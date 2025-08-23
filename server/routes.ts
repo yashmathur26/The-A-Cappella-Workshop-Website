@@ -540,6 +540,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           },
           quantity: 1,
         }];
+      } else if (upperPromoCode === 'ADMIN1') {
+        // ADMIN1 gets everything for $0.50 total
+        lineItems = [{
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: 'A Cappella Workshop Registration (Admin Special)',
+            },
+            unit_amount: 50, // $0.50 in cents
+          },
+          quantity: 1,
+        }];
       } else {
         // Calculate normal pricing
         lineItems = cartItems.map(item => {

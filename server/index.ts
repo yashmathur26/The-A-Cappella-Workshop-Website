@@ -112,9 +112,18 @@ app.post('/api/webhook',
               // Create registration with proper payment tracking
               if (student) {
                 const paymentType = item.payment_type || 'full';
-                const amountPaid = item.amount_paid || 500;
-                const fullPrice = 500; // Full camp price
-                const balanceDue = paymentType === 'deposit' ? fullPrice - amountPaid : 0;
+                const fullPrice = 500; // Full camp price in dollars
+                
+                // Use actual amount charged from Stripe session
+                const actualAmountPaidCents = session.amount_total || 0;
+                const actualAmountPaid = actualAmountPaidCents / 100;
+                
+                // Calculate balance due based on actual payment vs full price
+                // For promo codes like ADMIN ($0) or ADMIN1 ($0.50), if they paid the full discounted amount, no balance is due
+                let balanceDueCents = 0;
+                if (paymentType === 'deposit') {
+                  balanceDueCents = Math.max(0, (fullPrice * 100) - actualAmountPaidCents);
+                }
                 
                 const registration = await storage.createRegistration({
                   userId: user.id,
@@ -123,10 +132,10 @@ app.post('/api/webhook',
                   status: 'paid',
                   stripeCheckoutSessionId: session.id,
                   paymentType,
-                  amountPaidCents: amountPaid * 100,
-                  balanceDueCents: balanceDue * 100,
+                  amountPaidCents: actualAmountPaidCents,
+                  balanceDueCents: Math.max(0, balanceDueCents),
                 });
-                console.log(`📝 Created registration for week ${item.week_id} (${paymentType}: $${amountPaid}, balance: $${balanceDue})`);
+                console.log(`📝 Created registration for week ${item.week_id} (${paymentType}: $${actualAmountPaid}, balance: $${balanceDueCents / 100})`);
               }
             }
 
