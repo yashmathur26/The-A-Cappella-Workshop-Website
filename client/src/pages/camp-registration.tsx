@@ -79,24 +79,27 @@ export default function Register() {
   }, []);
 
   const addWeekToCart = (weekId: string, paymentType: 'full' | 'deposit') => {
-    // Check if user already has a registration for this week
-    const existingRegistration = registrations.find(reg => reg.weekId === weekId);
-    
-    if (existingRegistration) {
-      toast({
-        title: "Already Registered",
-        description: "A student is already registered for this week. Students cannot be registered twice for the same week.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
     CartManager.addToCart(weekId, paymentType);
     setCart(CartManager.getCart());
     window.dispatchEvent(new Event('cartUpdated'));
   };
 
   const updateStudentForWeek = (weekId: string, studentId: string) => {
+    // Check if this specific student is already registered for this week
+    const existingRegistration = registrations.find(reg => 
+      reg.weekId === weekId && reg.studentId === studentId
+    );
+    
+    if (existingRegistration) {
+      const student = students.find(s => s.id === studentId);
+      toast({
+        title: "Student Already Registered",
+        description: `${student?.firstName} ${student?.lastName} is already registered for this week. Please select a different student.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const student = students.find(s => s.id === studentId);
     if (student) {
       CartManager.updateStudentForWeek(weekId, studentId, `${student.firstName} ${student.lastName}`);
