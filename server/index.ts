@@ -59,10 +59,10 @@ app.post('/api/webhook',
 
           // Smart user selection: use logged-in user if available, otherwise use parent info
           let user = null;
-          if (loggedInUserId) {
+          if (loggedInUserId && loggedInUserId.trim() !== '') {
             // If someone is logged in, use their account
             user = await storage.getUser(loggedInUserId);
-            console.log(`🔗 Using logged-in user: ${user?.email || 'unknown'}`);
+            console.log(`🔗 Using logged-in user: ${user?.email || 'unknown'} (ID: ${loggedInUserId})`);
           } else if (parentEmail && parentName) {
             // Only create new user if this is a guest checkout
             user = await storage.upsertUser({
@@ -74,6 +74,8 @@ app.post('/api/webhook',
             });
             console.log(`👨‍👩‍👧‍👦 Guest checkout: ${parentName} (${parentEmail})`);
           }
+          
+          console.log(`🔍 Debug - loggedInUserId: "${loggedInUserId}", parentEmail: "${parentEmail}", user selected: ${user?.email}`);
 
           if (user) {
             // Create registrations for each cart item
