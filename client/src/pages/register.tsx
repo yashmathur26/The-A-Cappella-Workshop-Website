@@ -220,6 +220,10 @@ export default function Register() {
               Sign up with Google
             </Button>
 
+            <p className="text-center text-xs text-white/60 mt-4 mb-4">
+              By creating an account you agree to our terms and conditions
+            </p>
+
             <div className="text-center">
               <p className="text-white/70 text-sm">
                 Already have an account?{" "}

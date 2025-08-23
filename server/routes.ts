@@ -377,6 +377,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin endpoint to fetch ALL students from all users
+  app.get("/api/admin/students", requireAuth, async (req, res) => {
+    try {
+      const user = req.user as any;
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      
+      const allStudents = await storage.getAllStudents();
+      res.json(allStudents);
+    } catch (error) {
+      console.error("Error fetching all students:", error);
+      res.status(500).json({ message: "Failed to fetch students" });
+    }
+  });
+
   app.post("/api/students", requireAuth, async (req, res) => {
     try {
       const user = req.user as any;

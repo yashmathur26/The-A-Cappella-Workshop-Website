@@ -197,9 +197,9 @@ export default function Account() {
     }
   }, [isAuthenticated, authLoading, setLocation]);
 
-  // Fetch students
+  // Fetch students (all for admin, user-specific for parents)
   const { data: students = [], isLoading: studentsLoading } = useQuery<Student[]>({
-    queryKey: ["/api/students"],
+    queryKey: user?.role === 'admin' ? ["/api/admin/students"] : ["/api/students"],
     enabled: isAuthenticated,
   });
 
@@ -1078,7 +1078,7 @@ export default function Account() {
                       <CardHeader>
                         <div className="flex justify-between items-center">
                           <div>
-                            <CardTitle className="text-white flex items-center">
+                            <CardTitle className="text-white flex items-center mb-4">
                               <Calendar className="w-5 h-5 mr-2 text-teal-custom" />
                               {week.label}
                             </CardTitle>

@@ -129,6 +129,11 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(students).where(eq(students.userId, userId));
   }
 
+  // Admin method to get ALL students from all users
+  async getAllStudents(): Promise<Student[]> {
+    return db.select().from(students);
+  }
+
   async getStudent(id: string): Promise<Student | undefined> {
     const [student] = await db.select().from(students).where(eq(students.id, id));
     return student || undefined;

@@ -157,6 +157,10 @@ export default function Login() {
               Sign in with Google
             </Button>
 
+            <p className="text-center text-xs text-white/60 mt-4">
+              By signing in you agree to our terms and conditions
+            </p>
+
           </CardContent>
         </Card>
       </div>
