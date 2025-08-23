@@ -58,6 +58,7 @@ export class CartManager {
     localStorage.setItem(this.STORAGE_KEY, JSON.stringify(items));
   }
 
+
   static addToCart(weekId: string, paymentType: 'full' | 'deposit', studentId?: string, studentName?: string): void {
     const cart = this.getCart();
     // Remove any existing entry for this week

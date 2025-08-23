@@ -83,12 +83,24 @@ app.post('/api/webhook',
                 const studentFirstName = item.student_name.split(' ')[0] || '';
                 const studentLastName = item.student_name.split(' ').slice(1).join(' ') || '';
                 
-                student = await storage.createStudent({
-                  userId: user.id,
-                  firstName: studentFirstName,
-                  lastName: studentLastName,
-                });
-                console.log(`👶 Created student: ${item.student_name}`);
+                // Check if student already exists for this user
+                const existingStudents = await storage.getStudents(user.id);
+                student = existingStudents.find(s => 
+                  s.firstName.trim().toLowerCase() === studentFirstName.trim().toLowerCase() &&
+                  s.lastName.trim().toLowerCase() === studentLastName.trim().toLowerCase()
+                );
+                
+                if (!student) {
+                  // Create new student only if not found
+                  student = await storage.createStudent({
+                    userId: user.id,
+                    firstName: studentFirstName,
+                    lastName: studentLastName,
+                  });
+                  console.log(`👶 Created new student: ${item.student_name}`);
+                } else {
+                  console.log(`🔍 Found existing student: ${item.student_name}`);
+                }
               }
 
               // Create registration

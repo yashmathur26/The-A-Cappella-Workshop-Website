@@ -3,6 +3,7 @@ import { Link, useLocation } from 'wouter';
 import { Check, X } from 'lucide-react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { GradientButton } from '@/components/ui/gradient-button';
+import { CartManager } from '@/lib/cart';
 
 export default function Status() {
   const [location] = useLocation();
@@ -12,6 +13,12 @@ export default function Status() {
     const params = new URLSearchParams(window.location.search);
     const success = params.get('ok') === '1';
     setIsSuccess(success);
+    
+    // Clear cart on successful payment
+    if (success) {
+      CartManager.clearCart();
+      console.log('🛒 Cart cleared after successful payment');
+    }
   }, [location]);
 
   return (
