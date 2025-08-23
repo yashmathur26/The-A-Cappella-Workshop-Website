@@ -24,7 +24,7 @@ export class CartManager {
     'SHOP': 0.20, // 20% discount
     'ADMIN': 'FIXED_0', // $0 total for admin
     'ADMIN1': 'FIXED_0.50', // $0.50 total for admin
-    'ADMIND': 'FIXED_150', // $150 deposit test (with $350 remaining)
+    'ADMIND': 'FIXED_0.50', // $0.50 deposit test (with $499.50 remaining)
     'ADMINF': 'FIXED_0.50' // $0.50 full payment test
   };
 

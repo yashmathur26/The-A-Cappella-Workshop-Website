@@ -10,7 +10,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
 }
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2023-10-16",
+  apiVersion: "2025-07-30.basil" as any,
 });
 
 // Early webhook registration with raw body parsing
@@ -134,6 +134,7 @@ app.post('/api/webhook',
                   paymentType,
                   amountPaidCents: actualAmountPaidCents,
                   balanceDueCents: Math.max(0, balanceDueCents),
+                  promoCode: session.metadata?.promoCode || null,
                 });
                 console.log(`📝 Created registration for week ${item.week_id} (${paymentType}: $${actualAmountPaid}, balance: $${balanceDueCents / 100})`);
               }

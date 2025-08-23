@@ -29,7 +29,8 @@ import {
   Settings,
   Mail,
   Shield,
-  FileText
+  FileText,
+  X
 } from "lucide-react";
 import { AddStudentModal } from '@/components/AddStudentModal';
 import { EditStudentModal } from '@/components/EditStudentModal';
@@ -1107,14 +1108,15 @@ export default function Account() {
                                 <th className="text-left py-3 text-white/80 font-medium">Student Name</th>
                                 <th className="text-left py-3 text-white/80 font-medium">Parent Name</th>
                                 <th className="text-left py-3 text-white/80 font-medium">Parent Email</th>
-                                <th className="text-right py-3 text-white/80 font-medium">Total Cost</th>
-                                <th className="text-right py-3 text-white/80 font-medium">Cost Remaining</th>
+                                <th className="text-right py-3 text-white/80 font-medium">Amount Paid</th>
+                                <th className="text-right py-3 text-white/80 font-medium">Balance Due</th>
+                                <th className="text-center py-3 text-white/80 font-medium">Promo Code</th>
                               </tr>
                             </thead>
                             <tbody>
                               {weekRegistrations.length === 0 ? (
                                 <tr>
-                                  <td colSpan={5} className="py-8 text-center text-white/60">
+                                  <td colSpan={6} className="py-8 text-center text-white/60">
                                     No registrations for this week yet
                                   </td>
                                 </tr>
@@ -1139,7 +1141,7 @@ export default function Account() {
                                         </td>
                                         <td className="py-3 text-right">
                                           <span className="text-blue-400 font-medium">
-                                            ${((weeks.find(w => w.id === registration.weekId)?.priceCents || 0) / 100).toFixed(2)}
+                                            ${((registration.amountPaidCents || 0) / 100).toFixed(2)}
                                           </span>
                                         </td>
                                         <td className="py-3 text-right">
@@ -1149,6 +1151,15 @@ export default function Account() {
                                             </span>
                                           ) : (
                                             <span className="text-green-400 font-medium">$0.00</span>
+                                          )}
+                                        </td>
+                                        <td className="py-3 text-center">
+                                          {(registration as any).promoCode ? (
+                                            <span className="inline-flex items-center px-2 py-1 rounded-full bg-purple-500/20 text-purple-300 text-xs font-medium">
+                                              {(registration as any).promoCode}
+                                            </span>
+                                          ) : (
+                                            <span className="text-white/40 text-xs">None</span>
                                           )}
                                         </td>
                                       </tr>
