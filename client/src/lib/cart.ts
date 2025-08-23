@@ -107,8 +107,8 @@ export class CartManager {
     if (promoCode === 'ADMIN') {
       return 0.00; // Fixed $0 for admin
     }
-    if (promoCode === 'ADMIN1') {
-      return 0.50; // Fixed $0.50 for admin
+    if (promoCode === 'ADMIN1' || promoCode === 'ADMIND' || promoCode === 'ADMINF') {
+      return 0.50; // Fixed $0.50 for admin testing
     }
     
     const discount = this.getDiscount();
@@ -136,7 +136,7 @@ export class CartManager {
     if (promoCode === 'ADMIN') {
       return Math.round((subtotal - 0.00) * 100) / 100;
     }
-    if (promoCode === 'ADMIN1') {
+    if (promoCode === 'ADMIN1' || promoCode === 'ADMIND' || promoCode === 'ADMINF') {
       return Math.round((subtotal - 0.50) * 100) / 100;
     }
     
