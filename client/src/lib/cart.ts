@@ -23,7 +23,9 @@ export class CartManager {
   private static readonly PROMO_CODES = {
     'SHOP': 0.20, // 20% discount
     'ADMIN': 'FIXED_0', // $0 total for admin
-    'ADMIN1': 'FIXED_0.50' // $0.50 total for admin
+    'ADMIN1': 'FIXED_0.50', // $0.50 total for admin
+    'ADMIND': 'FIXED_150', // $150 deposit test (with $350 remaining)
+    'ADMINF': 'FIXED_0.50' // $0.50 full payment test
   };
 
   static getCart(): CartItem[] {
