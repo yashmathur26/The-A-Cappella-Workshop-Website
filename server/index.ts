@@ -57,10 +57,14 @@ app.post('/api/webhook',
           
           console.log(`👤 Processing payment for user ID ${loggedInUserId || 'guest'}, ${items.length} items`);
 
-          // Always use the parent information from metadata, even if someone is logged in
+          // Smart user selection: use logged-in user if available, otherwise use parent info
           let user = null;
-          if (parentEmail && parentName) {
-            // Create or update user with the actual parent information provided
+          if (loggedInUserId) {
+            // If someone is logged in, use their account
+            user = await storage.getUser(loggedInUserId);
+            console.log(`🔗 Using logged-in user: ${user?.email || 'unknown'}`);
+          } else if (parentEmail && parentName) {
+            // Only create new user if this is a guest checkout
             user = await storage.upsertUser({
               firstName: parentName.split(' ')[0] || 'Guest',
               lastName: parentName.split(' ').slice(1).join(' ') || 'User',
@@ -68,11 +72,7 @@ app.post('/api/webhook',
               role: "parent",
               emailVerified: false,
             });
-            console.log(`👨‍👩‍👧‍👦 Using parent info: ${parentName} (${parentEmail})`);
-          } else if (loggedInUserId) {
-            // Fallback to logged-in user only if no parent info provided
-            user = await storage.getUser(loggedInUserId);
-            console.log(`🔗 Using logged-in user: ${user?.email || 'unknown'}`);
+            console.log(`👨‍👩‍👧‍👦 Guest checkout: ${parentName} (${parentEmail})`);
           }
 
           if (user) {
