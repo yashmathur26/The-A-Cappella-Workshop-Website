@@ -553,14 +553,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           quantity: 1,
         }];
       } else if (upperPromoCode === 'ADMIND') {
-        // ADMIND tests deposit functionality - $150 paid, $350 remaining
+        // ADMIND tests deposit functionality - $0.50 paid, $499.50 remaining
         lineItems = [{
           price_data: {
             currency: 'usd',
             product_data: {
               name: 'A Cappella Workshop Registration (Deposit Test)',
             },
-            unit_amount: 15000, // $150 in cents
+            unit_amount: 50, // $0.50 in cents
           },
           quantity: 1,
         }];
