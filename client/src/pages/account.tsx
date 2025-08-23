@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { AddStudentModal } from '@/components/AddStudentModal';
 import { EditStudentModal } from '@/components/EditStudentModal';
+import { ProfileEditModal } from '@/components/ProfileEditModal';
 
 interface Student {
   id: string;

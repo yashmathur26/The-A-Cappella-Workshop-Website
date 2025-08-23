@@ -134,6 +134,22 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(students);
   }
 
+  async getAllStudentsWithRegistrations(): Promise<Student[]> {
+    // Only return students who have at least one registration
+    return db
+      .selectDistinct({
+        id: students.id,
+        userId: students.userId,
+        firstName: students.firstName,
+        lastName: students.lastName,
+        notes: students.notes,
+        createdAt: students.createdAt,
+        updatedAt: students.updatedAt,
+      })
+      .from(students)
+      .innerJoin(registrations, eq(students.id, registrations.studentId));
+  }
+
   async getStudent(id: string): Promise<Student | undefined> {
     const [student] = await db.select().from(students).where(eq(students.id, id));
     return student || undefined;

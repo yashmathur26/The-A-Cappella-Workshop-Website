@@ -113,6 +113,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  app.put("/api/me", express.json(), (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    const { firstName, lastName, email } = req.body;
+    
+    // Validate input
+    if (!firstName || !lastName || !email) {
+      return res.status(400).json({ message: "First name, last name, and email are required" });
+    }
+
+    const user = req.user as any;
+    
+    // Update the user session object
+    user.firstName = firstName.trim();
+    user.lastName = lastName.trim();
+    user.email = email.trim().toLowerCase();
+
+    // Save to database (async, don't wait for it)
+    (async () => {
+      try {
+        await storage.updateUser(user.id, {
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          email: email.trim().toLowerCase(),
+        });
+      } catch (error) {
+        console.error("Error updating user in database:", error);
+      }
+    })();
+
+    res.json({
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      emailVerified: user.emailVerified,
+      stripeCustomerId: user.stripeCustomerId,
+    });
+  });
+
   app.post("/api/login", generalRateLimit, (req, res, next) => {
     const loginSchema = z.object({
       email: z.string().email().min(1),
@@ -385,10 +428,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Admin access required" });
       }
       
-      const allStudents = await storage.getAllStudents();
-      res.json(allStudents);
+      // Only show students who have registrations
+      const studentsWithRegistrations = await storage.getAllStudentsWithRegistrations();
+      res.json(studentsWithRegistrations);
     } catch (error) {
-      console.error("Error fetching all students:", error);
+      console.error("Error fetching students with registrations:", error);
       res.status(500).json({ message: "Failed to fetch students" });
     }
   });

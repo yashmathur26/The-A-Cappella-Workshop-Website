@@ -83,9 +83,11 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
                 emailVerified: true,
               });
             } else {
-              // Create new user
+              // Create new user with profile information from Google
               user = await storage.upsertUser({
                 email,
+                firstName: profile.name?.givenName || '',
+                lastName: profile.name?.familyName || '',
                 googleId: profile.id,
                 emailVerified: true,
                 role: "parent",
