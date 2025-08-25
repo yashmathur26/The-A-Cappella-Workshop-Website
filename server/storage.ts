@@ -376,6 +376,53 @@ export class DatabaseStorage implements IStorage {
     return newLog;
   }
 
+  // Account linking operations
+  async linkGuestPurchasesToAccount(email: string, newUserId: string): Promise<number> {
+    // Find all guest registrations and payments for this email
+    const guestUser = await this.getUserByEmail(email);
+    if (!guestUser || guestUser.id === newUserId) {
+      return 0; // No guest user found or same user
+    }
+    
+    let linkedCount = 0;
+    
+    // Transfer registrations from guest user to new user
+    const registrationsUpdated = await db
+      .update(registrations)
+      .set({ userId: newUserId, updatedAt: new Date() })
+      .where(eq(registrations.userId, guestUser.id))
+      .returning({ id: registrations.id });
+    linkedCount += registrationsUpdated.length;
+    
+    // Transfer payments from guest user to new user  
+    const paymentsUpdated = await db
+      .update(payments)
+      .set({ userId: newUserId })
+      .where(eq(payments.userId, guestUser.id))
+      .returning({ id: payments.id });
+    linkedCount += paymentsUpdated.length;
+    
+    // Transfer students from guest user to new user
+    const studentsUpdated = await db
+      .update(students)
+      .set({ userId: newUserId, updatedAt: new Date() })
+      .where(eq(students.userId, guestUser.id))
+      .returning({ id: students.id });
+    linkedCount += studentsUpdated.length;
+    
+    // Optionally: Delete or deactivate the guest user account
+    // For now, we'll keep it but mark it as merged
+    await db
+      .update(users)
+      .set({ 
+        firstName: `[MERGED] ${guestUser.firstName}`, 
+        updatedAt: new Date() 
+      })
+      .where(eq(users.id, guestUser.id));
+    
+    return linkedCount;
+  }
+
   // Content operations
   async getContent(key?: string): Promise<Content[]> {
     if (key) {

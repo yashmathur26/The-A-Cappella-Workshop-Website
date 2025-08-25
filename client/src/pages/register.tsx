@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Eye, EyeOff, Chrome } from "lucide-react";
+import { Eye, EyeOff, Chrome, ShoppingCart, CheckCircle } from "lucide-react";
 
 const registerSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -31,9 +31,10 @@ const registerSchema = z.object({
 type RegisterForm = z.infer<typeof registerSchema>;
 
 export default function Register() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [linkPurchases, setLinkPurchases] = useState(false);
   const { isAuthenticated } = useAuth();
   const { toast } = useToast();
   const registerMutation = useRegister();
@@ -49,6 +50,13 @@ export default function Register() {
     },
   });
 
+  // Check for purchase linking parameter
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const shouldLinkPurchases = params.get('link_purchases') === 'true';
+    setLinkPurchases(shouldLinkPurchases);
+  }, []);
+
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
@@ -63,10 +71,16 @@ export default function Register() {
         lastName: data.lastName,
         email: data.email,
         password: data.password,
+        linkPurchases: linkPurchases,
       });
+      
+      const successMessage = linkPurchases 
+        ? "Account created and purchases linked! Your previous registrations are now in your account."
+        : "Welcome to The A Cappella Workshop. You've been logged in automatically.";
+      
       toast({
         title: "Account created!",
-        description: "Welcome to The A Cappella Workshop. You've been logged in automatically.",
+        description: successMessage,
       });
       setLocation("/account");
     } catch (error: any) {
@@ -94,10 +108,31 @@ export default function Register() {
     <div className="min-h-screen bg-gradient-to-br from-blue-custom via-indigo-custom to-teal-custom flex items-center justify-center p-6">
       <div className="w-full max-w-md">
         <Card className="bg-black/20 backdrop-blur-lg border border-white/10 shadow-2xl">
+          {linkPurchases && (
+            <div className="bg-gradient-to-r from-teal-600/20 to-sky-600/20 backdrop-blur-sm border-b border-teal-400/30 p-4 rounded-t-lg">
+              <div className="flex items-center space-x-3 text-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-teal-500/20 flex items-center justify-center flex-shrink-0">
+                  <ShoppingCart className="w-5 h-5 text-teal-400" />
+                </div>
+                <div className="text-left">
+                  <h3 className="font-semibold text-teal-300 text-sm">Link Your Recent Purchase</h3>
+                  <p className="text-white/70 text-xs">
+                    Your registration will be automatically linked to your new account
+                  </p>
+                </div>
+                <CheckCircle className="w-5 h-5 text-green-400" />
+              </div>
+            </div>
+          )}
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold text-white">Create Your Account</CardTitle>
+            <CardTitle className="text-2xl font-bold text-white">
+              {linkPurchases ? 'Complete Your Account' : 'Create Your Account'}
+            </CardTitle>
             <CardDescription className="text-white/70">
-              Join The A Cappella Workshop community
+              {linkPurchases 
+                ? 'Create your account to access and manage your registrations'
+                : 'Join The A Cappella Workshop community'
+              }
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">

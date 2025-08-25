@@ -71,6 +71,8 @@ export function EditStudentModal({ isOpen, onClose, student }: EditStudentModalP
         description: "Your student has been updated successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/students"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/students"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/registrations"] });
       form.reset();
       onClose();
     },

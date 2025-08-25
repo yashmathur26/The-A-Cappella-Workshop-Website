@@ -42,6 +42,7 @@ interface Student {
   lastName: string;
   notes?: string;
   createdAt: string;
+  updatedAt?: string;
 }
 
 interface Week {
@@ -1132,7 +1133,15 @@ export default function Account() {
                                     return (
                                       <tr key={registration.id} className="border-b border-white/5 hover:bg-white/5">
                                         <td className="py-3 text-white font-medium">
-                                          {student ? `${student.firstName} ${student.lastName}`.trim() : 'Unknown Student'}
+                                          <div className="flex items-center space-x-2">
+                                            <span>{student ? `${student.firstName} ${student.lastName}`.trim() : 'Unknown Student'}</span>
+                                            {student && student.updatedAt && student.createdAt && 
+                                             new Date(student.updatedAt).getTime() > new Date(student.createdAt).getTime() + 5000 && (
+                                              <Badge className="bg-orange-500/20 text-orange-300 border-orange-500/30 text-xs px-2 py-0.5">
+                                                edited
+                                              </Badge>
+                                            )}
+                                          </div>
                                         </td>
                                         <td className="py-3 text-white">
                                           {parentName}

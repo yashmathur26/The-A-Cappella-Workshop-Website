@@ -13,6 +13,7 @@ const registerSchema = z.object({
   lastName: z.string().min(1, "Last name is required"),
   email: z.string().email().min(1),
   password: z.string().min(10, "Password must be at least 10 characters"),
+  linkPurchases: z.boolean().optional(),
 });
 
 const loginSchema = z.object({
@@ -23,7 +24,7 @@ const loginSchema = z.object({
 // Registration route
 router.post("/register", authRateLimit, async (req, res) => {
   try {
-    const { firstName, lastName, email, password } = registerSchema.parse(req.body);
+    const { firstName, lastName, email, password, linkPurchases } = registerSchema.parse(req.body);
     
     // Check if user already exists
     const existingUser = await storage.getUserByEmail(email);
@@ -44,11 +45,22 @@ router.post("/register", authRateLimit, async (req, res) => {
       emailVerified: false,
     });
     
+    // Link guest purchases if requested
+    let linkedCount = 0;
+    if (linkPurchases) {
+      try {
+        linkedCount = await storage.linkGuestPurchasesToAccount(email.toLowerCase(), user.id);
+      } catch (linkError) {
+        console.error("Error linking guest purchases:", linkError);
+        // Don't fail registration if linking fails
+      }
+    }
+    
     // Log the registration
     await storage.createAuditLog({
       userId: user.id,
       action: "register",
-      meta: JSON.stringify({ method: "local", email }),
+      meta: JSON.stringify({ method: "local", email, linkedPurchases: linkedCount }),
     });
     
     // Log in the user

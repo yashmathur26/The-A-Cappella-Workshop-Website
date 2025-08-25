@@ -53,7 +53,7 @@ export function useRegister() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (data: { firstName: string; lastName: string; email: string; password: string }) => {
+    mutationFn: async (data: { firstName: string; lastName: string; email: string; password: string; linkPurchases?: boolean }) => {
       const response = await apiRequest("POST", "/auth/register", data);
       return response.json();
     },
