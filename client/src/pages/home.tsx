@@ -87,7 +87,7 @@ export default function Home() {
               A modern a cappella camp for rising 6th–9th graders — running since 2015 in Lexington, MA.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/camp-registration">
+              <Link href="/register">
                 <GradientButton size="lg">Register Now</GradientButton>
               </Link>
               <Link href="/about">

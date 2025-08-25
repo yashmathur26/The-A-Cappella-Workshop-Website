@@ -247,17 +247,16 @@ export default function Register() {
         
         {/* Guest Registration Option */}
         <div className="mt-6 text-center">
-          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-4">
-            <h3 className="text-white font-medium mb-2">Don't want to create an account?</h3>
-            <p className="text-white/70 text-sm mb-4">
-              You can register for camp as a guest without creating an account
+          <div className="bg-gradient-to-r from-green-600/20 to-emerald-600/20 backdrop-blur-sm border border-green-400/30 rounded-lg p-6">
+            <h3 className="text-white font-bold text-lg mb-2">🎵 Continue to Payment Without Account</h3>
+            <p className="text-white/80 text-sm mb-4">
+              Register for camp immediately as a guest — no signup required!
             </p>
             <Link href="/camp-registration">
               <Button 
-                variant="outline" 
-                className="w-full bg-transparent border-white/20 text-white hover:bg-white/10"
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 text-lg"
               >
-                Register as Guest
+                🎤 Register for Camp Now
               </Button>
             </Link>
           </div>

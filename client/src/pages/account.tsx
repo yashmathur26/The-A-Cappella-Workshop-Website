@@ -449,7 +449,7 @@ export default function Account() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold text-white">
-                    ${((registrations.reduce((sum, r) => sum + (r.balanceDueCents || 0), 0)) / 100).toFixed(0)}
+                    ${((registrations.reduce((sum, r) => sum + (r.balanceDueCents || 0), 0)) / 100).toFixed(2)}
                   </div>
                   <p className="text-white/60">remaining balance</p>
                 </CardContent>
@@ -464,7 +464,7 @@ export default function Account() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold text-white">
-                    ${(payments.reduce((sum, p) => sum + p.amountCents, 0) / 100).toFixed(0)}
+                    ${(payments.reduce((sum, p) => sum + p.amountCents, 0) / 100).toFixed(2)}
                   </div>
                   <p className="text-white/60">across all registrations</p>
                 </CardContent>
