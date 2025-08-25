@@ -73,7 +73,7 @@ export function ForgotPasswordModal() {
               data-testid="input-reset-email"
             />
           </div>
-          <div className="flex gap-2 justify-end">
+          <div className="flex gap-2 justify-center">
             <Button
               type="button"
               variant="outline"

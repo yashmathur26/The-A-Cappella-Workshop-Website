@@ -22,7 +22,7 @@ import {
   type InsertContent,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -263,25 +263,28 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllRegistrationsWithUsers(): Promise<(Registration & { parentName: string; parentEmail: string })[]> {
-    const registrations = await db
+    const results = await db
       .select({
         id: registrations.id,
         userId: registrations.userId,
         studentId: registrations.studentId,
         weekId: registrations.weekId,
         status: registrations.status,
+        paymentType: registrations.paymentType,
         amountPaidCents: registrations.amountPaidCents,
         balanceDueCents: registrations.balanceDueCents,
         promoCode: registrations.promoCode,
+        stripeCheckoutSessionId: registrations.stripeCheckoutSessionId,
+        stripePaymentIntentId: registrations.stripePaymentIntentId,
         createdAt: registrations.createdAt,
         updatedAt: registrations.updatedAt,
-        parentName: sql<string>`CONCAT(${users.firstName}, ' ', ${users.lastName})`,
-        parentEmail: users.email,
+        parentName: sql<string>`COALESCE(CONCAT(${users.firstName}, ' ', ${users.lastName}), 'Unknown Parent')`,
+        parentEmail: sql<string>`COALESCE(${users.email}, 'unknown@email.com')`,
       })
       .from(registrations)
       .leftJoin(users, eq(registrations.userId, users.id));
     
-    return registrations;
+    return results;
   }
 
   async getRegistration(id: string): Promise<Registration | undefined> {
