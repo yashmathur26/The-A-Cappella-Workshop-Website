@@ -262,8 +262,8 @@ export class DatabaseStorage implements IStorage {
     return this.getRegistrations(); // No userId = all registrations
   }
 
-  async getAllRegistrationsWithUsers(): Promise<(Registration & { parentName: string; parentEmail: string })[]> {
-    const results = await db
+  async getAllRegistrationsWithUsers(): Promise<any[]> {
+    const query = await db
       .select({
         id: registrations.id,
         userId: registrations.userId,
@@ -284,7 +284,7 @@ export class DatabaseStorage implements IStorage {
       .from(registrations)
       .leftJoin(users, eq(registrations.userId, users.id));
     
-    return results;
+    return query;
   }
 
   async getRegistration(id: string): Promise<Registration | undefined> {
