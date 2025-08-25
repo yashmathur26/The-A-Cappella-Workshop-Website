@@ -262,6 +262,28 @@ export class DatabaseStorage implements IStorage {
     return this.getRegistrations(); // No userId = all registrations
   }
 
+  async getAllRegistrationsWithUsers(): Promise<(Registration & { parentName: string; parentEmail: string })[]> {
+    const registrations = await db
+      .select({
+        id: registrations.id,
+        userId: registrations.userId,
+        studentId: registrations.studentId,
+        weekId: registrations.weekId,
+        status: registrations.status,
+        amountPaidCents: registrations.amountPaidCents,
+        balanceDueCents: registrations.balanceDueCents,
+        promoCode: registrations.promoCode,
+        createdAt: registrations.createdAt,
+        updatedAt: registrations.updatedAt,
+        parentName: sql<string>`CONCAT(${users.firstName}, ' ', ${users.lastName})`,
+        parentEmail: users.email,
+      })
+      .from(registrations)
+      .leftJoin(users, eq(registrations.userId, users.id));
+    
+    return registrations;
+  }
+
   async getRegistration(id: string): Promise<Registration | undefined> {
     const [registration] = await db.select().from(registrations).where(eq(registrations.id, id));
     return registration || undefined;

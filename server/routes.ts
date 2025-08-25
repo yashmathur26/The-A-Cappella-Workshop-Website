@@ -575,7 +575,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Admin access required" });
       }
       
-      const allRegistrations = await storage.getAllRegistrations();
+      const allRegistrations = await storage.getAllRegistrationsWithUsers();
       res.json(allRegistrations);
     } catch (error) {
       console.error("Error fetching all registrations:", error);

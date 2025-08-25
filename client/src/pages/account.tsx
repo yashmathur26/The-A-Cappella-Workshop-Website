@@ -1124,10 +1124,10 @@ export default function Account() {
                               ) : (
                                 weekRegistrations
                                   .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                                  .map((registration) => {
+                                  .map((registration: any) => {
                                     const student = students.find(s => s.id === registration.studentId);
-                                    const parentName = student ? `${student.firstName} ${student.lastName}`.trim() : 'Unknown';
-                                    const parentEmail = user?.email || 'Unknown';
+                                    const parentName = registration.parentName || 'Unknown Parent';
+                                    const parentEmail = registration.parentEmail || 'Unknown Email';
                                     
                                     return (
                                       <tr key={registration.id} className="border-b border-white/5 hover:bg-white/5">
@@ -1135,7 +1135,7 @@ export default function Account() {
                                           {student ? `${student.firstName} ${student.lastName}`.trim() : 'Unknown Student'}
                                         </td>
                                         <td className="py-3 text-white">
-                                          {user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : parentName}
+                                          {parentName}
                                         </td>
                                         <td className="py-3 text-white/60">
                                           {parentEmail}
