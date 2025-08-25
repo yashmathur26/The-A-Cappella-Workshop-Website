@@ -12,6 +12,7 @@ import Gallery from "@/pages/gallery";
 import Register from "@/pages/register";
 import CampRegistration from "@/pages/camp-registration";
 import Login from "@/pages/login";
+import ResetPassword from "@/pages/reset-password";
 import Account from "@/pages/account";
 import Status from "@/pages/status";
 import NotFound from "@/pages/not-found";
@@ -38,6 +39,7 @@ function Router() {
         <Route path="/register" component={Register} />
         <Route path="/camp-registration" component={CampRegistration} />
         <Route path="/login" component={Login} />
+        <Route path="/reset-password" component={ResetPassword} />
         <Route path="/account" component={Account} />
         <Route path="/status" component={Status} />
         <Route component={NotFound} />

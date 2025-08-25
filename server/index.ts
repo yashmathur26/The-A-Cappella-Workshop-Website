@@ -42,8 +42,9 @@ app.post('/api/webhook',
       
       if (session.payment_status === 'paid') {
         try {
-          // Import storage dynamically to avoid circular dependencies
+          // Import storage and email functions dynamically to avoid circular dependencies
           const { storage } = await import("./storage");
+          const { sendRegistrationConfirmationEmail, sendAdminNotificationEmail } = await import("./brevo");
           
           // Parse cart items from metadata
           const itemsJson = session.metadata?.items_json;

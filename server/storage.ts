@@ -31,6 +31,9 @@ export interface IStorage {
   getUserByGoogleId(googleId: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
   updateUser(id: string, userData: Partial<Pick<User, 'firstName' | 'lastName' | 'email'>>): Promise<User>;
+  setPasswordResetToken(email: string, token: string, expiry: Date): Promise<User | undefined>;
+  validatePasswordResetToken(token: string): Promise<User | undefined>;
+  updatePassword(userId: string, passwordHash: string): Promise<User>;
   updateStripeCustomerId(userId: string, stripeCustomerId: string): Promise<User>;
 
   // Student operations
@@ -119,6 +122,42 @@ export class DatabaseStorage implements IStorage {
     const [user] = await db
       .update(users)
       .set({ stripeCustomerId, updatedAt: new Date() })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  async setPasswordResetToken(email: string, token: string, expiry: Date): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({ resetToken: token, resetTokenExpiry: expiry, updatedAt: new Date() })
+      .where(eq(users.email, email.toLowerCase()))
+      .returning();
+    return user;
+  }
+
+  async validatePasswordResetToken(token: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.resetToken, token))
+      .limit(1);
+    
+    if (!user || !user.resetTokenExpiry || new Date() > user.resetTokenExpiry) {
+      return undefined;
+    }
+    return user;
+  }
+
+  async updatePassword(userId: string, passwordHash: string): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ 
+        passwordHash, 
+        resetToken: null, 
+        resetTokenExpiry: null, 
+        updatedAt: new Date() 
+      })
       .where(eq(users.id, userId))
       .returning();
     return user;

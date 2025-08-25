@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Eye, EyeOff, Chrome } from "lucide-react";
+import { ForgotPasswordModal } from "@/components/ForgotPasswordModal";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -117,6 +118,9 @@ export default function Login() {
                 {form.formState.errors.password && (
                   <p className="text-red-400 text-sm">{form.formState.errors.password.message}</p>
                 )}
+                <div className="text-right mt-1">
+                  <ForgotPasswordModal />
+                </div>
               </div>
 
               <div className="flex space-x-3">

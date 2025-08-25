@@ -26,6 +26,8 @@ export const users = pgTable("users", {
   googleId: text("google_id").unique(),
   role: text("role").notNull().default("parent"), // 'parent' | 'admin'
   stripeCustomerId: text("stripe_customer_id"),
+  resetToken: text("reset_token"),
+  resetTokenExpiry: timestamp("reset_token_expiry"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

@@ -10,6 +10,7 @@ import argon2 from "argon2";
 import { passport } from "./auth";
 import { storage } from "./storage";
 import { authRoutes } from "./authRoutes";
+import { initiatePasswordReset, resetPassword } from "./passwordReset";
 import { 
   setupSession, 
   generalRateLimit, 
@@ -94,6 +95,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Authentication routes
   app.use("/auth", authRoutes);
+
+  // Password reset routes
+  app.post("/api/forgot-password", express.json(), generalRateLimit, async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const success = await initiatePasswordReset(email, baseUrl);
+      
+      // Always return success to prevent email enumeration
+      res.json({ message: "If an account with that email exists, you will receive a password reset link." });
+    } catch (error) {
+      console.error("Forgot password error:", error);
+      res.status(500).json({ message: "Failed to process password reset request" });
+    }
+  });
+
+  app.post("/api/reset-password", express.json(), generalRateLimit, async (req, res) => {
+    try {
+      const { token, password } = req.body;
+      if (!token || !password) {
+        return res.status(400).json({ message: "Token and password are required" });
+      }
+
+      if (password.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters long" });
+      }
+
+      const result = await resetPassword(token, password);
+      if (result.success) {
+        res.json({ message: result.message });
+      } else {
+        res.status(400).json({ message: result.message });
+      }
+    } catch (error) {
+      console.error("Reset password error:", error);
+      res.status(500).json({ message: "Failed to reset password" });
+    }
+  });
 
   // API routes for frontend compatibility
   app.get("/api/me", (req, res) => {
