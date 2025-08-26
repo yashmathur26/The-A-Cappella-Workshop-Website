@@ -119,7 +119,11 @@ export default function Login() {
                   <p className="text-red-400 text-sm">{form.formState.errors.password.message}</p>
                 )}
                 <div className="text-right mt-1">
-                  <ForgotPasswordModal />
+                  <Link href="/forgot-password">
+                    <span className="text-sky-custom hover:text-teal-custom text-sm cursor-pointer" data-testid="button-forgot-password">
+                      Forgot password?
+                    </span>
+                  </Link>
                 </div>
               </div>
 

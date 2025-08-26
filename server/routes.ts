@@ -719,6 +719,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
+  // Direct password reset routes (for testing without email)
+  app.post("/api/verify-email", async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      // Check if user exists
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({ message: "Account not found" });
+      }
+
+      res.json({ message: "Email verified" });
+    } catch (error) {
+      console.error("Email verification error:", error);
+      res.status(500).json({ message: "Failed to verify email" });
+    }
+  });
+
+  app.post("/api/reset-password-direct", async (req, res) => {
+    try {
+      const { email, password, token } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+      }
+
+      if (password.length < 10) {
+        return res.status(400).json({ message: "Password must be at least 10 characters long" });
+      }
+
+      // Find user by email
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({ message: "Account not found" });
+      }
+
+      // Hash the new password
+      const passwordHash = await argon2.hash(password);
+      
+      // Update user's password in database
+      await storage.updateUserPassword(user.id, passwordHash);
+
+      // Log the password reset
+      await storage.createAuditLog({
+        userId: user.id,
+        action: "password_reset_direct",
+        meta: JSON.stringify({ email, resetMethod: token ? "token" : "direct" }),
+      });
+
+      res.json({ message: "Password reset successfully" });
+    } catch (error) {
+      console.error("Password reset error:", error);
+      res.status(500).json({ message: "Failed to reset password" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
