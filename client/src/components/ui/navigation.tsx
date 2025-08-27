@@ -1,9 +1,16 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'wouter';
-import { ShoppingCart, Menu, X, User, LogOut } from 'lucide-react';
+import { ShoppingCart, Menu, X, User, LogOut, MapPin, ChevronDown } from 'lucide-react';
 import { CartManager } from '@/lib/cart';
 import { useAuth, useLogout } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
+import { useLocation as useLocationContext } from '@/contexts/LocationContext';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 // Using a custom SVG logo that matches the microphone design
 const LogoSVG = () => (
   <svg viewBox="0 0 100 100" className="w-10 h-10" fill="none">
@@ -32,6 +39,7 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
   const [currentCartCount, setCurrentCartCount] = useState(cartCount);
   const { user, isAuthenticated } = useAuth();
   const logoutMutation = useLogout();
+  const { currentLocation, setLocation: setAppLocation, locationData } = useLocationContext();
 
   useEffect(() => {
     // Force a fresh cart count on mount
@@ -90,6 +98,34 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
                 {link.label}
               </Link>
             ))}
+            
+            {/* Location Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20 text-sm">
+                  <MapPin className="w-4 h-4 mr-2" />
+                  {locationData[currentLocation].name}
+                  <ChevronDown className="w-4 h-4 ml-2" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="bg-gray-900 border-gray-700 text-white">
+                <DropdownMenuItem 
+                  onClick={() => setAppLocation('lexington')}
+                  className={`cursor-pointer hover:bg-gray-800 ${currentLocation === 'lexington' ? 'bg-blue-900/50' : ''}`}
+                >
+                  <MapPin className="w-4 h-4 mr-2" />
+                  Lexington
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => setAppLocation('newton-wellesley')}
+                  className={`cursor-pointer hover:bg-gray-800 ${currentLocation === 'newton-wellesley' ? 'bg-emerald-900/50' : ''}`}
+                >
+                  <MapPin className="w-4 h-4 mr-2" />
+                  Newton/Wellesley
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
             <Link
               href="/camp-registration"
               className="btn-gradient px-6 py-2 rounded-full text-white font-medium hover:text-white text-[14px] pl-[20px] pr-[20px]"

@@ -1,0 +1,142 @@
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+
+export type Location = 'lexington' | 'newton-wellesley';
+
+interface LocationContextType {
+  currentLocation: Location;
+  setLocation: (location: Location) => void;
+  locationData: {
+    lexington: {
+      name: string;
+      fullName: string;
+      heroTitle: string;
+      heroSubtitle: string;
+      colors: {
+        primary: string;
+        accent: string;
+        gradient: string;
+      };
+      weeks: Array<{
+        id: string;
+        label: string;
+        price: number;
+        spots: number;
+      }>;
+      pricing: {
+        full: number;
+        deposit: number;
+      };
+    };
+    'newton-wellesley': {
+      name: string;
+      fullName: string;
+      heroTitle: string;
+      heroSubtitle: string;
+      colors: {
+        primary: string;
+        accent: string;
+        gradient: string;
+      };
+      weeks: Array<{
+        id: string;
+        label: string;
+        price: number;
+        spots: number;
+      }>;
+      pricing: {
+        full: number;
+        deposit: number;
+      };
+    };
+  };
+}
+
+const LocationContext = createContext<LocationContextType | undefined>(undefined);
+
+export function LocationProvider({ children }: { children: ReactNode }) {
+  const [currentLocation, setCurrentLocation] = useState<Location>('lexington');
+
+  const locationData = {
+    lexington: {
+      name: 'Lexington',
+      fullName: 'Lexington A Cappella Camp',
+      heroTitle: 'Lexington A Cappella Workshop',
+      heroSubtitle: 'Sing. Collaborate. Perform.',
+      colors: {
+        primary: 'from-blue-custom via-indigo-custom to-teal-custom',
+        accent: 'text-sky-custom',
+        gradient: 'bg-gradient-to-r from-blue-600 to-indigo-600',
+      },
+      weeks: [
+        { id: "lex-wk1", label: "June 22–26, 2026", price: 500, spots: 20 },
+        { id: "lex-wk2", label: "July 27–31, 2026", price: 500, spots: 20 },
+        { id: "lex-wk3", label: "August 3–7, 2026", price: 500, spots: 20 },
+        { id: "lex-wk4", label: "August 10–14, 2026", price: 500, spots: 20 },
+        { id: "lex-wk5", label: "August 17–21, 2026", price: 500, spots: 20 }
+      ],
+      pricing: {
+        full: 500,
+        deposit: 150,
+      },
+    },
+    'newton-wellesley': {
+      name: 'Newton/Wellesley',
+      fullName: 'Newton/Wellesley A Cappella Camp',
+      heroTitle: 'Newton/Wellesley A Cappella Workshop',
+      heroSubtitle: 'Discover Your Voice. Create Harmony.',
+      colors: {
+        primary: 'from-emerald-600 via-green-500 to-teal-400',
+        accent: 'text-emerald-400',
+        gradient: 'bg-gradient-to-r from-emerald-600 to-green-600',
+      },
+      weeks: [
+        { id: "nw-wk1", label: "August 17–21, 2026", price: 600, spots: 20 }
+      ],
+      pricing: {
+        full: 600,
+        deposit: 150,
+      },
+    },
+  };
+
+  const setLocation = (location: Location) => {
+    setCurrentLocation(location);
+    localStorage.setItem('acapella-location', location);
+  };
+
+  // Load saved location on mount and apply theme
+  useEffect(() => {
+    const saved = localStorage.getItem('acapella-location') as Location;
+    if (saved && (saved === 'lexington' || saved === 'newton-wellesley')) {
+      setCurrentLocation(saved);
+    }
+  }, []);
+
+  // Apply location-based CSS class to body
+  useEffect(() => {
+    document.body.className = document.body.className.replace(/location-\w+/g, '');
+    document.body.classList.add(`location-${currentLocation}`);
+    
+    return () => {
+      document.body.className = document.body.className.replace(/location-\w+/g, '');
+    };
+  }, [currentLocation]);
+
+  return (
+    <LocationContext.Provider value={{ 
+      currentLocation, 
+      setLocation, 
+      locationData 
+    }}>
+      {children}
+    </LocationContext.Provider>
+  );
+}
+
+export function useLocation() {
+  const context = useContext(LocationContext);
+  if (context === undefined) {
+    throw new Error('useLocation must be used within a LocationProvider');
+  }
+  return context;
+}

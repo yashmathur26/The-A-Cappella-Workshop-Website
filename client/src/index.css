@@ -229,6 +229,48 @@
     animation: pulse 2s infinite;
   }
 
+/* Newton/Wellesley Green Theme Overrides */
+.location-newton-wellesley .gradient-text {
+  background: linear-gradient(135deg, #10b981, #14b8a6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.location-newton-wellesley .btn-gradient {
+  background: linear-gradient(135deg, #059669, #10b981);
+}
+
+.location-newton-wellesley .btn-gradient:hover {
+  background: linear-gradient(135deg, #047857, #059669);
+}
+
+.location-newton-wellesley .btn-gradient-secondary {
+  background: linear-gradient(135deg, rgba(5, 150, 105, 0.2), rgba(16, 185, 129, 0.2));
+  border: 1px solid rgba(52, 211, 153, 0.3);
+}
+
+.location-newton-wellesley .btn-gradient-secondary:hover {
+  background: linear-gradient(135deg, rgba(5, 150, 105, 0.3), rgba(16, 185, 129, 0.3));
+}
+
+.location-newton-wellesley .glass-card {
+  background: rgba(5, 150, 105, 0.1);
+  border: 1px solid rgba(52, 211, 153, 0.2);
+}
+
+.location-newton-wellesley .nav-link:hover {
+  color: #10b981;
+}
+
+.location-newton-wellesley .nav-link.active {
+  color: #10b981;
+}
+
+.location-newton-wellesley .cart-badge {
+  background: linear-gradient(135deg, #059669, #10b981);
+}
+
   /* Scroll reveal animations */
   .reveal-in {
     opacity: 0;

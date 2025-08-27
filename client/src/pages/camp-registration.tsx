@@ -2,19 +2,19 @@ import { useState, useEffect, useRef } from 'react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { GradientButton } from '@/components/ui/gradient-button';
 import { CartManager, type CartItem } from '@/lib/cart';
-import { WEEKS } from '@/lib/constants';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { PaymentOptions } from '@/components/PaymentOptions';
 import { AddStudentModal } from '@/components/AddStudentModal';
-import { useLocation } from 'wouter';
+import { useLocation as useWouterLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tag, X, AlertTriangle, Plus, Users } from "lucide-react";
+import { useLocation } from '@/contexts/LocationContext';
 
 interface Student {
   id: string;
@@ -41,7 +41,12 @@ export default function Register() {
   const [showAddStudentModal, setShowAddStudentModal] = useState(false);
   const { toast } = useToast();
   const { isAuthenticated, user } = useAuth();
-  const [, setLocation] = useLocation();
+  const [, setWouterLocation] = useWouterLocation();
+  const { currentLocation, locationData } = useLocation();
+
+  // Get location-specific weeks and pricing
+  const WEEKS = locationData[currentLocation].weeks;
+  const locationPricing = locationData[currentLocation].pricing;
 
   // Fetch students for authenticated users
   const { data: students = [] } = useQuery<Student[]>({
@@ -287,7 +292,7 @@ export default function Register() {
   };
 
   const handleSignInFirst = () => {
-    setLocation("/login");
+    setWouterLocation("/login");
   };
 
   const cartItems = CartManager.getCartItems();

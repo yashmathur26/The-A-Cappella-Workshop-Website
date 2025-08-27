@@ -30,11 +30,13 @@ import {
   Mail,
   Shield,
   FileText,
-  X
+  X,
+  MapPin
 } from "lucide-react";
 import { AddStudentModal } from '@/components/AddStudentModal';
 import { EditStudentModal } from '@/components/EditStudentModal';
 import { ProfileEditModal } from '@/components/ProfileEditModal';
+import { useLocation as useLocationContext } from '@/contexts/LocationContext';
 
 interface Student {
   id: string;
@@ -61,6 +63,7 @@ interface Registration {
   amountPaidCents?: number;
   balanceDueCents?: number;
   createdAt: string;
+  location?: string;
 }
 
 interface Payment {
@@ -94,6 +97,7 @@ export default function Account() {
   const [showAddStudentModal, setShowAddStudentModal] = useState(false);
   const [showEditStudentModal, setShowEditStudentModal] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+  const { locationData } = useLocationContext();
   
   // Additional emails state
   const [additionalEmails, setAdditionalEmails] = useState<string[]>([]);

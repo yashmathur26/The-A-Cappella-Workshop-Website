@@ -6,6 +6,7 @@ import { Users, GraduationCap, Star, Phone, Mail, MapPin, Clock, Play, User, Cre
 import { GlassCard } from '@/components/ui/glass-card';
 import { GradientButton } from '@/components/ui/gradient-button';
 import { Badge } from "@/components/ui/badge";
+import { useLocation } from '@/contexts/LocationContext';
 
 interface Student {
   id: string;
@@ -36,6 +37,7 @@ interface Payment {
 
 export default function Home() {
   const { user, isAuthenticated } = useAuth();
+  const { currentLocation, setLocation, locationData } = useLocation();
 
   // Fetch user data for profile summary (only if authenticated)
   const { data: students = [] } = useQuery<Student[]>({
@@ -77,22 +79,44 @@ export default function Home() {
     <div className="min-h-screen">
       {/* Hero Section */}
       <section className="relative py-8 lg:py-12 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-indigo-custom/20 to-teal-custom/20"></div>
+        <div className={`absolute inset-0 ${currentLocation === 'lexington' 
+          ? 'bg-gradient-to-r from-indigo-custom/20 to-teal-custom/20' 
+          : 'bg-gradient-to-r from-emerald-600/20 to-green-500/20'
+        }`}></div>
         <div className="max-w-6xl mx-auto px-6 relative z-10">
           <div className="text-center reveal-in">
             <h1 className="text-4xl lg:text-6xl font-bold mb-6 leading-tight text-white">
-              Sing. <span className="gradient-text">Collaborate.</span> Perform.
+              {currentLocation === 'lexington' ? (
+                <>Lexington <span className="gradient-text">A Cappella</span> Workshop</>
+              ) : (
+                <><span className="bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent">Newton/Wellesley</span> A Cappella Workshop</>
+              )}
             </h1>
-            <p className="text-xl lg:text-2xl text-white/80 mb-8 max-w-3xl mx-auto">
-              A modern a cappella camp for rising 6th–9th graders — running since 2015 in Lexington, MA.
+            <p className="text-xl lg:text-2xl text-white/80 mb-4 max-w-3xl mx-auto">
+              {locationData[currentLocation].heroSubtitle}
+            </p>
+            <p className="text-lg text-white/70 mb-8 max-w-3xl mx-auto">
+              A modern a cappella camp for rising 6th–9th graders.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/register">
                 <GradientButton size="lg">Register Now</GradientButton>
               </Link>
-              <Link href="/about">
-                <GradientButton variant="ghost" size="lg">Learn More</GradientButton>
-              </Link>
+              {currentLocation === 'lexington' ? (
+                <button 
+                  onClick={() => setLocation('newton-wellesley')}
+                  className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white px-8 py-3 rounded-full font-medium transition-all duration-200 transform hover:scale-105"
+                >
+                  Explore Newton/Wellesley
+                </button>
+              ) : (
+                <button 
+                  onClick={() => setLocation('lexington')}
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3 rounded-full font-medium transition-all duration-200 transform hover:scale-105"
+                >
+                  Back to Lexington
+                </button>
+              )}
             </div>
           </div>
         </div>
