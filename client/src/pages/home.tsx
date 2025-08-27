@@ -228,7 +228,7 @@ export default function Home() {
       {/* Welcome Video Section */}
       <section className="py-6">
         <div className="max-w-4xl mx-auto px-6">
-          <GlassCard className="p-8 reveal-in" hover>
+          <div className="p-8 reveal-in">
             <div className="text-center mb-8">
               <h2 className="text-3xl lg:text-4xl font-bold mb-4 gradient-text">Welcome to Camp</h2>
               <p className="text-xl text-white/80">Watch our welcome message and see what makes The A Cappella Workshop special</p>
@@ -244,7 +244,7 @@ export default function Home() {
                 <p className="text-white/80">Click here when your welcome video is ready to upload</p>
               </div>
             </div>
-          </GlassCard>
+          </div>
         </div>
       </section>
 
