@@ -226,7 +226,7 @@ export default function Home() {
       )}
 
       {/* Welcome Video Section */}
-      <section className="py-6 bg-transparent">
+      <section className="py-6">
         <div className="max-w-4xl mx-auto px-6">
           {currentLocation === 'lexington' ? (
             <GlassCard className="p-8 reveal-in" hover>
@@ -247,7 +247,7 @@ export default function Home() {
               </div>
             </GlassCard>
           ) : (
-            <div className="p-8 reveal-in">
+            <GlassCard className="p-8 reveal-in" hover>
               <div className="text-center mb-8">
                 <h2 className="text-3xl lg:text-4xl font-bold mb-4 gradient-text">Welcome to Camp</h2>
                 <p className="text-xl text-white/80">Watch our welcome message and see what makes The A Cappella Workshop special</p>
@@ -263,13 +263,14 @@ export default function Home() {
                   <p className="text-white/80">Click here when your welcome video is ready to upload</p>
                 </div>
               </div>
-            </div>
+            </GlassCard>
           )}
         </div>
       </section>
 
       {/* Highlights Section */}
-      <section className="py-16 relative overflow-hidden bg-transparent">
+      <section className="py-16 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-indigo-custom/10 via-sky-custom/5 to-teal-custom/10"></div>
         <div className="max-w-6xl mx-auto px-6 relative z-10">
           <h2 className="text-3xl lg:text-4xl font-bold text-center mb-16 gradient-text">What Makes Us Special</h2>
           <div className="grid md:grid-cols-3 gap-12">
@@ -311,7 +312,7 @@ export default function Home() {
 
 
       {/* Get in Touch Section */}
-      <section className="py-6 bg-transparent">
+      <section className="py-6">
         <div className="max-w-6xl mx-auto px-6">
           <h2 className="text-3xl lg:text-4xl font-bold text-center mb-12 reveal-in gradient-text">Get in Touch</h2>
           
