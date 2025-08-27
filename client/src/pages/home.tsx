@@ -105,7 +105,7 @@ export default function Home() {
               {currentLocation === 'lexington' ? (
                 <button 
                   onClick={() => setLocation('newton-wellesley')}
-                  className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white px-8 py-3 rounded-full font-medium transition-all duration-200 transform hover:scale-105"
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3 rounded-full font-medium transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-blue-500/25"
                 >
                   Explore Newton/Wellesley
                 </button>
