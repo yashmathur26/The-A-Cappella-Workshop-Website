@@ -401,7 +401,7 @@ export default function Register() {
             {/* Step 1: Choose Weeks */}
             <section>
               <h2 className="text-2xl font-bold mb-4 text-teal-custom">Step 1 — Choose Your Week(s)</h2>
-              <p className="text-white/80 mb-6">Select your preferred weeks and payment option. You can either pay the full amount or secure your spot with a $150 deposit and pay the remaining $350 later through email invoice or your account dashboard.</p>
+              <p className="text-white/80 mb-6">Select your preferred weeks and payment option. You can either pay the full amount or secure your spot with a $150 deposit and pay the remaining amount later through email invoice or your account dashboard.</p>
               <div className="grid gap-6">
                 {WEEKS.map((week, index) => (
                   <GlassCard 
@@ -451,7 +451,7 @@ export default function Register() {
                           <span className="font-semibold text-white">Deposit</span>
                           <span className="text-xl font-bold text-teal-custom">$150</span>
                         </div>
-                        <p className="text-xs text-white/60 mb-3">$350 remaining via invoice</p>
+                        <p className="text-xs text-white/60 mb-3">${week.price - 150} remaining via invoice</p>
                         <Button
                           variant={CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'deposit' ? 'outline' : 'default'}
                           size="sm"
