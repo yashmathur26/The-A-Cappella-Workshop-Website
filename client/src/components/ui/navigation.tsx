@@ -75,18 +75,18 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
 
   return (
     <nav className="sticky top-0 z-50 glass-card border-b border-white/10">
-      <div className="max-w-6xl mx-auto px-6 py-4">
+      <div className="max-w-7xl mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
           {/* Logo and Brand */}
-          <Link href="/" className="flex items-center space-x-3">
-            <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-sky-custom/20 to-teal-custom/20 border-2 border-sky-custom/30 flex items-center justify-center">
+          <Link href="/" className="flex items-center space-x-3 flex-shrink-0">
+            <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-sky-custom/20 to-teal-custom/20 border-2 border-sky-custom/30 flex items-center justify-center">
               <LogoSVG />
             </div>
-            <h1 className="text-2xl font-bold text-white brand-text">The A Cappella Workshop</h1>
+            <h1 className="text-xl font-bold text-white brand-text whitespace-nowrap">The A Cappella Workshop</h1>
           </Link>
           
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden md:flex items-center space-x-4 flex-1 justify-center">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
@@ -98,14 +98,17 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
                 {link.label}
               </Link>
             ))}
-            
+          </div>
+
+          {/* Right Side Actions */}
+          <div className="hidden md:flex items-center space-x-3 flex-shrink-0">
             {/* Location Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20 text-sm">
-                  <MapPin className="w-4 h-4 mr-2" />
+                <Button variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20 text-sm whitespace-nowrap">
+                  <MapPin className="w-4 h-4 mr-1" />
                   {locationData[currentLocation].name}
-                  <ChevronDown className="w-4 h-4 ml-2" />
+                  <ChevronDown className="w-4 h-4 ml-1" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="bg-gray-900 border-gray-700 text-white">
@@ -128,21 +131,22 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
             
             <Link
               href="/camp-registration"
-              className="btn-gradient px-6 py-2 rounded-full text-white font-medium hover:text-white text-[14px] pl-[20px] pr-[20px]"
+              className="btn-gradient px-4 py-2 rounded-full text-white font-medium hover:text-white text-sm whitespace-nowrap"
             >
               Register
             </Link>
+            
             {isAuthenticated ? (
-              <div className="flex items-center space-x-4">
-                <Link href="/account" className="flex items-center space-x-2 text-white/80 hover:text-white">
-                  <User size={18} />
-                  <span className="hidden sm:inline">{user?.firstName} {user?.lastName}</span>
+              <div className="flex items-center space-x-2">
+                <Link href="/account" className="flex items-center space-x-1 text-white/80 hover:text-white whitespace-nowrap">
+                  <User size={16} />
+                  <span className="hidden lg:inline text-sm">{user?.firstName}</span>
                 </Link>
                 <Button
                   onClick={() => logoutMutation.mutate()}
                   variant="ghost"
                   size="sm"
-                  className="text-white/80 hover:text-white hover:bg-white/10"
+                  className="text-white/80 hover:text-white hover:bg-white/10 p-2"
                   disabled={logoutMutation.isPending}
                 >
                   <LogOut size={16} />
@@ -151,15 +155,16 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
             ) : (
               <Link
                 href="/login"
-                className="btn-gradient-secondary px-5 py-2 rounded-full text-white font-medium hover:text-white text-sm"
+                className="btn-gradient-secondary px-4 py-2 rounded-full text-white font-medium hover:text-white text-sm whitespace-nowrap"
               >
                 Sign In
               </Link>
             )}
+            
             <Link href="/camp-registration" className="relative">
-              <ShoppingCart className="text-white/80 hover:text-white cursor-pointer" size={20} />
+              <ShoppingCart className="text-white/80 hover:text-white cursor-pointer" size={18} />
               {currentCartCount > 0 && (
-                <span className="cart-badge absolute -top-2 -right-2 text-xs text-white rounded-full w-5 h-5 flex items-center justify-center">
+                <span className="cart-badge absolute -top-2 -right-2 text-xs text-white rounded-full w-4 h-4 flex items-center justify-center">
                   {currentCartCount}
                 </span>
               )}

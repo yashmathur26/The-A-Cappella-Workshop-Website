@@ -114,11 +114,13 @@ export function LocationProvider({ children }: { children: ReactNode }) {
 
   // Apply location-based CSS class to body
   useEffect(() => {
-    document.body.className = document.body.className.replace(/location-\w+/g, '');
+    // Remove any existing location classes
+    document.body.classList.remove('location-lexington', 'location-newton-wellesley');
+    // Add the current location class
     document.body.classList.add(`location-${currentLocation}`);
     
     return () => {
-      document.body.className = document.body.className.replace(/location-\w+/g, '');
+      document.body.classList.remove('location-lexington', 'location-newton-wellesley');
     };
   }, [currentLocation]);
 
