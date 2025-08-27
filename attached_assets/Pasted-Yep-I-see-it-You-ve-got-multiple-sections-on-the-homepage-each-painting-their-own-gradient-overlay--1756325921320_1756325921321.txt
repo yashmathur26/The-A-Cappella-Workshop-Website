@@ -1,0 +1,164 @@
+Yep—I see it. You’ve got multiple sections on the homepage each painting their own gradient/overlay (e.g., from-emerald-400/8 via-green-400/4 to-teal-400/8, section-specific bg-*, a “loading” block with its own background). That creates visible seams between “Welcome to Camp,” the hero, and loading text.
+
+Below is a copy-paste Replit Agent prompt that will fix it the right way: make one global app background applied once at the layout/body level, then make every section transparent so the single background shines through. It also standardizes the loading/skeleton so it doesn’t inject a different bg.
+
+✅ Replit Agent Prompt (paste this verbatim)
+
+Title: Make homepage background perfectly continuous (single global gradient)
+
+Do:
+
+Create a single reusable app background and apply it globally (no section-level gradients).
+
+Remove/replace any per-section bg-*, from-* via-* to-*, overlay divs, or dark panels that cause seams.
+
+Ensure the “Welcome to Camp” section and the loading/skeleton components are transparent so the global bg shows through.
+
+Apply identical logic to both Lexington and Newton homepage variants.
+
+Steps & Exact Edits:
+
+A. Define a single global background
+
+Edit client/src/styles/globals.css (or the main CSS imported by the app). If it doesn’t exist, create it and ensure it’s imported in your app entry (e.g., client/src/main.tsx or client/src/index.css):
+
+:root {
+  /* Tuned for your current palette (emerald/teal) */
+  --app-bg: radial-gradient(1200px 600px at 20% -10%, rgba(16,185,129,0.12) 0%, rgba(20,83,45,0.08) 35%, rgba(0,0,0,0) 70%),
+             linear-gradient(to bottom, #041a14 0%, #07231b 35%, #0a291f 60%, #0d2f23 100%);
+}
+
+html, body, #root, #__next {
+  height: 100%;
+}
+
+body {
+  background: var(--app-bg);
+  background-attachment: fixed;
+  color: #e6f6ef; /* keep your current foreground contrast */
+}
+
+.bg-app {
+  background: var(--app-bg);
+  background-attachment: fixed;
+}
+
+
+B. (Optional, if using Tailwind) add a named background
+
+Edit tailwind.config.js:
+
+theme: {
+  extend: {
+    backgroundImage: {
+      'app': 'var(--app-bg)',
+    },
+  },
+}
+
+
+Rebuild so bg-app is available.
+
+C. Apply the global background once
+
+In the top-level layout (client/src/App.tsx, client/src/pages/_app.tsx, or your root layout component), wrap the app:
+
+export default function AppLayout({ children }) {
+  return (
+    <div className="min-h-screen bg-app bg-fixed">
+      {children}
+    </div>
+  );
+}
+
+
+If you already set body to the background in CSS, the wrapper is optional; but keep one of these—not both.
+
+D. Remove per-section backgrounds & overlays
+
+In client/src/pages/home.tsx (and the Newton/Lexington variants, e.g., home.tsx, home.newton.tsx):
+
+Delete any section-level gradient classes like from-emerald-400/8 via-green-400/4 to-teal-400/8, bg-emerald-*, bg-teal-*, bg-gradient-*, and any overlay <div className="absolute ... bg-.../...">.
+
+Replace them with transparent section containers:
+
+<section className="relative w-full py-16 md:py-24 bg-transparent">
+  {/* content */}
+</section>
+
+
+If a card/panel needs contrast, give the card a subtle surface color—not the section:
+
+<div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm p-6">
+  {/* card content */}
+</div>
+
+
+E. Normalize the hero & “Welcome to Camp”
+
+In the hero/top banner component: remove any extra absolute overlay with its own gradient. Keep text/button containers transparent. If you want a vignette, add a very light inner shadow on the hero only:
+
+<div className="relative">
+  <div className="absolute inset-0 pointer-events-none shadow-[inset_0_-120px_120px_-60px_rgba(0,0,0,0.25)]"></div>
+  {/* hero content */}
+</div>
+
+
+F. Fix the loading/skeleton background
+
+Locate skeleton/loading components (search for Skeleton, Loading, animate-pulse, or containers with bg-gray-*/bg-slate-* around loading text).
+
+Make wrappers transparent; only the bars shimmer:
+
+<div className="bg-transparent">
+  <div className="h-4 w-40 rounded-md bg-white/10 animate-pulse" />
+</div>
+
+
+Remove any bg-* on the parent that introduces a different panel color.
+
+G. Remove duplicate page-specific gradients
+
+Search and eliminate leftover gradient/overlay usages:
+
+Find in repo:
+
+from-emerald
+
+via-green
+
+to-teal
+
+bg-gradient-
+
+bg-emerald-
+
+bg-teal-
+
+overlay, backdrop, linear-gradient( in JSX/CSS
+
+For each, either delete or change to bg-transparent, unless it is a card surface (keep those subtle: bg-white/5, border-white/10).
+
+H. Verify both site variants
+
+Confirm Newton and Lexington home pages share the same background behavior. If there are per-location wrappers (e.g., a LocationLayout), ensure they don’t add their own background.
+
+I. Visual pass
+
+Check in the preview: scroll from top hero → “Welcome to Camp” → any loading state. There should be zero color jumps. If a seam remains, inspect the element and remove the specific bg-* or overlay on that section.
+
+Acceptance Criteria:
+
+The homepage has one continuous background with no visible seams between sections.
+
+Loading/skeleton states do not introduce new background colors.
+
+Both Newton and Lexington variants use the same global background and section transparency.
+
+Cards/panels look consistent using bg-white/5 + border-white/10, not section-wide backgrounds.
+
+Why this fixes the bug
+
+Right now, each section (and the loading block) paints its own background/gradient. Even tiny opacity or hue differences create visible banding. By moving the gradient to a single global layer and making sections transparent, the page scrolls over one canvas—no more mid-page color switches.
+
+If you want, I can also suggest a radial + linear combo tuned to your exact brand colors after I see your Tailwind palette.

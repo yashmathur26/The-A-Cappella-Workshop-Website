@@ -34,6 +34,12 @@
   --sky-custom: hsl(199, 89%, 48%);
   --teal-custom: hsl(174, 72%, 56%);
   
+  /* Global app background */
+  --app-bg-lexington: radial-gradient(1200px 600px at 20% -10%, rgba(29,78,216,0.15) 0%, rgba(30,58,138,0.1) 35%, rgba(0,0,0,0) 70%),
+                      linear-gradient(to bottom, #0b1220 0%, #1e3a8a 35%, #164e63 60%, #0f172a 100%);
+  --app-bg-newton: radial-gradient(1200px 600px at 20% -10%, rgba(16,185,129,0.12) 0%, rgba(20,83,45,0.08) 35%, rgba(0,0,0,0) 70%),
+                   linear-gradient(to bottom, #0c1813 0%, #064e3b 35%, #065f46 60%, #022c22 100%);
+  
   --font-sans: system-ui, -apple-system, 'Segoe UI', 'Roboto', 'Ubuntu', sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: Menlo, monospace;
@@ -47,13 +53,25 @@
 
   body {
     @apply font-sans antialiased text-foreground;
-    background: linear-gradient(135deg, #0b1220 0%, #1e3a8a 50%, #164e63 100%);
+    background: var(--app-bg-lexington);
+    background-attachment: fixed;
     min-height: 100vh;
     /* Mobile optimization */
     -webkit-overflow-scrolling: touch;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
     transition: background 0.5s ease;
+  }
+
+  /* Location-specific backgrounds */
+  body.location-lexington {
+    background: var(--app-bg-lexington);
+    background-attachment: fixed;
+  }
+
+  body.location-newton-wellesley {
+    background: var(--app-bg-newton);
+    background-attachment: fixed;
   }
 
   html {
@@ -345,10 +363,6 @@
   color: rgba(52, 211, 153, 0.8) !important;
 }
 
-/* Newton location background override */
-body.location-newton-wellesley {
-  background: linear-gradient(135deg, #0c1813, #064e3b) !important;
-}
 
 /* Location-specific cart item styling */
 .location-newton-wellesley .bg-sky-custom\/20 {
