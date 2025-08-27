@@ -230,7 +230,7 @@
     animation: pulse 2s infinite;
   }
 
-/* Newton/Wellesley Green Theme Overrides */
+/* Newton Green Theme Overrides */
 .location-newton-wellesley .gradient-text {
   background: linear-gradient(135deg, #10b981, #34d399, #6ee7b7);
   -webkit-background-clip: text;
@@ -314,7 +314,7 @@
   color: #10b981 !important;
 }
 
-/* Newton/Wellesley specific button color overrides for registration page */
+/* Newton specific button color overrides for registration page */
 .location-newton-wellesley .bg-teal-600 {
   background: #047857 !important;
 }
@@ -345,9 +345,9 @@
   color: rgba(52, 211, 153, 0.8) !important;
 }
 
-/* Newton/Wellesley location background override */
+/* Newton location background override */
 body.location-newton-wellesley {
-  background: linear-gradient(135deg, #0f1419 0%, #064e3b 30%, #065f46 70%, #047857 100%) !important;
+  background: linear-gradient(135deg, #0c1813, #064e3b) !important;
 }
 
 /* Location-specific cart item styling */

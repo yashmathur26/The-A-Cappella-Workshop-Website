@@ -80,9 +80,9 @@ export function LocationProvider({ children }: { children: ReactNode }) {
       },
     },
     'newton-wellesley': {
-      name: 'Newton/Wellesley',
-      fullName: 'Newton/Wellesley A Cappella Camp',
-      heroTitle: 'Newton/Wellesley A Cappella Workshop',
+      name: 'Newton',
+      fullName: 'Newton A Cappella Camp',
+      heroTitle: 'Newton A Cappella Workshop',
       heroSubtitle: 'Discover Your Voice. Create Harmony.',
       colors: {
         primary: 'from-emerald-600 via-green-500 to-teal-400',

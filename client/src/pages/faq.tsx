@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { GlassCard } from '@/components/ui/glass-card';
+import { useLocation } from '@/contexts/LocationContext';
 
 const FAQ_SECTIONS = [
   {
@@ -9,7 +10,7 @@ const FAQ_SECTIONS = [
     content: (
       <div>
         <h4 className="font-semibold mb-3 text-sky-custom text-lg">Who is the camp for?</h4>
-        <p className="text-white/90 text-base">This camp is for rising 6th, 7th, 8th, and 9th graders who love to sing. Prior choir or singing experience is recommended, but beginners are absolutely welcome.</p>
+        <p className="text-white/90 text-base">This camp is designed for rising 6th, 7th, 8th, and 9th graders who are passionate about singing and want to explore the exciting world of contemporary a cappella music. Whether you're a seasoned choir member or just beginning your musical journey, our program welcomes all skill levels. We believe that every student has a unique voice worth celebrating, and our experienced instructors are skilled at meeting each participant where they are in their musical development.</p>
       </div>
     )
   },
@@ -19,20 +20,25 @@ const FAQ_SECTIONS = [
     content: (
       <div className="space-y-4">
         <div>
-          <h4 className="font-semibold mb-2 text-sky-custom text-lg">Where:</h4>
+          <h4 className="font-semibold mb-2 text-sky-custom text-lg">Location:</h4>
           <p className="text-white/90 text-base">Temple Emunah, 9 Piper Rd, Lexington, MA 02421</p>
         </div>
         <div>
-          <h4 className="font-semibold mb-2 text-sky-custom text-lg">When:</h4>
-          <p className="text-white/90 text-base">Monday–Friday, 9:00 AM – 4:00 PM</p>
+          <h4 className="font-semibold mb-2 text-sky-custom text-lg">Dates:</h4>
+          <p className="text-white/90 text-base">Multiple week options available throughout the summer</p>
         </div>
         <div>
-          <h4 className="font-semibold mb-2 text-sky-custom">Welcome:</h4>
-          <p className="text-white/90">A staff member will greet students at the main entrance each morning.</p>
+          <h4 className="font-semibold mb-2 text-sky-custom text-lg">Daily Schedule:</h4>
+          <p className="text-white/90 text-base">Monday through Friday, 9:00 AM – 4:00 PM</p>
+          <p className="text-white/90 text-sm mt-2">Each day is carefully structured to balance intensive vocal training, creative collaboration, and fun activities. Students will participate in small group rehearsals, skill-building workshops, and individual coaching sessions throughout the week.</p>
         </div>
         <div>
-          <h4 className="font-semibold mb-2 text-sky-custom">Showcase:</h4>
-          <p className="text-white/90">On Friday at 4:00 PM, friends and family are invited to a final performance.</p>
+          <h4 className="font-semibold mb-2 text-sky-custom">Drop-off & Pick-up:</h4>
+          <p className="text-white/90">Our welcoming staff will be available at the main entrance each morning to greet students and ensure a smooth start to each day. Parents and guardians can expect prompt communication about pick-up procedures and any daily updates.</p>
+        </div>
+        <div>
+          <h4 className="font-semibold mb-2 text-sky-custom">Weekly Showcase:</h4>
+          <p className="text-white/90">Every week culminates in an exciting performance showcase on Friday at 4:00 PM, where family and friends are warmly invited to celebrate the incredible musical growth and achievements of our students. This performance represents the collaborative work and individual progress made throughout the week.</p>
         </div>
       </div>
     )
@@ -56,8 +62,8 @@ const FAQ_SECTIONS = [
           <p className="text-white/90">$500 per week.</p>
         </div>
         <div>
-          <h4 className="font-semibold mb-2 text-sky-custom">Deposit & balance:</h4>
-          <p className="text-white/90">A $150 non-refundable deposit is required to secure a spot; the remaining $350 is due one week before the session begins.</p>
+          <h4 className="font-semibold mb-2 text-sky-custom">Payment Options:</h4>
+          <p className="text-white/90">You can choose to pay the full tuition amount upfront, or secure your spot with a $150 non-refundable deposit and pay the remaining balance ($350) via invoice prior to the start of the program.</p>
         </div>
         <div>
           <h4 className="font-semibold mb-2 text-sky-custom">Refunds:</h4>
@@ -83,6 +89,7 @@ const FAQ_SECTIONS = [
 
 export default function FAQ() {
   const [openSection, setOpenSection] = useState<string | null>(null);
+  const { currentLocation } = useLocation();
 
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {

@@ -89,7 +89,7 @@ export default function Home() {
               {currentLocation === 'lexington' ? (
                 <><span className="gradient-text">Lexington</span> A Cappella Workshop</>
               ) : (
-                <><span className="bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent">Newton/Wellesley</span> A Cappella Workshop</>
+                <><span className="bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent">Newton</span> A Cappella Workshop</>
               )}
             </h1>
             <p className="text-xl lg:text-2xl text-white/80 mb-4 max-w-3xl mx-auto">
@@ -107,7 +107,7 @@ export default function Home() {
                   onClick={() => setLocation('newton-wellesley')}
                   className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3 rounded-full font-medium transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-blue-500/25"
                 >
-                  Explore Newton/Wellesley
+                  Explore Newton
                 </button>
               ) : (
                 <button 
