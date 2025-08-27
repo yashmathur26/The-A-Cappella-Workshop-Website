@@ -53,6 +53,7 @@
     -webkit-overflow-scrolling: touch;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
+    transition: background 0.5s ease;
   }
 
   html {
@@ -269,6 +270,11 @@
 
 .location-newton-wellesley .cart-badge {
   background: linear-gradient(135deg, #059669, #10b981);
+}
+
+/* Newton/Wellesley location background override */
+body.location-newton-wellesley {
+  background: linear-gradient(135deg, #064e3b 0%, #059669 50%, #14b8a6 100%) !important;
 }
 
   /* Scroll reveal animations */
