@@ -350,6 +350,19 @@ body.location-newton-wellesley {
   background: linear-gradient(135deg, #0f1419 0%, #064e3b 30%, #065f46 70%, #047857 100%) !important;
 }
 
+/* Location-specific cart item styling */
+.location-newton-wellesley .bg-sky-custom\/20 {
+  background: rgba(16, 185, 129, 0.2) !important;
+}
+
+.location-newton-wellesley .text-sky-custom {
+  color: #10b981 !important;
+}
+
+.location-newton-wellesley .border-sky-custom\/30 {
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
   /* Scroll reveal animations */
   .reveal-in {
     opacity: 0;

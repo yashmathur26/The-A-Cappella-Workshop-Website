@@ -86,7 +86,7 @@ export default function Register() {
   const addWeekToCart = (weekId: string, paymentType: 'full' | 'deposit') => {
     const week = WEEKS.find(w => w.id === weekId);
     if (week) {
-      CartManager.addToCart(weekId, paymentType, week);
+      CartManager.addToCart(weekId, paymentType, week, locationData[currentLocation].name);
       setCart(CartManager.getCart());
       window.dispatchEvent(new Event('cartUpdated'));
     }
@@ -562,19 +562,35 @@ export default function Register() {
                   <p className="text-white/60">No weeks selected</p>
                 ) : (
                   cartItems.map(item => (
-                    <div key={item.weekId} className="flex justify-between items-center text-sm">
-                      <div>
-                        <span className="text-white/90 text-base font-medium">{item.label}</span>
-                        <span className="ml-2 text-xs px-2 py-1 rounded bg-white/10 text-white/70">
-                          {item.paymentType === 'deposit' ? 'Deposit' : 'Full Payment'}
-                        </span>
+                    <div key={item.weekId} className="flex justify-between items-center text-sm bg-white/5 rounded-lg p-3 border border-white/10">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-white/90 text-base font-medium">{item.label}</span>
+                          {item.location && (
+                            <span className="text-xs px-2 py-1 rounded bg-sky-custom/20 text-sky-custom border border-sky-custom/30">
+                              {item.location}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs px-2 py-1 rounded bg-white/10 text-white/70">
+                            {item.paymentType === 'deposit' ? 'Deposit' : 'Full Payment'}
+                          </span>
+                          <span className="text-white/90 font-medium">${item.price}</span>
+                        </div>
                         {isAuthenticated && item.studentName && (
                           <div className="text-xs text-teal-400 mt-1">
                             {item.studentName}
                           </div>
                         )}
                       </div>
-                      <span className="text-white/90">${item.price}</span>
+                      <button
+                        onClick={() => removeWeekFromCart(item.weekId)}
+                        className="ml-3 p-1 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded transition-colors"
+                        title="Remove from cart"
+                      >
+                        <X size={16} />
+                      </button>
                     </div>
                   ))
                 )}

@@ -7,6 +7,7 @@ export interface CartItem {
   paymentType: 'full' | 'deposit';
   studentId?: string; // For authenticated users
   studentName?: string; // For display purposes
+  location?: string; // Location name (Lexington or Newton/Wellesley)
 }
 
 export interface CartState {
@@ -62,7 +63,7 @@ export class CartManager {
   }
 
 
-  static addToCart(weekId: string, paymentType: 'full' | 'deposit', week: any, studentId?: string, studentName?: string): void {
+  static addToCart(weekId: string, paymentType: 'full' | 'deposit', week: any, location?: string, studentId?: string, studentName?: string): void {
     const cart = this.getCart();
     // Remove any existing entry for this week
     const filteredCart = cart.filter(item => item.weekId !== weekId);
@@ -75,7 +76,8 @@ export class CartManager {
         price,
         paymentType,
         studentId,
-        studentName
+        studentName,
+        location
       });
       this.setCart(filteredCart);
       this.triggerCartUpdate();
