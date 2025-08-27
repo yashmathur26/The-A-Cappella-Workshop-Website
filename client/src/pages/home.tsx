@@ -87,7 +87,7 @@ export default function Home() {
           <div className="text-center reveal-in">
             <h1 className="text-4xl lg:text-6xl font-bold mb-6 leading-tight text-white">
               {currentLocation === 'lexington' ? (
-                <>Lexington <span className="gradient-text">A Cappella</span> Workshop</>
+                <><span className="gradient-text">Lexington</span> A Cappella Workshop</>
               ) : (
                 <><span className="bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent">Newton/Wellesley</span> A Cappella Workshop</>
               )}
