@@ -86,7 +86,7 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
           </Link>
           
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-4 flex-1 justify-center">
+          <div className="hidden md:flex items-center space-x-8 flex-1 justify-center">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
