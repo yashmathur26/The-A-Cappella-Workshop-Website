@@ -1,4 +1,4 @@
-import { WEEKS } from './constants';
+// Dynamic weeks will be passed to cart methods
 
 export interface CartItem {
   weekId: string;
@@ -62,12 +62,11 @@ export class CartManager {
   }
 
 
-  static addToCart(weekId: string, paymentType: 'full' | 'deposit', studentId?: string, studentName?: string): void {
+  static addToCart(weekId: string, paymentType: 'full' | 'deposit', week: any, studentId?: string, studentName?: string): void {
     const cart = this.getCart();
     // Remove any existing entry for this week
     const filteredCart = cart.filter(item => item.weekId !== weekId);
     
-    const week = WEEKS.find(w => w.id === weekId);
     if (week) {
       const price = paymentType === 'full' ? week.price : 150;
       filteredCart.push({

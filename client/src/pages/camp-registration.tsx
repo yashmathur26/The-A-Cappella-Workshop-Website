@@ -84,9 +84,12 @@ export default function Register() {
   }, []);
 
   const addWeekToCart = (weekId: string, paymentType: 'full' | 'deposit') => {
-    CartManager.addToCart(weekId, paymentType);
-    setCart(CartManager.getCart());
-    window.dispatchEvent(new Event('cartUpdated'));
+    const week = WEEKS.find(w => w.id === weekId);
+    if (week) {
+      CartManager.addToCart(weekId, paymentType, week);
+      setCart(CartManager.getCart());
+      window.dispatchEvent(new Event('cartUpdated'));
+    }
   };
 
   const updateStudentForWeek = (weekId: string, studentId: string) => {
