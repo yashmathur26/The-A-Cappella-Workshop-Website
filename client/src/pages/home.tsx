@@ -73,7 +73,7 @@ export default function Home() {
     });
 
     return () => observer.disconnect();
-  }, []);
+  }, [currentLocation]);
 
   return (
     <div className="min-h-screen">
