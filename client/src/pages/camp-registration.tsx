@@ -403,7 +403,7 @@ export default function Register() {
           <div className="lg:col-span-2 space-y-8 lg:space-y-12">
             {/* Step 1: Choose Weeks */}
             <section>
-              <h2 className="text-2xl font-bold mb-4 text-teal-custom">Step 1 — Choose Your Week(s)</h2>
+              <h2 className="text-2xl font-bold mb-4 text-white">Step 1 — Choose Your Week(s)</h2>
               <p className="text-white/80 mb-6">Select your preferred weeks and payment option. You can either pay the full amount or secure your spot with a $150 deposit and pay the remaining amount later through email invoice or your account dashboard.</p>
               <div className="grid gap-6">
                 {WEEKS.map((week, index) => (
@@ -413,11 +413,11 @@ export default function Register() {
                   >
                     <div className="flex justify-between items-start mb-4">
                       <div>
-                        <h3 className="text-xl font-bold text-teal-custom">Week {index + 1}: <span className="font-normal">{week.label}</span></h3>
+                        <h3 className="text-xl font-bold text-white">Week {index + 1}: <span className="font-normal">{week.label}</span></h3>
                       </div>
                     </div>
                     <div className="mb-4">
-                      <span className="text-sm text-sky-custom/80">{week.spots}/20 spots</span>
+                      <span className="text-sm text-white/80">{week.spots}/20 spots</span>
                     </div>
                     
                     {/* Payment Options */}
@@ -425,7 +425,7 @@ export default function Register() {
                       <div className="bg-white/5 border border-white/10 rounded-lg p-4 hover:bg-white/10 transition-colors">
                         <div className="flex justify-between items-center mb-2">
                           <span className="font-semibold text-white">Full Payment</span>
-                          <span className="text-xl font-bold text-sky-custom">${week.price}</span>
+                          <span className="text-xl font-bold text-white">${week.price}</span>
                         </div>
                         <p className="text-xs text-white/60 mb-3">Pay today, no additional fees</p>
                         <Button
@@ -452,7 +452,7 @@ export default function Register() {
                       <div className="bg-white/5 border border-white/10 rounded-lg p-4 hover:bg-white/10 transition-colors">
                         <div className="flex justify-between items-center mb-2">
                           <span className="font-semibold text-white">Deposit</span>
-                          <span className="text-xl font-bold text-teal-custom">$150</span>
+                          <span className="text-xl font-bold text-white">$150</span>
                         </div>
                         <p className="text-xs text-white/60 mb-3">${week.price - 150} remaining via invoice</p>
                         <Button
@@ -484,7 +484,7 @@ export default function Register() {
             {/* Step 2: Registration Form - Only show after weeks are selected */}
             {showForm && (
               <section>
-                <h2 className="text-2xl font-bold mb-6 text-teal-custom">Step 2 — Complete Registration Form</h2>
+                <h2 className="text-2xl font-bold mb-6 text-white">Step 2 — Complete Registration Form</h2>
                 <GlassCard className="p-6">
                   <p className="text-white/80 mb-4">Please fill out your student information below.</p>
                   <div className="bg-white/5 rounded-lg p-4 border border-white/10">
