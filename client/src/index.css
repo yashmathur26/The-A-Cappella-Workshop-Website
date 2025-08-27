@@ -314,6 +314,37 @@
   color: #10b981 !important;
 }
 
+/* Newton/Wellesley specific button color overrides for registration page */
+.location-newton-wellesley .bg-teal-600 {
+  background: #047857 !important;
+}
+
+.location-newton-wellesley .bg-teal-600:hover,
+.location-newton-wellesley .hover\:bg-teal-700:hover {
+  background: #065f46 !important;
+}
+
+.location-newton-wellesley .bg-sky-600 {
+  background: #059669 !important;
+}
+
+.location-newton-wellesley .bg-sky-600:hover,
+.location-newton-wellesley .hover\:bg-sky-700:hover {
+  background: #047857 !important;
+}
+
+.location-newton-wellesley .text-teal-custom {
+  color: #10b981 !important;
+}
+
+.location-newton-wellesley .text-sky-custom {
+  color: #34d399 !important;
+}
+
+.location-newton-wellesley .text-sky-custom\/80 {
+  color: rgba(52, 211, 153, 0.8) !important;
+}
+
 /* Newton/Wellesley location background override */
 body.location-newton-wellesley {
   background: linear-gradient(135deg, #0f1419 0%, #064e3b 30%, #065f46 70%, #047857 100%) !important;
