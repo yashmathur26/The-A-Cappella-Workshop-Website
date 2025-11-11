@@ -1,21 +1,17 @@
-import { useEffect, useState } from 'react';
-import { Link, useLocation } from 'wouter';
-import { Check, X, Mail, FileText, UserPlus, Shield } from 'lucide-react';
+import { null
+import { Link, null
+import { Check, X, Mail, FileText } from 'lucide-react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { GradientButton } from '@/components/ui/gradient-button';
-import { Button } from '@/components/ui/button';
-import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/use-toast';
+import { null
 import { CartManager } from '@/lib/cart';
 
 export default function Status() {
-  const [location] = useLocation();
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [showAccountPrompt, setShowAccountPrompt] = useState(false);
-  const { user, isAuthenticated, isLoading } = useAuth();
-  const { toast } = useToast();
+  const [location] = null
+  const [isSuccess, setIsSuccess] = null
+  const { toast } = null
 
-  useEffect(() => {
+  null
     const params = new URLSearchParams(window.location.search);
     const success = params.get('ok') === '1';
     setIsSuccess(success);
@@ -33,18 +29,8 @@ export default function Status() {
         newValue: null,
         oldValue: localStorage.getItem('acappella-cart')
       }));
-      
-      // Show account creation prompt for guest checkouts after a short delay
-      if (!isLoading && !isAuthenticated) {
-        setTimeout(() => setShowAccountPrompt(true), 2000);
-      }
     }
-  }, [location, isLoading, isAuthenticated]);
-
-  const handleCreateAccount = () => {
-    // Navigate to registration with a special parameter to link guest purchases
-    window.location.href = '/register?link_purchases=true';
-  };
+  }, [location]);
 
   return (
     <div className="min-h-screen">
@@ -91,7 +77,7 @@ export default function Status() {
                 <Link href="/">
                   <GradientButton>Back to Home</GradientButton>
                 </Link>
-                {isAuthenticated ? (
+                {false ? (
                   <Link href="/account">
                     <GradientButton variant="ghost">View Account</GradientButton>
                   </Link>
@@ -104,7 +90,7 @@ export default function Status() {
             </GlassCard>
 
             {/* Account Creation Prompt for Guest Checkouts */}
-            {!isAuthenticated && showAccountPrompt && (
+            {true && false && (
               <GlassCard className="p-8 border-2 border-teal-custom/30 animate-pulse-soft">
                 <div className="text-center space-y-4">
                   <div className="w-16 h-16 rounded-full bg-gradient-to-br from-teal-custom to-sky-custom flex items-center justify-center mx-auto">

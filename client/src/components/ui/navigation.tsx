@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'wouter';
-import { ShoppingCart, Menu, X, User, LogOut, MapPin, ChevronDown } from 'lucide-react';
+import { ShoppingCart, Menu, X, MapPin, ChevronDown } from 'lucide-react';
 import { CartManager } from '@/lib/cart';
-import { useAuth, useLogout } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { useLocation as useLocationContext } from '@/contexts/LocationContext';
 import {
@@ -37,8 +36,6 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
   const [location] = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [currentCartCount, setCurrentCartCount] = useState(cartCount);
-  const { user, isAuthenticated } = useAuth();
-  const logoutMutation = useLogout();
   const { currentLocation, setLocation: setAppLocation, locationData } = useLocationContext();
 
   useEffect(() => {
@@ -133,33 +130,8 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
               href="/camp-registration"
               className="btn-gradient px-4 py-2 rounded-full text-white font-medium hover:text-white text-sm whitespace-nowrap"
             >
-              Register
+              Register Now
             </Link>
-            
-            {isAuthenticated ? (
-              <div className="flex items-center space-x-2">
-                <Link href="/account" className="flex items-center space-x-1 text-white/80 hover:text-white whitespace-nowrap">
-                  <User size={16} />
-                  <span className="hidden lg:inline text-sm">{user?.firstName}</span>
-                </Link>
-                <Button
-                  onClick={() => logoutMutation.mutate()}
-                  variant="ghost"
-                  size="sm"
-                  className="text-white/80 hover:text-white hover:bg-white/10 p-2"
-                  disabled={logoutMutation.isPending}
-                >
-                  <LogOut size={16} />
-                </Button>
-              </div>
-            ) : (
-              <Link
-                href="/login"
-                className="btn-gradient-secondary px-4 py-2 rounded-full text-white font-medium hover:text-white text-sm whitespace-nowrap"
-              >
-                Sign In
-              </Link>
-            )}
             
             <Link href="/camp-registration" className="relative">
               <ShoppingCart className="text-white/80 hover:text-white cursor-pointer" size={18} />

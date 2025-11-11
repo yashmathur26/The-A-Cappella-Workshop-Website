@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { Link } from 'wouter';
-import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { Users, GraduationCap, Star, Phone, Mail, MapPin, Clock, Play, User, CreditCard, DollarSign } from 'lucide-react';
 import { GlassCard } from '@/components/ui/glass-card';
@@ -36,23 +35,22 @@ interface Payment {
 }
 
 export default function Home() {
-  const { user, isAuthenticated } = useAuth();
   const { currentLocation, setLocation, locationData } = useLocation();
 
   // Fetch user data for profile summary (only if authenticated)
   const { data: students = [] } = useQuery<Student[]>({
     queryKey: ["/api/students"],
-    enabled: isAuthenticated,
+    enabled: false,
   });
 
   const { data: registrations = [] } = useQuery<Registration[]>({
     queryKey: ["/api/registrations"],
-    enabled: isAuthenticated,
+    enabled: false,
   });
 
   const { data: payments = [] } = useQuery<Payment[]>({
     queryKey: ["/api/payments"],
-    enabled: isAuthenticated,
+    enabled: false,
   });
 
   useEffect(() => {
@@ -123,7 +121,7 @@ export default function Home() {
       </section>
 
       {/* Profile Summary Section - Only shown when authenticated */}
-      {isAuthenticated && user && (
+      {false && user && (
         <section className="py-8">
           <div className="max-w-6xl mx-auto px-6">
             <GlassCard className="p-8 reveal-in" hover>

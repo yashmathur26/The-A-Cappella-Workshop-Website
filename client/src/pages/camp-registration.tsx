@@ -4,7 +4,6 @@ import { GradientButton } from '@/components/ui/gradient-button';
 import { CartManager, type CartItem } from '@/lib/cart';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/useAuth';
 import { PaymentOptions } from '@/components/PaymentOptions';
 import { AddStudentModal } from '@/components/AddStudentModal';
 import { useLocation as useWouterLocation } from 'wouter';
@@ -40,7 +39,6 @@ export default function Register() {
   const statusCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [showAddStudentModal, setShowAddStudentModal] = useState(false);
   const { toast } = useToast();
-  const { isAuthenticated, user } = useAuth();
   const [, setWouterLocation] = useWouterLocation();
   const { currentLocation, locationData } = useLocation();
 
@@ -51,13 +49,13 @@ export default function Register() {
   // Fetch students for authenticated users
   const { data: students = [] } = useQuery<Student[]>({
     queryKey: ["/api/students"],
-    enabled: isAuthenticated,
+    enabled: false,
   });
 
   // Fetch registrations to check for duplicates
   const { data: registrations = [] } = useQuery<any[]>({
     queryKey: ["/api/registrations"],
-    enabled: isAuthenticated,
+    enabled: false,
   });
 
   useEffect(() => {
@@ -194,9 +192,9 @@ export default function Register() {
       const response = await apiRequest('POST', '/api/create-checkout-session', {
         cartItems: cart,
         promoCode: CartManager.getPromoCode(),
-        parentName: isAuthenticated ? `${user?.firstName} ${user?.lastName}` : parentName.trim(),
-        parentEmail: isAuthenticated ? user?.email : parentEmail.trim(),
-        childName: isAuthenticated ? 'Student Registration' : childName.trim(),
+        parentName: false ? `${user?.firstName} ${user?.lastName}` : parentName.trim(),
+        parentEmail: false ? user?.email : parentEmail.trim(),
+        childName: false ? 'Student Registration' : childName.trim(),
       });
       
       const data = await response.json();
@@ -509,7 +507,7 @@ export default function Register() {
           <div className="lg:col-span-1 mt-12 lg:mt-0">
             <GlassCard className="p-6 sticky top-24">
               {/* Student Assignment for Authenticated Users */}
-              {isAuthenticated && cartItems.length > 0 && (
+              {false && cartItems.length > 0 && (
                 <div className="mb-8">
                   <h3 className="text-xl font-bold mb-4 text-white">Assign Students</h3>
                   <div className="space-y-4">
@@ -578,7 +576,7 @@ export default function Register() {
                           </span>
                           <span className="text-white/90 font-medium">${item.price}</span>
                         </div>
-                        {isAuthenticated && item.studentName && (
+                        {false && item.studentName && (
                           <div className="text-xs text-teal-400 mt-1">
                             {item.studentName}
                           </div>
@@ -720,7 +718,7 @@ export default function Register() {
                     </Button>
                   ) : (
                     <>
-                      {isAuthenticated ? (
+                      {false ? (
                         <Button
                           className="w-full bg-green-600 hover:bg-green-700 text-white border-0 rounded-full py-3 font-semibold"
                           onClick={proceedToPayment}

@@ -1,32 +1,14 @@
 import type { Express } from "express";
 import express from "express";
 import { createServer, type Server } from "http";
-import cookieParser from "cookie-parser";
 import Stripe from "stripe";
 import { z } from "zod";
 import fs from "fs";
 import path from "path";
-import argon2 from "argon2";
-import { passport } from "./auth";
 import { storage } from "./storage";
-import { authRoutes } from "./authRoutes";
-import { initiatePasswordReset, resetPassword } from "./passwordReset";
-import { 
-  setupSession, 
-  generalRateLimit, 
-  requireAuth, 
-  requireRole, 
-  auditLog,
-  initializeDatabase 
-} from "./middleware";
-import {
-  insertStudentSchema,
-  insertRegistrationSchema,
-  insertContentSchema,
-  type Week,
-  type Student,
-  type Registration
-} from "@shared/schema";
+import { sendRegistrationConfirmationEmail } from "./brevo";
+import { insertRegistrationSchema, type Week } from "@shared/schema";
+import { pool } from "./db";
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY. Please set it in your environment variables.');
@@ -35,30 +17,6 @@ if (!process.env.STRIPE_SECRET_KEY) {
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2025-07-30.basil",
 });
-
-// Simple in-memory session store for admin auth
-const adminSessions = new Map<string, { role: string; email: string }>();
-
-// Generate a random session ID
-function generateSessionId(): string {
-  return Math.random().toString(36).substring(2) + Date.now().toString(36);
-}
-
-// Admin auth middleware
-function requireAdmin(req: express.Request, res: express.Response, next: express.NextFunction) {
-  const sessionId = req.cookies.sid;
-  const session = sessionId ? adminSessions.get(sessionId) : null;
-  
-  if (!session || session.role !== 'admin') {
-    if (req.path.startsWith('/api/')) {
-      return res.status(401).json({ message: 'Unauthorized' });
-    }
-    return res.redirect('/admin/login');
-  }
-  
-  (req as any).adminSession = session;
-  next();
-}
 
 // Ensure data/rosters directory exists
 function ensureRosterDirectory() {
@@ -82,469 +40,26 @@ function writeRosterRecord(record: any) {
   fs.appendFileSync(indexFile, JSON.stringify(record) + '\n', 'utf8');
 }
 
+async function initializeDatabase() {
+  try {
+    // Test database connection
+    const client = await pool.connect();
+    client.release();
+    console.log('Database initialized successfully');
+    
+    // Seed weeks
+    await storage.seedWeeks();
+  } catch (error) {
+    console.error('Database initialization error:', error);
+    throw error;
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize database
   await initializeDatabase();
 
-  // Basic middleware - Set trust proxy first
-  app.set('trust proxy', 1);
-  app.use(cookieParser());
-  app.use(setupSession());
-  app.use(passport.initialize());
-  app.use(passport.session());
-
-  // Authentication routes
-  app.use("/auth", authRoutes);
-
-  // Password reset routes
-  app.post("/api/forgot-password", express.json(), generalRateLimit, async (req, res) => {
-    try {
-      const { email } = req.body;
-      if (!email) {
-        return res.status(400).json({ message: "Email is required" });
-      }
-
-      const baseUrl = `${req.protocol}://${req.get('host')}`;
-      const success = await initiatePasswordReset(email, baseUrl);
-      
-      // Always return success to prevent email enumeration
-      res.json({ message: "If an account with that email exists, you will receive a password reset link." });
-    } catch (error) {
-      console.error("Forgot password error:", error);
-      res.status(500).json({ message: "Failed to process password reset request" });
-    }
-  });
-
-  app.post("/api/reset-password", express.json(), generalRateLimit, async (req, res) => {
-    try {
-      const { token, password } = req.body;
-      if (!token || !password) {
-        return res.status(400).json({ message: "Token and password are required" });
-      }
-
-      if (password.length < 6) {
-        return res.status(400).json({ message: "Password must be at least 6 characters long" });
-      }
-
-      const result = await resetPassword(token, password);
-      if (result.success) {
-        res.json({ message: result.message });
-      } else {
-        res.status(400).json({ message: result.message });
-      }
-    } catch (error) {
-      console.error("Reset password error:", error);
-      res.status(500).json({ message: "Failed to reset password" });
-    }
-  });
-
-  // API routes for frontend compatibility
-  app.get("/api/me", (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Not authenticated" });
-    }
-    
-    const user = req.user as any;
-    res.json({
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      role: user.role,
-      emailVerified: user.emailVerified,
-      stripeCustomerId: user.stripeCustomerId,
-    });
-  });
-
-  app.put("/api/me", express.json(), (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Not authenticated" });
-    }
-
-    const { firstName, lastName, email } = req.body;
-    
-    // Validate input
-    if (!firstName || !lastName || !email) {
-      return res.status(400).json({ message: "First name, last name, and email are required" });
-    }
-
-    const user = req.user as any;
-    
-    // Update the user session object
-    user.firstName = firstName.trim();
-    user.lastName = lastName.trim();
-    user.email = email.trim().toLowerCase();
-
-    // Save to database (async, don't wait for it)
-    (async () => {
-      try {
-        await storage.updateUser(user.id, {
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
-          email: email.trim().toLowerCase(),
-        });
-      } catch (error) {
-        console.error("Error updating user in database:", error);
-      }
-    })();
-
-    res.json({
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      role: user.role,
-      emailVerified: user.emailVerified,
-      stripeCustomerId: user.stripeCustomerId,
-    });
-  });
-
-  app.post("/api/login", generalRateLimit, (req, res, next) => {
-    const loginSchema = z.object({
-      email: z.string().email().min(1),
-      password: z.string().min(1),
-    });
-
-    try {
-      loginSchema.parse(req.body);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          message: "Validation error",
-          errors: error.errors,
-        });
-      }
-    }
-    
-    passport.authenticate("local", (err: any, user: any, info: any) => {
-      if (err) {
-        console.error("Login error:", err);
-        return res.status(500).json({ message: "Login failed" });
-      }
-      
-      if (!user) {
-        return res.status(401).json({ 
-          message: info?.message || "Invalid credentials",
-        });
-      }
-      
-      req.login(user, (err) => {
-        if (err) {
-          console.error("Session login error:", err);
-          return res.status(500).json({ message: "Login failed" });
-        }
-        
-        res.json({ 
-          message: "Login successful",
-          user: {
-            id: user.id,
-            email: user.email,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            role: user.role,
-          },
-        });
-      });
-    })(req, res, next);
-  });
-
-  app.post("/api/register", generalRateLimit, async (req, res) => {
-    const registerSchema = z.object({
-      firstName: z.string().min(1, "First name is required"),
-      lastName: z.string().min(1, "Last name is required"),
-      email: z.string().email().min(1),
-      password: z.string().min(10, "Password must be at least 10 characters"),
-    });
-
-    try {
-      const { firstName, lastName, email, password } = registerSchema.parse(req.body);
-      
-      // Check if user already exists
-      const existingUser = await storage.getUserByEmail(email);
-      if (existingUser) {
-        return res.status(400).json({ message: "User already exists" });
-      }
-      
-      // Hash password
-      const passwordHash = await argon2.hash(password);
-      
-      // Create user
-      const user = await storage.upsertUser({
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        email: email.toLowerCase(),
-        passwordHash,
-        role: "parent",
-        emailVerified: false,
-      });
-      
-      // Log the registration
-      await storage.createAuditLog({
-        userId: user.id,
-        action: "register",
-        meta: JSON.stringify({ method: "local", email }),
-      });
-      
-      // Log in the user
-      req.login(user, (err) => {
-        if (err) {
-          console.error("Login error after registration:", err);
-          return res.status(500).json({ message: "Registration successful, but login failed" });
-        }
-        
-        res.json({ 
-          message: "Registration successful",
-          user: {
-            id: user.id,
-            email: user.email,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            role: user.role,
-          },
-        });
-      });
-    } catch (error) {
-      console.error("Registration error:", error);
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          message: "Validation error",
-          errors: error.errors,
-        });
-      }
-      res.status(500).json({ message: "Registration failed" });
-    }
-  });
-
-  app.post("/api/logout", (req, res) => {
-    req.logout((err) => {
-      if (err) {
-        console.error("Logout error:", err);
-        return res.status(500).json({ message: "Logout failed" });
-      }
-      res.json({ message: "Logged out successfully" });
-    });
-  });
-
-  // Admin login routes
-  app.get("/admin/login", (req, res) => {
-    res.send(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Admin Login - A Cappella Workshop</title>
-        <style>
-          body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #0b1220;
-            color: white;
-            margin: 0;
-            padding: 0;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
-          .login-container {
-            background: rgba(15, 23, 42, 0.8);
-            border: 1px solid rgba(71, 85, 105, 0.3);
-            border-radius: 16px;
-            padding: 2rem;
-            width: 100%;
-            max-width: 400px;
-            backdrop-filter: blur(8px);
-          }
-          h1 {
-            text-align: center;
-            margin-bottom: 1.5rem;
-            color: #06b6d4;
-          }
-          .form-group {
-            margin-bottom: 1rem;
-          }
-          label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-          }
-          input {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid rgba(71, 85, 105, 0.3);
-            border-radius: 8px;
-            background: rgba(0, 0, 0, 0.3);
-            color: white;
-            font-size: 1rem;
-            box-sizing: border-box;
-          }
-          input:focus {
-            outline: none;
-            border-color: #06b6d4;
-          }
-          button {
-            width: 100%;
-            padding: 0.75rem;
-            background: linear-gradient(135deg, #3b82f6, #06b6d4);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 500;
-            cursor: pointer;
-          }
-          button:hover {
-            opacity: 0.9;
-          }
-          .error {
-            color: #ef4444;
-            text-align: center;
-            margin-top: 1rem;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="login-container">
-          <h1>Admin Login</h1>
-          <form method="POST" action="/admin/login">
-            <div class="form-group">
-              <label for="email">Email</label>
-              <input type="email" id="email" name="email" required>
-            </div>
-            <div class="form-group">
-              <label for="password">Password</label>
-              <input type="password" id="password" name="password" required>
-            </div>
-            <button type="submit">Login</button>
-          </form>
-        </div>
-      </body>
-      </html>
-    `);
-  });
-
-  app.post("/admin/login", express.urlencoded({ extended: true }), (req, res) => {
-    const { email, password } = req.body;
-    
-    if (email === 'theacappellaworkshop@gmail.com' && password === 'shop') {
-      const sessionId = generateSessionId();
-      adminSessions.set(sessionId, { role: 'admin', email });
-      
-      res.cookie('sid', sessionId, {
-        httpOnly: true,
-        sameSite: 'lax',
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
-      });
-      
-      return res.redirect('/admin');
-    }
-    
-    res.status(401).send('Invalid credentials');
-  });
-
-  app.post("/admin/logout", (req, res) => {
-    const sessionId = req.cookies.sid;
-    if (sessionId) {
-      adminSessions.delete(sessionId);
-    }
-    res.clearCookie('sid');
-    res.redirect('/admin/login');
-  });
-
-  // Student management routes
-  app.get("/api/students", requireAuth, async (req, res) => {
-    try {
-      const user = req.user as any;
-      const students = await storage.getStudents(user.id);
-      res.json(students);
-    } catch (error) {
-      console.error("Error fetching students:", error);
-      res.status(500).json({ message: "Failed to fetch students" });
-    }
-  });
-
-  // Admin endpoint to fetch ALL students from all users
-  app.get("/api/admin/students", requireAuth, async (req, res) => {
-    try {
-      const user = req.user as any;
-      if (!user || user.role !== 'admin') {
-        return res.status(403).json({ message: "Admin access required" });
-      }
-      
-      // Only show students who have registrations
-      const studentsWithRegistrations = await storage.getAllStudentsWithRegistrations();
-      res.json(studentsWithRegistrations);
-    } catch (error) {
-      console.error("Error fetching students with registrations:", error);
-      res.status(500).json({ message: "Failed to fetch students" });
-    }
-  });
-
-  app.post("/api/students", requireAuth, async (req, res) => {
-    try {
-      const user = req.user as any;
-      const data = insertStudentSchema.parse(req.body);
-      
-      const student = await storage.createStudent({ ...data, userId: user.id });
-      res.json(student);
-    } catch (error) {
-      console.error("Error creating student:", error);
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          message: "Validation error",
-          errors: error.errors,
-        });
-      }
-      res.status(500).json({ message: "Failed to create student" });
-    }
-  });
-
-  app.put("/api/students/:id", requireAuth, async (req, res) => {
-    try {
-      const user = req.user as any;
-      const studentId = req.params.id;
-      
-      // Verify ownership
-      const existingStudent = await storage.getStudent(studentId);
-      if (!existingStudent || existingStudent.userId !== user.id) {
-        return res.status(404).json({ message: "Student not found" });
-      }
-      
-      const updateData = insertStudentSchema.partial().parse(req.body);
-      const student = await storage.updateStudent(studentId, updateData);
-      res.json(student);
-    } catch (error) {
-      console.error("Error updating student:", error);
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          message: "Validation error",
-          errors: error.errors,
-        });
-      }
-      res.status(500).json({ message: "Failed to update student" });
-    }
-  });
-
-  app.delete("/api/students/:id", requireAuth, async (req, res) => {
-    try {
-      const user = req.user as any;
-      const studentId = req.params.id;
-      
-      // Verify ownership
-      const student = await storage.getStudent(studentId);
-      if (!student || student.userId !== user.id) {
-        return res.status(404).json({ message: "Student not found" });
-      }
-      
-      await storage.deleteStudent(studentId);
-      res.json({ message: "Student deleted successfully" });
-    } catch (error) {
-      console.error("Error deleting student:", error);
-      res.status(500).json({ message: "Failed to delete student" });
-    }
-  });
-
-  // Week routes
+  // Get available weeks
   app.get("/api/weeks", async (req, res) => {
     try {
       const weeks = await storage.getWeeks();
@@ -555,56 +70,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Registration routes
-  app.get("/api/registrations", requireAuth, async (req, res) => {
-    try {
-      const user = req.user as any;
-      const registrations = await storage.getRegistrations(user.id);
-      res.json(registrations);
-    } catch (error) {
-      console.error("Error fetching registrations:", error);
-      res.status(500).json({ message: "Failed to fetch registrations" });
-    }
-  });
-
-  // Admin endpoint to fetch ALL registrations from all users
-  app.get("/api/admin/registrations", requireAuth, async (req, res) => {
-    try {
-      const user = req.user as any;
-      if (!user || user.role !== 'admin') {
-        return res.status(403).json({ message: "Admin access required" });
-      }
-      
-      const allRegistrations = await storage.getAllRegistrationsWithUsers();
-      res.json(allRegistrations);
-    } catch (error) {
-      console.error("Error fetching all registrations:", error);
-      res.status(500).json({ message: "Failed to fetch registrations" });
-    }
-  });
-
-  // Payment routes
-  app.get("/api/payments", requireAuth, async (req, res) => {
-    try {
-      const user = req.user as any;
-      const payments = await storage.getPayments(user.id);
-      res.json(payments);
-    } catch (error) {
-      console.error("Error fetching payments:", error);
-      res.status(500).json({ message: "Failed to fetch payments" });
-    }
-  });
-
-  // Checkout session creation route
+  // Create checkout session for guest checkout
   app.post("/api/create-checkout-session", express.json(), async (req, res) => {
     try {
       const { cartItems, promoCode, parentName, parentEmail, childName } = req.body;
       
-      // Get the logged-in user ID (if authenticated)
-      const loggedInUserId = (req.user as any)?.id;
-      
       if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
         return res.status(400).json({ message: "Cart items are required" });
+      }
+
+      if (!parentName || !parentEmail || !childName) {
+        return res.status(400).json({ message: "Parent name, email, and child name are required" });
       }
 
       // Get the host for redirect URLs
@@ -617,16 +93,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (upperPromoCode === 'ADMIN') {
         // Admin gets everything for free
-        lineItems = [{
+        lineItems = cartItems.map((item: any) => ({
           price_data: {
             currency: 'usd',
             product_data: {
               name: 'A Cappella Workshop Registration (Admin Comp)',
             },
-            unit_amount: 0, // $0
+            unit_amount: 0,
           },
           quantity: 1,
-        }];
+        }));
       } else if (upperPromoCode === 'ADMIN1') {
         // ADMIN1 gets everything for $0.50 total
         lineItems = [{
@@ -635,7 +111,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             product_data: {
               name: 'A Cappella Workshop Registration (Admin Special)',
             },
-            unit_amount: 50, // $0.50 in cents
+            unit_amount: 50, // $0.50 total
           },
           quantity: 1,
         }];
@@ -645,9 +121,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           price_data: {
             currency: 'usd',
             product_data: {
-              name: 'A Cappella Workshop Registration (Deposit Test)',
+              name: 'A Cappella Workshop Deposit (Testing)',
             },
-            unit_amount: 50, // $0.50 in cents
+            unit_amount: 50,
           },
           quantity: 1,
         }];
@@ -657,128 +133,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
           price_data: {
             currency: 'usd',
             product_data: {
-              name: 'A Cappella Workshop Registration (Full Payment Test)',
+              name: 'A Cappella Workshop Full Payment (Testing)',
             },
-            unit_amount: 50, // $0.50 in cents
+            unit_amount: 50,
           },
           quantity: 1,
         }];
       } else {
-        // Calculate normal pricing
-        lineItems = cartItems.map(item => {
-          // Use the price from the cart item (already set to deposit $150 or full $500)
-          let finalPrice = item.price * 100; // Convert to cents
-
-          // Apply SHOP discount
-          if (upperPromoCode === 'SHOP') {
-            finalPrice = Math.round(finalPrice * 0.8); // 20% off
-          }
+        // Normal pricing
+        lineItems = cartItems.map((item: any) => {
+          const amount = item.paymentType === 'deposit' 
+            ? Math.round(item.price * 100 * 0.3) 
+            : Math.round(item.price * 100);
 
           return {
             price_data: {
               currency: 'usd',
               product_data: {
-                name: `A Cappella Workshop - ${item.label}${item.paymentType === 'deposit' ? ' (Deposit)' : ''}`,
-                description: item.studentName ? `Student: ${item.studentName}` : undefined,
+                name: `${item.location} - ${item.weekLabel} ${item.paymentType === 'deposit' ? '(Deposit)' : '(Full Payment)'}`,
+                description: item.paymentType === 'deposit' ? '30% deposit payment' : 'Full payment',
               },
-              unit_amount: finalPrice,
+              unit_amount: amount,
             },
             quantity: 1,
           };
         });
       }
 
+      // Create checkout session
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
         line_items: lineItems,
         mode: 'payment',
-        success_url: `${host}/status?ok=1&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${host}/status?ok=0`,
+        success_url: `${host}/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${host}/camp-registration`,
+        customer_email: parentEmail,
         metadata: {
           parentName,
-          childName, 
-          parentEmail: parentEmail || '',
+          parentEmail,
+          childName,
+          items_json: JSON.stringify(cartItems.map((item: any) => ({
+            week_id: item.weekId,
+            week_label: item.weekLabel,
+            student_name: childName,
+            payment_type: item.paymentType || 'full',
+          }))),
           promoCode: promoCode || '',
           isAdminDiscount: ['ADMIN', 'ADMIN1', 'ADMIND', 'ADMINF'].includes(upperPromoCode || '') ? 'true' : 'false',
-          loggedInUserId: loggedInUserId || '', // Pass the logged-in user ID
-          items_json: JSON.stringify(cartItems.map(item => ({
-            week_id: item.weekId,
-            week_label: item.label,
-            student_name: item.studentName || '',
-            payment_type: upperPromoCode === 'ADMIND' ? 'deposit' : 'full',
-            amount_paid: item.price || 500
-          })))
         },
       });
 
       res.json({ url: session.url });
-    } catch (error: any) {
-      console.error('Error creating checkout session:', error);
-      res.status(500).json({ message: "Error creating checkout session: " + error.message });
-    }
-  });
-
-
-  // Direct password reset routes (for testing without email)
-  app.post("/api/verify-email", async (req, res) => {
-    try {
-      const { email } = req.body;
-      
-      if (!email) {
-        return res.status(400).json({ message: "Email is required" });
-      }
-
-      // Check if user exists
-      const user = await storage.getUserByEmail(email);
-      if (!user) {
-        return res.status(404).json({ message: "Account not found" });
-      }
-
-      res.json({ message: "Email verified" });
     } catch (error) {
-      console.error("Email verification error:", error);
-      res.status(500).json({ message: "Failed to verify email" });
+      console.error("Error creating checkout session:", error);
+      res.status(500).json({ message: "Failed to create checkout session" });
     }
   });
 
-  app.post("/api/reset-password-direct", async (req, res) => {
-    try {
-      const { email, password, token } = req.body;
-      
-      if (!email || !password) {
-        return res.status(400).json({ message: "Email and password are required" });
-      }
-
-      if (password.length < 10) {
-        return res.status(400).json({ message: "Password must be at least 10 characters long" });
-      }
-
-      // Find user by email
-      const user = await storage.getUserByEmail(email);
-      if (!user) {
-        return res.status(404).json({ message: "Account not found" });
-      }
-
-      // Hash the new password
-      const passwordHash = await argon2.hash(password);
-      
-      // Update user's password in database
-      await storage.updateUserPassword(user.id, passwordHash);
-
-      // Log the password reset
-      await storage.createAuditLog({
-        userId: user.id,
-        action: "password_reset_direct",
-        meta: JSON.stringify({ email, resetMethod: token ? "token" : "direct" }),
-      });
-
-      res.json({ message: "Password reset successfully" });
-    } catch (error) {
-      console.error("Password reset error:", error);
-      res.status(500).json({ message: "Failed to reset password" });
-    }
-  });
-
-  const httpServer = createServer(app);
-  return httpServer;
+  return createServer(app);
 }

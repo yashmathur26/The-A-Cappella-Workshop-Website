@@ -44,109 +44,76 @@ app.post('/api/webhook',
         try {
           // Import storage and email functions dynamically to avoid circular dependencies
           const { storage } = await import("./storage");
-          const { sendRegistrationConfirmationEmail, sendAdminNotificationEmail } = await import("./brevo");
+          const { sendRegistrationConfirmationEmail } = await import("./brevo");
           
           // Parse cart items from metadata
           const itemsJson = session.metadata?.items_json;
           const items = itemsJson ? JSON.parse(itemsJson) : [];
           
-          // Get user info from metadata - prioritize logged-in user ID
-          const loggedInUserId = session.metadata?.loggedInUserId;
+          // Get guest info from metadata
           const parentEmail = session.customer_details?.email || session.metadata?.parentEmail || '';
           const parentName = session.metadata?.parentName || '';
           const childName = session.metadata?.childName || '';
           
-          console.log(`👤 Processing payment for user ID ${loggedInUserId || 'guest'}, ${items.length} items`);
+          console.log(`👤 Processing guest payment for ${parentName} (${parentEmail}), ${items.length} items`);
 
-          // Smart user selection: use logged-in user if available, otherwise use parent info
-          let user = null;
-          if (loggedInUserId && loggedInUserId.trim() !== '') {
-            // If someone is logged in, use their account
-            user = await storage.getUser(loggedInUserId);
-            console.log(`🔗 Using logged-in user: ${user?.email || 'unknown'} (ID: ${loggedInUserId})`);
-          } else if (parentEmail && parentName) {
-            // Only create new user if this is a guest checkout
-            user = await storage.upsertUser({
-              firstName: parentName.split(' ')[0] || 'Guest',
-              lastName: parentName.split(' ').slice(1).join(' ') || 'User',
-              email: parentEmail,
-              role: "parent",
-              emailVerified: false,
-            });
-            console.log(`👨‍👩‍👧‍👦 Guest checkout: ${parentName} (${parentEmail})`);
-          }
-          
-          console.log(`🔍 Debug - loggedInUserId: "${loggedInUserId}", parentEmail: "${parentEmail}", user selected: ${user?.email}`);
-
-          if (user) {
-            // Create registrations for each cart item
-            for (const item of items) {
-              // Find or create student
-              let student = null;
-              if (item.student_name) {
-                const studentFirstName = item.student_name.split(' ')[0] || '';
-                const studentLastName = item.student_name.split(' ').slice(1).join(' ') || '';
-                
-                // Check if student already exists for this user
-                const existingStudents = await storage.getStudents(user.id);
-                student = existingStudents.find(s => 
-                  s.firstName.trim().toLowerCase() === studentFirstName.trim().toLowerCase() &&
-                  s.lastName.trim().toLowerCase() === studentLastName.trim().toLowerCase()
-                );
-                
-                if (!student) {
-                  // Create new student only if not found
-                  student = await storage.createStudent({
-                    userId: user.id,
-                    firstName: studentFirstName,
-                    lastName: studentLastName,
-                  });
-                  console.log(`👶 Created new student: ${item.student_name}`);
-                } else {
-                  console.log(`🔍 Found existing student: ${item.student_name}`);
-                }
-              }
-
-              // Create registration with proper payment tracking
-              if (student) {
-                const paymentType = item.payment_type || 'full';
-                const fullPrice = 500; // Full camp price in dollars
-                
-                // Use actual amount charged from Stripe session
-                const actualAmountPaidCents = session.amount_total || 0;
-                const actualAmountPaid = actualAmountPaidCents / 100;
-                
-                // Calculate balance due based on actual payment vs full price
-                // For promo codes like ADMIN ($0) or ADMIN1 ($0.50), if they paid the full discounted amount, no balance is due
-                let balanceDueCents = 0;
-                if (paymentType === 'deposit') {
-                  balanceDueCents = Math.max(0, (fullPrice * 100) - actualAmountPaidCents);
-                }
-                
-                const registration = await storage.createRegistration({
-                  userId: user.id,
-                  studentId: student.id,
-                  weekId: item.week_id,
-                  status: 'paid',
-                  stripeCheckoutSessionId: session.id,
-                  paymentType,
-                  amountPaidCents: actualAmountPaidCents,
-                  balanceDueCents: Math.max(0, balanceDueCents),
-                  promoCode: session.metadata?.promoCode || null,
-                });
-                console.log(`📝 Created registration for week ${item.week_id} (${paymentType}: $${actualAmountPaid}, balance: $${balanceDueCents / 100})`);
-              }
+          // Create registrations for each cart item
+          for (const item of items) {
+            const paymentType = item.payment_type || 'full';
+            const fullPrice = 500; // Full camp price in dollars
+            
+            // Use actual amount charged from Stripe session
+            const actualAmountPaidCents = session.amount_total || 0;
+            const actualAmountPaid = actualAmountPaidCents / 100;
+            
+            // Calculate balance due based on actual payment vs full price
+            let balanceDueCents = 0;
+            if (paymentType === 'deposit') {
+              balanceDueCents = Math.max(0, (fullPrice * 100) - actualAmountPaidCents);
             }
-
-            // Create payment record
-            await storage.createPayment({
-              userId: user.id,
-              amountCents: session.amount_total || 0,
-              currency: session.currency || 'usd',
+            
+            // Create guest registration
+            const registration = await storage.createRegistration({
+              parentName,
+              parentEmail,
+              childName,
+              weekId: item.week_id,
+              status: 'paid',
+              stripeCheckoutSessionId: session.id,
               stripePaymentIntentId: session.payment_intent as string || '',
-              status: 'succeeded',
+              paymentType,
+              amountPaidCents: actualAmountPaidCents,
+              balanceDueCents: Math.max(0, balanceDueCents),
+              promoCode: session.metadata?.promoCode || null,
             });
-            console.log(`💳 Created payment record for $${(session.amount_total || 0) / 100}`);
+            console.log(`📝 Created registration for week ${item.week_id} (${paymentType}: $${actualAmountPaid}, balance: $${balanceDueCents / 100})`);
+          }
+
+          // Create payment record
+          await storage.createPayment({
+            parentEmail,
+            amountCents: session.amount_total || 0,
+            currency: session.currency || 'usd',
+            stripePaymentIntentId: session.payment_intent as string || '',
+            stripeCheckoutSessionId: session.id,
+            status: 'succeeded',
+          });
+          console.log(`💳 Created payment record for $${(session.amount_total || 0) / 100}`);
+          
+          // Send confirmation email
+          const week = await storage.getWeek(items[0]?.week_id);
+          if (week) {
+            await sendRegistrationConfirmationEmail(
+              parentEmail,
+              parentName,
+              childName,
+              week.label,
+              `$${(session.amount_total || 0) / 100}`,
+              {
+                receipt_url: '', // Stripe receipt URL if available
+              }
+            );
+            console.log(`📧 Sent confirmation email to ${parentEmail}`);
           }
         } catch (error) {
           console.error('❌ Error processing checkout session:', error);

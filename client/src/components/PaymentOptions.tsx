@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useAuth } from "@/hooks/useAuth";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -18,7 +17,6 @@ interface PaymentOptionsProps {
 
 export function PaymentOptions({ registrationIds, totalAmount, onCancel }: PaymentOptionsProps) {
   const [paymentType, setPaymentType] = useState<"full" | "deposit">("full");
-  const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
