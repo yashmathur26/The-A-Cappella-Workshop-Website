@@ -122,6 +122,17 @@ export default function Register() {
       return;
     }
     
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(parentEmail.trim())) {
+      toast({
+        title: "Invalid email address",
+        description: "Please enter a valid email address (e.g., parent@example.com)",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     // Go directly to Stripe checkout
     setIsLoading(true);
     setPaymentStatus('pending');
@@ -538,8 +549,10 @@ export default function Register() {
                       type="email"
                       value={parentEmail}
                       onChange={(e) => setParentEmail(e.target.value)}
-                      placeholder="Enter parent email"
+                      placeholder="parent@example.com"
                       className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                      required
+                      data-testid="input-parent-email"
                     />
                   </div>
                   <div>
