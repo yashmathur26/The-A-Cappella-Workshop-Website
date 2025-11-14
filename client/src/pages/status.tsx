@@ -1,17 +1,15 @@
-import { null
-import { Link, null
+import { useEffect, useState } from 'react';
+import { Link, useLocation } from 'wouter';
 import { Check, X, Mail, FileText } from 'lucide-react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { GradientButton } from '@/components/ui/gradient-button';
-import { null
 import { CartManager } from '@/lib/cart';
 
 export default function Status() {
-  const [location] = null
-  const [isSuccess, setIsSuccess] = null
-  const { toast } = null
+  const [location] = useLocation();
+  const [isSuccess, setIsSuccess] = useState(false);
 
-  null
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const success = params.get('ok') === '1';
     setIsSuccess(success);
@@ -73,65 +71,30 @@ export default function Status() {
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <div className="space-y-4">
                 <Link href="/">
-                  <GradientButton>Back to Home</GradientButton>
+                  <GradientButton className="w-full sm:w-auto">Return to Home</GradientButton>
                 </Link>
-                {false ? (
-                  <Link href="/account">
-                    <GradientButton variant="ghost">View Account</GradientButton>
-                  </Link>
-                ) : (
-                  <Link href="/register">
-                    <GradientButton variant="ghost">Register Another</GradientButton>
-                  </Link>
-                )}
               </div>
             </GlassCard>
-
-            {/* Account Creation Prompt for Guest Checkouts */}
-            {true && false && (
-              <GlassCard className="p-8 border-2 border-teal-custom/30 animate-pulse-soft">
-                <div className="text-center space-y-4">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-teal-custom to-sky-custom flex items-center justify-center mx-auto">
-                    <UserPlus className="text-white" size={24} />
-                  </div>
-                  <h2 className="text-2xl font-bold text-teal-custom">Save Your Registration!</h2>
-                  <p className="text-white/90 max-w-md mx-auto">
-                    Create an account now to save your purchase details, track your registrations, and easily manage future camp sessions.
-                  </p>
-                  <div className="flex items-center justify-center space-x-2 text-sm text-white/60 mb-4">
-                    <Shield className="w-4 h-4" />
-                    <span>Your purchase will be automatically linked to your new account</span>
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                    <Button onClick={handleCreateAccount} className="btn-gradient px-6">
-                      <UserPlus className="w-4 h-4 mr-2" />
-                      Create Account
-                    </Button>
-                    <Button 
-                      onClick={() => setShowAccountPrompt(false)}
-                      variant="ghost" 
-                      className="text-white/60 hover:text-white"
-                    >
-                      Maybe Later
-                    </Button>
-                  </div>
-                </div>
-              </GlassCard>
-            )}
           </div>
         ) : (
-          <GlassCard className="p-12">
-            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-red-500 to-red-400 flex items-center justify-center mx-auto mb-6">
-              <X className="text-white" size={48} />
-            </div>
-            <h1 className="text-3xl font-bold mb-4 text-red-400">Payment canceled or failed</h1>
-            <p className="text-white/80 mb-8">Please try again or contact us if you continue to experience issues.</p>
-            <Link href="/register">
-              <GradientButton size="lg">Try Again</GradientButton>
-            </Link>
-          </GlassCard>
+          <div className="space-y-6">
+            <GlassCard className="p-12">
+              <div className="w-24 h-24 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-6">
+                <X className="text-red-400" size={48} />
+              </div>
+              <h1 className="text-3xl font-bold mb-4 text-white">Payment Cancelled</h1>
+              <p className="text-white/70 mb-8">
+                Your payment was cancelled. No charges have been made to your account.
+              </p>
+              <div className="space-y-4">
+                <Link href="/camp-registration">
+                  <GradientButton className="w-full sm:w-auto">Try Again</GradientButton>
+                </Link>
+              </div>
+            </GlassCard>
+          </div>
         )}
       </div>
     </div>
