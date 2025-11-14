@@ -4,24 +4,14 @@ import { GradientButton } from '@/components/ui/gradient-button';
 import { CartManager, type CartItem } from '@/lib/cart';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import { PaymentOptions } from '@/components/PaymentOptions';
-import { AddStudentModal } from '@/components/AddStudentModal';
 import { useLocation as useWouterLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tag, X, AlertTriangle, Plus, Users } from "lucide-react";
+import { Tag, X, AlertTriangle } from "lucide-react";
 import { useLocation } from '@/contexts/LocationContext';
 
-interface Student {
-  id: string;
-  firstName: string;
-  lastName: string;
-  notes?: string;
-  createdAt: string;
-}
 
 export default function Register() {
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -37,7 +27,6 @@ export default function Register() {
   const [paymentStatus, setPaymentStatus] = useState<'none' | 'pending' | 'completed' | 'incomplete'>('none');
   const paymentWindowRef = useRef<Window | null>(null);
   const statusCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const [showAddStudentModal, setShowAddStudentModal] = useState(false);
   const { toast } = useToast();
   const [, setWouterLocation] = useWouterLocation();
   const { currentLocation, locationData } = useLocation();
@@ -46,17 +35,6 @@ export default function Register() {
   const WEEKS = locationData[currentLocation].weeks;
   const locationPricing = locationData[currentLocation].pricing;
 
-  // Fetch students for authenticated users
-  const { data: students = [] } = useQuery<Student[]>({
-    queryKey: ["/api/students"],
-    enabled: false,
-  });
-
-  // Fetch registrations to check for duplicates
-  const { data: registrations = [] } = useQuery<any[]>({
-    queryKey: ["/api/registrations"],
-    enabled: false,
-  });
 
   useEffect(() => {
     setCart(CartManager.getCart());
@@ -90,29 +68,6 @@ export default function Register() {
     }
   };
 
-  const updateStudentForWeek = (weekId: string, studentId: string) => {
-    // Check if this specific student is already registered for this week
-    const existingRegistration = registrations.find(reg => 
-      reg.weekId === weekId && reg.studentId === studentId
-    );
-    
-    if (existingRegistration) {
-      const student = students.find(s => s.id === studentId);
-      toast({
-        title: "Student Already Registered",
-        description: `${student?.firstName} ${student?.lastName} is already registered for this week. Please select a different student.`,
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    const student = students.find(s => s.id === studentId);
-    if (student) {
-      CartManager.updateStudentForWeek(weekId, studentId, `${student.firstName} ${student.lastName}`);
-      setCart(CartManager.getCart());
-      window.dispatchEvent(new Event('cartUpdated'));
-    }
-  };
 
   const removeWeekFromCart = (weekId: string) => {
     CartManager.removeFromCart(weekId);
@@ -157,8 +112,8 @@ export default function Register() {
   const proceedToPayment = async () => {
     if (cart.length === 0) return;
     
-    // Only require contact info for guest users
-    if (!isAuthenticated && (!parentName.trim() || !parentEmail.trim() || !childName.trim())) {
+    // Require contact info for guest checkout
+    if (!parentName.trim() || !parentEmail.trim() || !childName.trim()) {
       toast({
         title: "Contact information required",
         description: "Please enter parent name, email, and child name before checkout.",
@@ -166,25 +121,8 @@ export default function Register() {
       });
       return;
     }
-
-    // For authenticated users, verify students are assigned to all cart items
-    if (isAuthenticated) {
-      const unassignedItems = cart.filter(item => {
-        const studentInfo = CartManager.getStudentForWeek(item.weekId);
-        return !studentInfo.studentId;
-      });
-      
-      if (unassignedItems.length > 0) {
-        toast({
-          title: "Students not assigned",
-          description: "Please assign a student to each week in your cart before checkout.",
-          variant: "destructive",
-        });
-        return;
-      }
-    }
     
-    // Go directly to Stripe checkout for both authenticated and guest users
+    // Go directly to Stripe checkout
     setIsLoading(true);
     setPaymentStatus('pending');
     
@@ -192,9 +130,9 @@ export default function Register() {
       const response = await apiRequest('POST', '/api/create-checkout-session', {
         cartItems: cart,
         promoCode: CartManager.getPromoCode(),
-        parentName: false ? `${user?.firstName} ${user?.lastName}` : parentName.trim(),
-        parentEmail: false ? user?.email : parentEmail.trim(),
-        childName: false ? 'Student Registration' : childName.trim(),
+        parentName: parentName.trim(),
+        parentEmail: parentEmail.trim(),
+        childName: childName.trim(),
       });
       
       const data = await response.json();
@@ -292,9 +230,6 @@ export default function Register() {
     window.addEventListener('focus', handleFocus);
   };
 
-  const handleSignInFirst = () => {
-    setWouterLocation("/login");
-  };
 
   const cartItems = CartManager.getCartItems();
   const cartSubtotal = CartManager.getCartSubtotal();
@@ -506,54 +441,6 @@ export default function Register() {
           {/* Cart Sidebar */}
           <div className="lg:col-span-1 mt-12 lg:mt-0">
             <GlassCard className="p-6 sticky top-24">
-              {/* Student Assignment for Authenticated Users */}
-              {false && cartItems.length > 0 && (
-                <div className="mb-8">
-                  <h3 className="text-xl font-bold mb-4 text-white">Assign Students</h3>
-                  <div className="space-y-4">
-                    {cartItems.map((item) => {
-                      const studentInfo = CartManager.getStudentForWeek(item.weekId);
-                      return (
-                        <div key={item.weekId} className="p-3 bg-white/5 rounded-lg">
-                          <div className="flex justify-between items-start mb-2">
-                            <div>
-                              <p className="font-medium text-white text-sm">{item.label}</p>
-                              <p className="text-xs text-white/60">{item.paymentType === 'full' ? 'Full Payment' : 'Deposit'} - ${item.price}</p>
-                            </div>
-                          </div>
-                          <Select
-                            value={studentInfo.studentId || ""}
-                            onValueChange={(value) => updateStudentForWeek(item.weekId, value)}
-                          >
-                            <SelectTrigger className="w-full bg-white/10 border-white/20 text-white">
-                              <SelectValue placeholder="Select student" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-slate-800 border-white/20">
-                              {students.map((student) => (
-                                <SelectItem key={student.id} value={student.id} className="text-white">
-                                  {student.firstName} {student.lastName}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      );
-                    })}
-                    
-                    <div className="text-center">
-                      <Button
-                        onClick={() => setShowAddStudentModal(true)}
-                        size="sm"
-                        className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 w-full"
-                      >
-                        <Plus className="w-4 h-4 mr-1" />
-                        Add Student
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               <h3 className="text-xl font-bold mb-6 text-white">Your Cart</h3>
               <div className="space-y-3 mb-6">
                 {cartItems.length === 0 ? (
@@ -633,8 +520,8 @@ export default function Register() {
                 </div>
               )}
               
-              {/* Contact Information - Only for guest checkout */}
-              {cartItems.length > 0 && showForm && !isAuthenticated && (
+              {/* Contact Information */}
+              {cartItems.length > 0 && showForm && (
                 <div className="mb-6 space-y-4">
                   <div>
                     <Label className="text-white text-sm mb-2 block">Parent/Guardian Name</Label>
@@ -663,20 +550,6 @@ export default function Register() {
                       placeholder="Enter child's name"
                       className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
                     />
-                  </div>
-                </div>
-              )}
-
-              {/* Student assignment reminder for authenticated users */}
-              {cartItems.length > 0 && showForm && isAuthenticated && (
-                <div className="mb-6 p-4 bg-blue-500/20 border border-blue-400/30 rounded-lg">
-                  <div className="flex items-center space-x-2">
-                    <Users className="w-5 h-5 text-blue-300" />
-                    <p className="text-blue-200 text-sm">
-                      {cartItems.every(item => CartManager.getStudentForWeek(item.weekId).studentId) 
-                        ? 'All students assigned! Ready for checkout.' 
-                        : 'Please assign students to each week in the cart above.'}
-                    </p>
                   </div>
                 </div>
               )}
@@ -717,39 +590,16 @@ export default function Register() {
                       Proceed to Registration Form
                     </Button>
                   ) : (
-                    <>
-                      {false ? (
-                        <Button
-                          className="w-full bg-green-600 hover:bg-green-700 text-white border-0 rounded-full py-3 font-semibold"
-                          onClick={proceedToPayment}
-                          disabled={cart.length === 0 || isLoading || !cartItems.every(item => CartManager.getStudentForWeek(item.weekId).studentId)}
-                        >
-                          {isLoading ? 'Processing...' : 
-                           !cartItems.every(item => CartManager.getStudentForWeek(item.weekId).studentId) ? 'Assign Students First' :
-                           'Choose Payment Option'}
-                        </Button>
-                      ) : (
-                        <>
-                          <Button
-                            className="w-full bg-green-600 hover:bg-green-700 text-white border-0 rounded-full py-3 font-semibold"
-                            onClick={proceedToPayment}
-                            disabled={cart.length === 0 || isLoading || !parentName.trim() || !childName.trim()}
-                          >
-                            {isLoading ? 'Processing...' : 
-                             !parentName.trim() || !childName.trim() ? 'Fill in Names First' :
-                             'Pay as Guest'}
-                          </Button>
-                          <GradientButton
-                            variant="ghost"
-                            className="w-full bg-transparent border border-white/20 text-white hover:bg-white/10"
-                            onClick={handleSignInFirst}
-                            disabled={cart.length === 0}
-                          >
-                            Sign In for Account Benefits
-                          </GradientButton>
-                        </>
-                      )}
-                    </>
+                    <Button
+                      className="w-full bg-green-600 hover:bg-green-700 text-white border-0 rounded-full py-3 font-semibold"
+                      onClick={proceedToPayment}
+                      disabled={cart.length === 0 || isLoading || !parentName.trim() || !parentEmail.trim() || !childName.trim()}
+                      data-testid="button-checkout"
+                    >
+                      {isLoading ? 'Processing...' : 
+                       !parentName.trim() || !parentEmail.trim() || !childName.trim() ? 'Fill in Contact Info First' :
+                       'Proceed to Checkout'}
+                    </Button>
                   )}
                   <Button
                     variant="outline"
@@ -764,24 +614,6 @@ export default function Register() {
           </div>
         </div>
 
-        {/* Payment Options Modal for Authenticated Users */}
-        {showPayment && isAuthenticated && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="w-full max-w-2xl">
-              <PaymentOptions
-                registrationIds={[]} // No registrations yet for new users
-                totalAmount={cartTotal}
-                onCancel={() => setShowPayment(false)}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Add Student Modal */}
-        <AddStudentModal
-          isOpen={showAddStudentModal}
-          onClose={() => setShowAddStudentModal(false)}
-        />
       </div>
     </div>
   );
