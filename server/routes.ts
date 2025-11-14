@@ -55,6 +55,9 @@ async function initializeDatabase() {
   }
 }
 
+// In-memory store for form submissions (session ID -> timestamp)
+const formSubmissions = new Map<string, number>();
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize database
   await initializeDatabase();
@@ -67,6 +70,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching weeks:", error);
       res.status(500).json({ message: "Failed to fetch weeks" });
+    }
+  });
+
+  // Google Forms webhook endpoint
+  app.post("/api/google-form-submitted", express.json(), async (req, res) => {
+    try {
+      const { sessionId } = req.body;
+      
+      if (!sessionId) {
+        return res.status(400).json({ message: "Session ID required" });
+      }
+
+      // Mark this session as having submitted the form
+      formSubmissions.set(sessionId, Date.now());
+      console.log(`✅ Form submitted for session: ${sessionId}`);
+      
+      res.json({ success: true, message: "Form submission recorded" });
+    } catch (error) {
+      console.error("Error recording form submission:", error);
+      res.status(500).json({ message: "Failed to record form submission" });
+    }
+  });
+
+  // Check if form has been submitted for a session
+  app.get("/api/check-form-status/:sessionId", async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      const submitted = formSubmissions.has(sessionId);
+      const timestamp = formSubmissions.get(sessionId);
+      
+      res.json({ 
+        submitted,
+        timestamp: timestamp || null
+      });
+    } catch (error) {
+      console.error("Error checking form status:", error);
+      res.status(500).json({ message: "Failed to check form status" });
     }
   });
 

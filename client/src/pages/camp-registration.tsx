@@ -25,8 +25,18 @@ export default function Register() {
   const [parentEmail, setParentEmail] = useState("");
   const [childName, setChildName] = useState("");
   const [paymentStatus, setPaymentStatus] = useState<'none' | 'pending' | 'completed' | 'incomplete'>('none');
+  const [formSubmitted, setFormSubmitted] = useState(false);
+  const [sessionId] = useState(() => {
+    // Generate or retrieve session ID
+    const stored = localStorage.getItem('registration-session-id');
+    if (stored) return stored;
+    const newId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    localStorage.setItem('registration-session-id', newId);
+    return newId;
+  });
   const paymentWindowRef = useRef<Window | null>(null);
   const statusCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const formCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
   const [, setWouterLocation] = useWouterLocation();
   const { currentLocation, locationData } = useLocation();
@@ -56,8 +66,48 @@ export default function Register() {
       if (statusCheckIntervalRef.current) {
         clearInterval(statusCheckIntervalRef.current);
       }
+      // Cleanup form status checking
+      if (formCheckIntervalRef.current) {
+        clearInterval(formCheckIntervalRef.current);
+      }
     };
   }, []);
+
+  // Poll for form submission status
+  useEffect(() => {
+    if (showForm && !formSubmitted) {
+      const checkFormStatus = async () => {
+        try {
+          const response = await fetch(`/api/check-form-status/${sessionId}`);
+          const data = await response.json();
+          if (data.submitted) {
+            setFormSubmitted(true);
+            toast({
+              title: "Form Received! ✅",
+              description: "Your registration form has been submitted. You can now proceed to checkout.",
+            });
+            if (formCheckIntervalRef.current) {
+              clearInterval(formCheckIntervalRef.current);
+            }
+          }
+        } catch (error) {
+          console.error('Error checking form status:', error);
+        }
+      };
+
+      // Check immediately
+      checkFormStatus();
+      
+      // Then check every 3 seconds
+      formCheckIntervalRef.current = setInterval(checkFormStatus, 3000);
+    }
+
+    return () => {
+      if (formCheckIntervalRef.current) {
+        clearInterval(formCheckIntervalRef.current);
+      }
+    };
+  }, [showForm, formSubmitted, sessionId, toast]);
 
   const addWeekToCart = (weekId: string, paymentType: 'full' | 'deposit') => {
     const week = WEEKS.find(w => w.id === weekId);
@@ -111,6 +161,16 @@ export default function Register() {
 
   const proceedToPayment = async () => {
     if (cart.length === 0) return;
+    
+    // Check if form has been submitted
+    if (!formSubmitted) {
+      toast({
+        title: "Registration Form Required",
+        description: "Please complete the registration form above before proceeding to checkout.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     // Require contact info for guest checkout
     if (!parentName.trim() || !parentEmail.trim() || !childName.trim()) {
@@ -429,8 +489,39 @@ export default function Register() {
             {showForm && (
               <section>
                 <h2 className="text-2xl font-bold mb-6 text-white">Step 2 — Complete Registration Form</h2>
+                
+                {/* Form Submission Status */}
+                <GlassCard className={`p-4 mb-4 ${formSubmitted ? 'bg-green-500/10 border-green-500/30' : 'bg-blue-500/10 border-blue-500/30'}`}>
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${formSubmitted ? 'bg-green-500/20' : 'bg-blue-500/20'}`}>
+                      {formSubmitted ? (
+                        <span className="text-green-400 text-xl">✓</span>
+                      ) : (
+                        <span className="text-blue-400 text-xl">📝</span>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      {formSubmitted ? (
+                        <>
+                          <p className="text-green-400 font-semibold">Form Submitted Successfully!</p>
+                          <p className="text-green-300/80 text-sm">You can now proceed to checkout</p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-blue-400 font-semibold">Waiting for Form Submission</p>
+                          <p className="text-blue-300/80 text-sm">Complete the form below to unlock checkout</p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </GlassCard>
+
                 <GlassCard className="p-6">
                   <p className="text-white/80 mb-4">Please fill out your student information below.</p>
+                  
+                  {/* Session ID logged for webhook setup */}
+                  {console.log('Registration Session ID:', sessionId)}
+                  
                   <div className="bg-white/5 rounded-lg p-4 border border-white/10">
                     <iframe 
                       src="https://docs.google.com/forms/d/e/1FAIpQLSfU3ReIcBMTJge0QnuX-G1JaQo9av-pqt7AGHGA7PclvlRfKg/viewform?embedded=true" 
@@ -604,12 +695,17 @@ export default function Register() {
                     </Button>
                   ) : (
                     <Button
-                      className="w-full bg-green-600 hover:bg-green-700 text-white border-0 rounded-full py-3 font-semibold"
+                      className={`w-full border-0 rounded-full py-3 font-semibold ${
+                        !formSubmitted 
+                          ? 'bg-gray-600 cursor-not-allowed' 
+                          : 'bg-green-600 hover:bg-green-700'
+                      } text-white`}
                       onClick={proceedToPayment}
-                      disabled={cart.length === 0 || isLoading || !parentName.trim() || !parentEmail.trim() || !childName.trim()}
+                      disabled={cart.length === 0 || isLoading || !formSubmitted || !parentName.trim() || !parentEmail.trim() || !childName.trim()}
                       data-testid="button-checkout"
                     >
                       {isLoading ? 'Processing...' : 
+                       !formSubmitted ? '⏳ Complete Form First' :
                        !parentName.trim() || !parentEmail.trim() || !childName.trim() ? 'Fill in Contact Info First' :
                        'Proceed to Checkout'}
                     </Button>
