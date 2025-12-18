@@ -716,7 +716,7 @@ export default function Register() {
                   <span className="text-white">Total:</span>
                   <span className="text-white">${cartTotal.toFixed(2)}</span>
                 </div>
-                <p className="text-white/50 text-xs mb-4">* 5% processing fee will be added at checkout</p>
+                <p className="text-white/50 text-xs mb-4">* 3% processing fee will be added at checkout</p>
                 <div className="bg-white/5 border border-white/10 rounded-lg p-3 mb-4">
                   <p className="text-white/70 text-xs text-center">
                     Want to avoid fees? Pay via Zelle or check — email us at{' '}

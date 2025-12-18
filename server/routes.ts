@@ -199,21 +199,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
         });
 
-        // Calculate 5% processing fee based on cart total
+        // Calculate 3% processing fee based on cart total
         const cartTotal = cartItems.reduce((total: number, item: any) => {
           const amount = item.paymentType === 'deposit' 
             ? item.price * 0.3 
             : item.price;
           return total + amount;
         }, 0);
-        const processingFee = Math.round(cartTotal * 0.05 * 100); // 5% fee in cents
+        const processingFee = Math.round(cartTotal * 0.03 * 100); // 3% fee in cents
 
         if (processingFee > 0) {
           lineItems.push({
             price_data: {
               currency: 'usd',
               product_data: {
-                name: 'Processing Fee (5%)',
+                name: 'Processing Fee (3%)',
                 description: 'To avoid this fee, pay via Zelle or check - email theacappellaworkshop@gmail.com',
               },
               unit_amount: processingFee,
