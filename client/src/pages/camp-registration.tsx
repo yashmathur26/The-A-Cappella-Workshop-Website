@@ -112,7 +112,17 @@ export default function Register() {
   const addWeekToCart = (weekId: string, paymentType: 'full' | 'deposit') => {
     const week = WEEKS.find(w => w.id === weekId);
     if (week) {
-      CartManager.addToCart(weekId, paymentType, week, locationData[currentLocation].name);
+      const result = CartManager.addToCart(weekId, paymentType, week, locationData[currentLocation].name);
+      
+      if (!result.success && result.error === 'location_mismatch') {
+        toast({
+          title: "Different Location in Cart",
+          description: `Your cart contains items from ${result.currentLocation}. Please complete that purchase first, or clear your cart to add ${locationData[currentLocation].name} weeks.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      
       setCart(CartManager.getCart());
       window.dispatchEvent(new Event('cartUpdated'));
     }

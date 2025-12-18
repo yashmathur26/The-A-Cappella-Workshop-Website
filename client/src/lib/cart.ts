@@ -63,8 +63,38 @@ export class CartManager {
   }
 
 
-  static addToCart(weekId: string, paymentType: 'full' | 'deposit', week: any, location?: string, studentId?: string, studentName?: string): void {
+  static getCartLocation(): string | null {
     const cart = this.getCart();
+    if (cart.length === 0) return null;
+    return cart[0].location || null;
+  }
+
+  static canAddToCart(location?: string): { allowed: boolean; currentLocation: string | null } {
+    const currentLocation = this.getCartLocation();
+    if (!currentLocation || !location) {
+      return { allowed: true, currentLocation };
+    }
+    return { 
+      allowed: currentLocation === location, 
+      currentLocation 
+    };
+  }
+
+  static addToCart(weekId: string, paymentType: 'full' | 'deposit', week: any, location?: string, studentId?: string, studentName?: string): { success: boolean; error?: string; currentLocation?: string } {
+    const cart = this.getCart();
+    
+    // Check if cart has items from a different location
+    if (location && cart.length > 0) {
+      const cartLocation = cart[0].location;
+      if (cartLocation && cartLocation !== location) {
+        return { 
+          success: false, 
+          error: 'location_mismatch',
+          currentLocation: cartLocation
+        };
+      }
+    }
+    
     // Remove any existing entry for this week
     const filteredCart = cart.filter(item => item.weekId !== weekId);
     
@@ -81,7 +111,9 @@ export class CartManager {
       });
       this.setCart(filteredCart);
       this.triggerCartUpdate();
+      return { success: true };
     }
+    return { success: false, error: 'invalid_week' };
   }
 
   static removeFromCart(weekId: string): void {
