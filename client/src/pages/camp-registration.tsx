@@ -214,7 +214,6 @@ export default function Register() {
         parentName: parentName.trim(),
         parentEmail: parentEmail.trim(),
         childName: childName.trim(),
-        processingFee: locationData[currentLocation].processingFee,
         locationName: locationData[currentLocation].name,
       });
       
@@ -701,27 +700,23 @@ export default function Register() {
               )}
               
               <div className="border-t border-white/20 pt-4">
-                <div className="space-y-2 mb-4 text-sm">
-                  <div className="flex justify-between text-white/80">
-                    <span>Subtotal:</span>
-                    <span>${cartSubtotal.toFixed(2)}</span>
-                  </div>
-                  {hasDiscount && (
+                {hasDiscount && (
+                  <div className="space-y-2 mb-4 text-sm">
+                    <div className="flex justify-between text-white/80">
+                      <span>Subtotal:</span>
+                      <span>${cartSubtotal.toFixed(2)}</span>
+                    </div>
                     <div className="flex justify-between text-green-400">
                       <span>Discount ({CartManager.getPromoCode()}):</span>
                       <span>-${discountAmount.toFixed(2)}</span>
                     </div>
-                  )}
-                  <div className="flex justify-between text-white/60">
-                    <span>Processing Fee:</span>
-                    <span>${locationData[currentLocation].processingFee.toFixed(2)}</span>
                   </div>
-                </div>
+                )}
                 <div className="flex justify-between text-lg font-semibold mb-2">
                   <span className="text-white">Total:</span>
-                  <span className="text-white">${(cartTotal + locationData[currentLocation].processingFee).toFixed(2)}</span>
+                  <span className="text-white">${cartTotal.toFixed(2)}</span>
                 </div>
-                <p className="text-white/50 text-xs mb-4">* Price includes taxes and Stripe processing fees</p>
+                <p className="text-white/50 text-xs mb-4">* 5% processing fee will be added at checkout</p>
                 <div className="bg-white/5 border border-white/10 rounded-lg p-3 mb-4">
                   <p className="text-white/70 text-xs text-center">
                     Want to avoid fees? Pay via Zelle or check — email us at{' '}

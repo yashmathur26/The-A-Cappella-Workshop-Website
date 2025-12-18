@@ -22,7 +22,6 @@ interface LocationData {
     full: number;
     deposit: number;
   };
-  processingFee: number;
   formUrl?: string;
 }
 
@@ -59,7 +58,6 @@ export function LocationProvider({ children }: { children: ReactNode }) {
         full: 500,
         deposit: 150,
       },
-      processingFee: 14.37,
     },
     'newton-wellesley': {
       name: 'Newton',
@@ -79,7 +77,6 @@ export function LocationProvider({ children }: { children: ReactNode }) {
         full: 600,
         deposit: 150,
       },
-      processingFee: 21.87,
     },
     wayland: {
       name: 'Wayland',
@@ -98,7 +95,6 @@ export function LocationProvider({ children }: { children: ReactNode }) {
         full: 600,
         deposit: 150,
       },
-      processingFee: 21.87,
     },
   };
 
