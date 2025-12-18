@@ -530,40 +530,7 @@ export default function Register() {
                 <GlassCard className="p-6">
                   <p className="text-white/80 mb-4">Please fill out your student information below.</p>
                   
-                  {/* Session ID for webhook setup */}
-                  <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                    <p className="text-blue-300 text-sm mb-2">📋 <strong>For webhook setup:</strong></p>
-                    <code className="text-blue-200 text-xs break-all">{sessionId}</code>
-                  </div>
-
-                  {/* TEST BUTTON - Remove this after webhook is set up */}
-                  {!formSubmitted && (
-                    <div className="mb-4">
-                      <Button
-                        onClick={async () => {
-                          try {
-                            await fetch('/api/google-form-submitted', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ sessionId })
-                            });
-                            toast({
-                              title: "Test Mode",
-                              description: "Form marked as submitted for testing",
-                            });
-                          } catch (error) {
-                            console.error('Error:', error);
-                          }
-                        }}
-                        className="w-full bg-orange-600 hover:bg-orange-700 text-white"
-                      >
-                        🧪 TEST: Mark Form as Submitted
-                      </Button>
-                      <p className="text-orange-300/80 text-xs mt-2">This is a test button - remove after webhook is working</p>
-                    </div>
-                  )}
-                  
-                  <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                  <div className="bg-white/5 rounded-lg p-4 border border-white/10 mb-4">
                     <iframe 
                       src="https://docs.google.com/forms/d/e/1FAIpQLSfU3ReIcBMTJge0QnuX-G1JaQo9av-pqt7AGHGA7PclvlRfKg/viewform?embedded=true" 
                       width="100%" 
@@ -576,6 +543,21 @@ export default function Register() {
                       Loading…
                     </iframe>
                   </div>
+
+                  {!formSubmitted && (
+                    <Button
+                      onClick={() => {
+                        setFormSubmitted(true);
+                        toast({
+                          title: "Form Confirmed! ✅",
+                          description: "You can now proceed to checkout.",
+                        });
+                      }}
+                      className="w-full bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      I've Submitted the Form — Proceed to Checkout
+                    </Button>
+                  )}
                 </GlassCard>
               </section>
             )}
