@@ -330,7 +330,7 @@ export default function Register() {
   return (
     <div className="min-h-screen">
       <div className="max-w-7xl mx-auto px-6 py-20">
-        <h1 className="text-4xl lg:text-5xl font-bold text-center mb-8 gradient-text">Register for Summer 2026</h1>
+        <h1 className={`text-4xl lg:text-5xl font-bold text-center mb-8 ${currentLocation === 'wayland' ? 'gradient-text-purple' : 'gradient-text'}`}>Register for Summer 2026</h1>
         
         {/* Payment Status Messages */}
         {paymentStatus === 'pending' && (
