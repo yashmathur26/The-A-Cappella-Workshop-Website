@@ -113,7 +113,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create checkout session for guest checkout
   app.post("/api/create-checkout-session", express.json(), async (req, res) => {
     try {
-      const { cartItems, promoCode, parentName, parentEmail, childName } = req.body;
+      const { cartItems, promoCode, parentName, parentEmail, childName, processingFee, locationName } = req.body;
       
       if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
         return res.status(400).json({ message: "Cart items are required" });
@@ -198,6 +198,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
             quantity: 1,
           };
         });
+
+        // Add processing fee as a separate line item
+        if (processingFee && processingFee > 0) {
+          lineItems.push({
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: 'Processing Fee (Taxes & Stripe)',
+                description: 'To avoid this fee, pay via Zelle or check - email theacappellaworkshop@gmail.com',
+              },
+              unit_amount: Math.round(processingFee * 100),
+            },
+            quantity: 1,
+          });
+        }
       }
 
       // Create checkout session

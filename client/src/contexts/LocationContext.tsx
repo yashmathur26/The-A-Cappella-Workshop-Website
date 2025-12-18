@@ -22,6 +22,7 @@ interface LocationData {
     full: number;
     deposit: number;
   };
+  processingFee: number;
   formUrl?: string;
 }
 
@@ -58,6 +59,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
         full: 500,
         deposit: 150,
       },
+      processingFee: 14.37,
     },
     'newton-wellesley': {
       name: 'Newton',
@@ -77,6 +79,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
         full: 600,
         deposit: 150,
       },
+      processingFee: 21.87,
     },
     wayland: {
       name: 'Wayland',
@@ -89,12 +92,13 @@ export function LocationProvider({ children }: { children: ReactNode }) {
         gradient: 'bg-gradient-to-r from-purple-600 to-violet-600',
       },
       weeks: [
-        { id: "way-wk1", label: "August 3–7, 2026", price: 550, spots: 20 }
+        { id: "way-wk1", label: "August 3–7, 2026", price: 600, spots: 20 }
       ],
       pricing: {
-        full: 550,
+        full: 600,
         deposit: 150,
       },
+      processingFee: 21.87,
     },
   };
 
