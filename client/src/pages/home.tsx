@@ -32,17 +32,22 @@ export default function Home() {
     <div className="min-h-screen">
       {/* Hero Section */}
       <section className="relative py-8 lg:py-12 overflow-hidden">
-        <div className={`absolute inset-0 ${currentLocation === 'lexington' 
-          ? 'bg-gradient-to-r from-indigo-custom/20 to-teal-custom/20' 
-          : 'bg-gradient-to-r from-emerald-600/20 to-green-500/20'
+        <div className={`absolute inset-0 ${
+          currentLocation === 'lexington' 
+            ? 'bg-gradient-to-r from-indigo-custom/20 to-teal-custom/20' 
+            : currentLocation === 'newton-wellesley'
+            ? 'bg-gradient-to-r from-emerald-600/20 to-green-500/20'
+            : 'bg-gradient-to-r from-purple-600/20 to-violet-500/20'
         }`}></div>
         <div className="max-w-6xl mx-auto px-6 relative z-10">
           <div className="text-center reveal-in">
             <h1 className="text-4xl lg:text-6xl font-bold mb-6 leading-tight text-white">
               {currentLocation === 'lexington' ? (
                 <><span className="gradient-text">Lexington</span> A Cappella Workshop</>
-              ) : (
+              ) : currentLocation === 'newton-wellesley' ? (
                 <><span className="bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent">Newton</span> A Cappella Workshop</>
+              ) : (
+                <><span className="bg-gradient-to-r from-purple-400 to-violet-400 bg-clip-text text-transparent">Wayland</span> A Cappella Workshop</>
               )}
             </h1>
             <p className="text-xl lg:text-2xl text-white/80 mb-4 max-w-3xl mx-auto">
@@ -51,25 +56,36 @@ export default function Home() {
             <p className="text-lg text-white/70 mb-8 max-w-3xl mx-auto">
               A modern a cappella camp for rising 6th–9th graders.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/register">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center flex-wrap">
+              <Link href="/camp-registration">
                 <GradientButton size="lg">Register Now</GradientButton>
               </Link>
-              {currentLocation === 'lexington' ? (
-                <button 
-                  onClick={() => setLocation('newton-wellesley')}
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3 rounded-full font-medium transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-blue-500/25"
-                >
-                  Explore Newton
-                </button>
-              ) : (
-                <button 
-                  onClick={() => setLocation('lexington')}
-                  className="bg-gradient-to-r from-emerald-700 to-green-600 hover:from-emerald-800 hover:to-green-700 text-white px-8 py-3 rounded-full font-medium transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-emerald-500/25"
-                >
-                  Back to Lexington
-                </button>
-              )}
+              <div className="flex gap-3 flex-wrap justify-center">
+                {currentLocation !== 'lexington' && (
+                  <button 
+                    onClick={() => setLocation('lexington')}
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-3 rounded-full font-medium transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-blue-500/25"
+                  >
+                    Lexington
+                  </button>
+                )}
+                {currentLocation !== 'newton-wellesley' && (
+                  <button 
+                    onClick={() => setLocation('newton-wellesley')}
+                    className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white px-6 py-3 rounded-full font-medium transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-emerald-500/25"
+                  >
+                    Newton
+                  </button>
+                )}
+                {currentLocation !== 'wayland' && (
+                  <button 
+                    onClick={() => setLocation('wayland')}
+                    className="bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 text-white px-6 py-3 rounded-full font-medium transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25"
+                  >
+                    Wayland
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

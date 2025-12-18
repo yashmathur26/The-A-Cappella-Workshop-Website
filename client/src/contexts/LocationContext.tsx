@@ -1,54 +1,34 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-export type Location = 'lexington' | 'newton-wellesley';
+export type Location = 'lexington' | 'newton-wellesley' | 'wayland';
+
+interface LocationData {
+  name: string;
+  fullName: string;
+  heroTitle: string;
+  heroSubtitle: string;
+  colors: {
+    primary: string;
+    accent: string;
+    gradient: string;
+  };
+  weeks: Array<{
+    id: string;
+    label: string;
+    price: number;
+    spots: number;
+  }>;
+  pricing: {
+    full: number;
+    deposit: number;
+  };
+  formUrl?: string;
+}
 
 interface LocationContextType {
   currentLocation: Location;
   setLocation: (location: Location) => void;
-  locationData: {
-    lexington: {
-      name: string;
-      fullName: string;
-      heroTitle: string;
-      heroSubtitle: string;
-      colors: {
-        primary: string;
-        accent: string;
-        gradient: string;
-      };
-      weeks: Array<{
-        id: string;
-        label: string;
-        price: number;
-        spots: number;
-      }>;
-      pricing: {
-        full: number;
-        deposit: number;
-      };
-    };
-    'newton-wellesley': {
-      name: string;
-      fullName: string;
-      heroTitle: string;
-      heroSubtitle: string;
-      colors: {
-        primary: string;
-        accent: string;
-        gradient: string;
-      };
-      weeks: Array<{
-        id: string;
-        label: string;
-        price: number;
-        spots: number;
-      }>;
-      pricing: {
-        full: number;
-        deposit: number;
-      };
-    };
-  };
+  locationData: Record<Location, LocationData>;
 }
 
 const LocationContext = createContext<LocationContextType | undefined>(undefined);
@@ -56,7 +36,7 @@ const LocationContext = createContext<LocationContextType | undefined>(undefined
 export function LocationProvider({ children }: { children: ReactNode }) {
   const [currentLocation, setCurrentLocation] = useState<Location>('lexington');
 
-  const locationData = {
+  const locationData: Record<Location, LocationData> = {
     lexington: {
       name: 'Lexington',
       fullName: 'Lexington A Cappella Camp',
@@ -97,6 +77,25 @@ export function LocationProvider({ children }: { children: ReactNode }) {
         deposit: 150,
       },
     },
+    wayland: {
+      name: 'Wayland',
+      fullName: 'Wayland A Cappella Camp',
+      heroTitle: 'Wayland A Cappella Workshop',
+      heroSubtitle: 'Find Your Harmony. Share Your Voice.',
+      colors: {
+        primary: 'from-purple-500 via-violet-500 to-fuchsia-400',
+        accent: 'text-violet-400',
+        gradient: 'bg-gradient-to-r from-purple-600 to-violet-600',
+      },
+      weeks: [
+        { id: "way-wk1", label: "July 6–10, 2026", price: 550, spots: 20 },
+        { id: "way-wk2", label: "July 13–17, 2026", price: 550, spots: 20 }
+      ],
+      pricing: {
+        full: 550,
+        deposit: 150,
+      },
+    },
   };
 
   const setLocation = (location: Location) => {
@@ -107,7 +106,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
   // Load saved location on mount and apply theme
   useEffect(() => {
     const saved = localStorage.getItem('acapella-location') as Location;
-    if (saved && (saved === 'lexington' || saved === 'newton-wellesley')) {
+    if (saved && (saved === 'lexington' || saved === 'newton-wellesley' || saved === 'wayland')) {
       setCurrentLocation(saved);
     }
   }, []);
@@ -115,12 +114,12 @@ export function LocationProvider({ children }: { children: ReactNode }) {
   // Apply location-based CSS class to body
   useEffect(() => {
     // Remove any existing location classes
-    document.body.classList.remove('location-lexington', 'location-newton-wellesley');
+    document.body.classList.remove('location-lexington', 'location-newton-wellesley', 'location-wayland');
     // Add the current location class
     document.body.classList.add(`location-${currentLocation}`);
     
     return () => {
-      document.body.classList.remove('location-lexington', 'location-newton-wellesley');
+      document.body.classList.remove('location-lexington', 'location-newton-wellesley', 'location-wayland');
     };
   }, [currentLocation]);
 

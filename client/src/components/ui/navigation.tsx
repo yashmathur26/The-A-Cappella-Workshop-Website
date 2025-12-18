@@ -123,6 +123,13 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
                   <MapPin className="w-4 h-4 mr-2" />
                   Newton
                 </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => setAppLocation('wayland')}
+                  className={`cursor-pointer hover:bg-gray-800 ${currentLocation === 'wayland' ? 'bg-purple-900/50' : ''}`}
+                >
+                  <MapPin className="w-4 h-4 mr-2" />
+                  Wayland
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
             
@@ -168,40 +175,15 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
                   {link.label}
                 </Link>
               ))}
-              {isAuthenticated ? (
-                <div className="space-y-4">
-                  <Link href="/account" className="flex items-center space-x-2 text-white/80 hover:text-white">
-                    <User size={18} />
-                    <span>Account ({user?.email?.split('@')[0]})</span>
-                  </Link>
-                  <Button
-                    onClick={() => logoutMutation.mutate()}
-                    variant="ghost"
-                    className="w-full text-white/80 hover:text-white hover:bg-white/10"
-                    disabled={logoutMutation.isPending}
-                  >
-                    <LogOut size={16} className="mr-2" />
-                    Sign Out
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <Link
-                    href="/login"
-                    className="btn-gradient-secondary px-6 py-2 rounded-full text-white font-medium inline-block text-center"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Sign In
-                  </Link>
-                  <Link
-                    href="/camp-registration"
-                    className="btn-gradient px-6 py-2 rounded-full text-white font-medium inline-block text-center"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Register
-                  </Link>
-                </div>
-              )}
+              <div className="space-y-3">
+                <Link
+                  href="/camp-registration"
+                  className="btn-gradient px-6 py-2 rounded-full text-white font-medium inline-block text-center"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Register Now
+                </Link>
+              </div>
             </div>
           </div>
         )}
