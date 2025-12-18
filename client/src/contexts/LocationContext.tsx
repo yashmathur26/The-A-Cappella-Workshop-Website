@@ -70,7 +70,8 @@ export function LocationProvider({ children }: { children: ReactNode }) {
         gradient: 'bg-gradient-to-r from-emerald-600 to-green-600',
       },
       weeks: [
-        { id: "nw-wk1", label: "August 17–21, 2026", price: 600, spots: 20 }
+        { id: "nw-wk1", label: "August 10–14, 2026", price: 600, spots: 20 },
+        { id: "nw-wk2", label: "August 17–21, 2026", price: 600, spots: 20 }
       ],
       pricing: {
         full: 600,
@@ -88,8 +89,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
         gradient: 'bg-gradient-to-r from-purple-600 to-violet-600',
       },
       weeks: [
-        { id: "way-wk1", label: "July 6–10, 2026", price: 550, spots: 20 },
-        { id: "way-wk2", label: "July 13–17, 2026", price: 550, spots: 20 }
+        { id: "way-wk1", label: "August 3–7, 2026", price: 550, spots: 20 }
       ],
       pricing: {
         full: 550,
