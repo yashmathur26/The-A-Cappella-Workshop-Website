@@ -102,6 +102,14 @@ body.location-wayland {
     background-clip: text;
   }
 
+  /* Purple gradient text for Wayland */
+  .gradient-text-purple {
+    background: linear-gradient(90deg, #9333ea, #a855f7 50%, #c084fc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
   /* Brand text styling */
   .brand-text {
     text-shadow: 0 0 20px rgba(14, 165, 233, 0.6), 0 0 40px rgba(14, 165, 233, 0.3);

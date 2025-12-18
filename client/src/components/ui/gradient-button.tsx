@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 
 interface GradientButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
-  variant?: 'primary' | 'ghost';
+  variant?: 'primary' | 'ghost' | 'purple';
   size?: 'sm' | 'md' | 'lg';
 }
 
@@ -18,7 +18,8 @@ export function GradientButton({
   
   const variantClasses = {
     primary: 'btn-gradient text-white',
-    ghost: 'glass-card text-white hover:bg-white/20'
+    ghost: 'glass-card text-white hover:bg-white/20',
+    purple: 'bg-gradient-to-r from-purple-600 via-violet-600 to-fuchsia-500 text-white hover:from-purple-700 hover:via-violet-700 hover:to-fuchsia-600 shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40'
   };
 
   const sizeClasses = {

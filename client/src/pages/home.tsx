@@ -58,7 +58,7 @@ export default function Home() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center flex-wrap">
               <Link href="/camp-registration">
-                <GradientButton size="lg">Register Now</GradientButton>
+                <GradientButton size="lg" variant={currentLocation === 'wayland' ? 'purple' : 'primary'}>Register Now</GradientButton>
               </Link>
               <div className="flex gap-3 flex-wrap justify-center">
                 {currentLocation !== 'lexington' && (
@@ -95,43 +95,27 @@ export default function Home() {
       {/* Welcome Video Section */}
       <section className="py-6">
         <div className="max-w-4xl mx-auto px-6">
-          {currentLocation === 'lexington' ? (
-            <GlassCard className="p-8 reveal-in" hover>
-              <div className="text-center mb-8">
-                <h2 className="text-3xl lg:text-4xl font-bold mb-4 gradient-text">Welcome to Camp</h2>
-                <p className="text-xl text-white/80">Watch our welcome message and see what makes The A Cappella Workshop special</p>
-              </div>
-              
-              <div className="aspect-video bg-gradient-to-br from-indigo-custom/30 to-teal-custom/30 rounded-lg flex items-center justify-center relative overflow-hidden border border-white/20">
-                <div className="absolute inset-0 bg-black/20"></div>
-                <div className="relative z-10 text-center">
-                  <div className="w-24 h-24 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mb-6 mx-auto hover:bg-white/30 transition-colors cursor-pointer">
-                    <Play className="text-white ml-2" size={40} />
-                  </div>
-                  <h3 className="text-2xl font-bold text-white mb-2">Welcome Video</h3>
-                  <p className="text-white/80">Click here when your welcome video is ready to upload</p>
+          <GlassCard className="p-8 reveal-in" hover>
+            <div className="text-center mb-8">
+              <h2 className={`text-3xl lg:text-4xl font-bold mb-4 ${currentLocation === 'wayland' ? 'gradient-text-purple' : 'gradient-text'}`}>Welcome to Camp</h2>
+              <p className="text-xl text-white/80">Watch our welcome message and see what makes The A Cappella Workshop special</p>
+            </div>
+            
+            <div className={`aspect-video rounded-lg flex items-center justify-center relative overflow-hidden border border-white/20 ${
+              currentLocation === 'wayland' 
+                ? 'bg-gradient-to-br from-purple-600/30 to-violet-600/30' 
+                : 'bg-gradient-to-br from-indigo-custom/30 to-teal-custom/30'
+            }`}>
+              <div className="absolute inset-0 bg-black/20"></div>
+              <div className="relative z-10 text-center">
+                <div className="w-24 h-24 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mb-6 mx-auto hover:bg-white/30 transition-colors cursor-pointer">
+                  <Play className="text-white ml-2" size={40} />
                 </div>
+                <h3 className="text-2xl font-bold text-white mb-2">Welcome Video</h3>
+                <p className="text-white/80">Click here when your welcome video is ready to upload</p>
               </div>
-            </GlassCard>
-          ) : (
-            <GlassCard className="p-8 reveal-in" hover>
-              <div className="text-center mb-8">
-                <h2 className="text-3xl lg:text-4xl font-bold mb-4 gradient-text">Welcome to Camp</h2>
-                <p className="text-xl text-white/80">Watch our welcome message and see what makes The A Cappella Workshop special</p>
-              </div>
-              
-              <div className="aspect-video bg-gradient-to-br from-indigo-custom/30 to-teal-custom/30 rounded-lg flex items-center justify-center relative overflow-hidden border border-white/20">
-                <div className="absolute inset-0 bg-black/20"></div>
-                <div className="relative z-10 text-center">
-                  <div className="w-24 h-24 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mb-6 mx-auto hover:bg-white/30 transition-colors cursor-pointer">
-                    <Play className="text-white ml-2" size={40} />
-                  </div>
-                  <h3 className="text-2xl font-bold text-white mb-2">Welcome Video</h3>
-                  <p className="text-white/80">Click here when your welcome video is ready to upload</p>
-                </div>
-              </div>
-            </GlassCard>
-          )}
+            </div>
+          </GlassCard>
         </div>
       </section>
 
@@ -139,7 +123,7 @@ export default function Home() {
       <section className="py-16 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-indigo-custom/10 via-sky-custom/5 to-teal-custom/10"></div>
         <div className="max-w-6xl mx-auto px-6 relative z-10">
-          <h2 className="text-3xl lg:text-4xl font-bold text-center mb-16 gradient-text">What Makes Us Special</h2>
+          <h2 className={`text-3xl lg:text-4xl font-bold text-center mb-16 ${currentLocation === 'wayland' ? 'gradient-text-purple' : 'gradient-text'}`}>What Makes Us Special</h2>
           <div className="grid md:grid-cols-3 gap-12">
             <GlassCard className="p-10 reveal-in animate-slide-up relative group overflow-hidden" hover>
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-custom/20 to-sky-custom/20 rounded-full -translate-y-16 translate-x-16 group-hover:scale-150 transition-transform duration-700"></div>
@@ -181,7 +165,7 @@ export default function Home() {
       {/* Get in Touch Section */}
       <section className="py-6">
         <div className="max-w-6xl mx-auto px-6">
-          <h2 className="text-3xl lg:text-4xl font-bold text-center mb-12 reveal-in gradient-text">Get in Touch</h2>
+          <h2 className={`text-3xl lg:text-4xl font-bold text-center mb-12 reveal-in ${currentLocation === 'wayland' ? 'gradient-text-purple' : 'gradient-text'}`}>Get in Touch</h2>
           
           <div className="grid md:grid-cols-2 gap-8">
             {/* Left Column - Contact Info */}
@@ -267,7 +251,7 @@ export default function Home() {
       {/* Gallery Section */}
       <section className="py-6">
         <div className="max-w-6xl mx-auto px-6">
-          <h2 className="text-3xl lg:text-4xl font-bold text-center mb-12 reveal-in gradient-text">Experience the Magic</h2>
+          <h2 className={`text-3xl lg:text-4xl font-bold text-center mb-12 reveal-in ${currentLocation === 'wayland' ? 'gradient-text-purple' : 'gradient-text'}`}>Experience the Magic</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
               "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
