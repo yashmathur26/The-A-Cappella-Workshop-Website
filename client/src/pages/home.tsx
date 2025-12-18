@@ -37,7 +37,7 @@ export default function Home() {
             ? 'bg-gradient-to-r from-indigo-custom/20 to-teal-custom/20' 
             : currentLocation === 'newton-wellesley'
             ? 'bg-gradient-to-r from-emerald-600/20 to-green-500/20'
-            : 'bg-gradient-to-r from-purple-600/20 to-violet-500/20'
+            : 'bg-gradient-to-r from-purple-300/20 to-violet-300/20'
         }`}></div>
         <div className="max-w-6xl mx-auto px-6 relative z-10">
           <div className="text-center reveal-in">
@@ -47,7 +47,7 @@ export default function Home() {
               ) : currentLocation === 'newton-wellesley' ? (
                 <><span className="bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent">Newton</span> A Cappella Workshop</>
               ) : (
-                <><span className="bg-gradient-to-r from-purple-400 to-violet-400 bg-clip-text text-transparent">Wayland</span> A Cappella Workshop</>
+                <><span className="bg-gradient-to-r from-purple-300 to-violet-300 bg-clip-text text-transparent">Wayland</span> A Cappella Workshop</>
               )}
             </h1>
             <p className="text-xl lg:text-2xl text-white/80 mb-4 max-w-3xl mx-auto">
@@ -80,7 +80,7 @@ export default function Home() {
                 {currentLocation !== 'wayland' && (
                   <button 
                     onClick={() => setLocation('wayland')}
-                    className="bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 text-white px-6 py-3 rounded-full font-medium transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25"
+                    className="bg-purple-300 hover:bg-purple-400 text-gray-900 px-6 py-3 rounded-full font-medium transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-purple-300/25"
                   >
                     Wayland
                   </button>
@@ -103,7 +103,7 @@ export default function Home() {
             
             <div className={`aspect-video rounded-lg flex items-center justify-center relative overflow-hidden border border-white/20 ${
               currentLocation === 'wayland' 
-                ? 'bg-gradient-to-br from-purple-600/30 to-violet-600/30' 
+                ? 'bg-gradient-to-br from-purple-300/30 to-violet-300/30' 
                 : 'bg-gradient-to-br from-indigo-custom/30 to-teal-custom/30'
             }`}>
               <div className="absolute inset-0 bg-black/20"></div>
@@ -121,39 +121,39 @@ export default function Home() {
 
       {/* Highlights Section */}
       <section className="py-16 relative overflow-hidden">
-        <div className={`absolute inset-0 ${currentLocation === 'wayland' ? 'bg-gradient-to-r from-purple-600/10 via-violet-500/5 to-fuchsia-500/10' : 'bg-gradient-to-r from-indigo-custom/10 via-sky-custom/5 to-teal-custom/10'}`}></div>
+        <div className={`absolute inset-0 ${currentLocation === 'wayland' ? 'bg-gradient-to-r from-purple-300/10 via-violet-300/5 to-fuchsia-300/10' : 'bg-gradient-to-r from-indigo-custom/10 via-sky-custom/5 to-teal-custom/10'}`}></div>
         <div className="max-w-6xl mx-auto px-6 relative z-10">
           <h2 className={`text-3xl lg:text-4xl font-bold text-center mb-16 ${currentLocation === 'wayland' ? 'gradient-text-purple' : 'gradient-text'}`}>What Makes Us Special</h2>
           <div className="grid md:grid-cols-3 gap-12">
             <GlassCard className="p-10 reveal-in animate-slide-up relative group overflow-hidden" hover>
-              <div className={`absolute top-0 right-0 w-32 h-32 rounded-full -translate-y-16 translate-x-16 group-hover:scale-150 transition-transform duration-700 ${currentLocation === 'wayland' ? 'bg-gradient-to-br from-purple-600/20 to-violet-500/20' : 'bg-gradient-to-br from-indigo-custom/20 to-sky-custom/20'}`}></div>
+              <div className={`absolute top-0 right-0 w-32 h-32 rounded-full -translate-y-16 translate-x-16 group-hover:scale-150 transition-transform duration-700 ${currentLocation === 'wayland' ? 'bg-gradient-to-br from-purple-300/20 to-violet-300/20' : 'bg-gradient-to-br from-indigo-custom/20 to-sky-custom/20'}`}></div>
               <div className="relative z-10">
-                <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-8 animate-float shadow-lg ${currentLocation === 'wayland' ? 'bg-gradient-to-br from-purple-600 to-violet-500 shadow-purple-500/30' : 'bg-gradient-to-br from-indigo-custom to-sky-custom shadow-indigo-custom/30'}`}>
+                <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-8 animate-float shadow-lg ${currentLocation === 'wayland' ? 'bg-gradient-to-br from-purple-300 to-violet-300 shadow-purple-300/30' : 'bg-gradient-to-br from-indigo-custom to-sky-custom shadow-indigo-custom/30'}`}>
                   <Users className="text-white" size={36} />
                 </div>
-                <h3 className={`text-2xl font-bold mb-6 transition-colors duration-300 ${currentLocation === 'wayland' ? 'text-violet-400 group-hover:text-purple-400' : 'text-teal-custom group-hover:text-sky-custom'}`}>Teacher-guided small-group singing</h3>
+                <h3 className={`text-2xl font-bold mb-6 transition-colors duration-300 ${currentLocation === 'wayland' ? 'text-violet-300 group-hover:text-purple-300' : 'text-teal-custom group-hover:text-sky-custom'}`}>Teacher-guided small-group singing</h3>
                 <p className="text-white/90 leading-relaxed">Build confidence through harmony, blend, and teamwork in supportive peer groups.</p>
               </div>
             </GlassCard>
             
             <GlassCard className="p-10 reveal-in animate-slide-up relative group overflow-hidden" hover>
-              <div className={`absolute top-0 right-0 w-32 h-32 rounded-full -translate-y-16 translate-x-16 group-hover:scale-150 transition-transform duration-700 ${currentLocation === 'wayland' ? 'bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20' : 'bg-gradient-to-br from-sky-custom/20 to-teal-custom/20'}`}></div>
+              <div className={`absolute top-0 right-0 w-32 h-32 rounded-full -translate-y-16 translate-x-16 group-hover:scale-150 transition-transform duration-700 ${currentLocation === 'wayland' ? 'bg-gradient-to-br from-violet-300/20 to-fuchsia-300/20' : 'bg-gradient-to-br from-sky-custom/20 to-teal-custom/20'}`}></div>
               <div className="relative z-10">
-                <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-8 animate-pulse-soft shadow-lg ${currentLocation === 'wayland' ? 'bg-gradient-to-br from-violet-500 to-fuchsia-500 shadow-violet-500/30' : 'bg-gradient-to-br from-sky-custom to-teal-custom shadow-sky-custom/30'}`}>
+                <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-8 animate-pulse-soft shadow-lg ${currentLocation === 'wayland' ? 'bg-gradient-to-br from-violet-300 to-fuchsia-300 shadow-violet-300/30' : 'bg-gradient-to-br from-sky-custom to-teal-custom shadow-sky-custom/30'}`}>
                   <GraduationCap className="text-white" size={36} />
                 </div>
-                <h3 className={`text-2xl font-bold mb-6 transition-colors duration-300 ${currentLocation === 'wayland' ? 'text-purple-400 group-hover:text-violet-400' : 'text-sky-custom group-hover:text-teal-custom'}`}>Skills that last</h3>
+                <h3 className={`text-2xl font-bold mb-6 transition-colors duration-300 ${currentLocation === 'wayland' ? 'text-purple-300 group-hover:text-violet-300' : 'text-sky-custom group-hover:text-teal-custom'}`}>Skills that last</h3>
                 <p className="text-white/90 leading-relaxed">Beatboxing, arranging, music theory, and rehearsal strategies you'll use forever.</p>
               </div>
             </GlassCard>
             
             <GlassCard className="p-10 reveal-in animate-slide-up relative group overflow-hidden" hover>
-              <div className={`absolute top-0 right-0 w-32 h-32 rounded-full -translate-y-16 translate-x-16 group-hover:scale-150 transition-transform duration-700 ${currentLocation === 'wayland' ? 'bg-gradient-to-br from-fuchsia-500/20 to-purple-600/20' : 'bg-gradient-to-br from-teal-custom/20 to-indigo-custom/20'}`}></div>
+              <div className={`absolute top-0 right-0 w-32 h-32 rounded-full -translate-y-16 translate-x-16 group-hover:scale-150 transition-transform duration-700 ${currentLocation === 'wayland' ? 'bg-gradient-to-br from-fuchsia-300/20 to-purple-300/20' : 'bg-gradient-to-br from-teal-custom/20 to-indigo-custom/20'}`}></div>
               <div className="relative z-10">
-                <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-8 animate-float shadow-lg ${currentLocation === 'wayland' ? 'bg-gradient-to-br from-fuchsia-500 to-purple-600 shadow-fuchsia-500/30' : 'bg-gradient-to-br from-teal-custom to-indigo-custom shadow-teal-custom/30'}`}>
+                <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-8 animate-float shadow-lg ${currentLocation === 'wayland' ? 'bg-gradient-to-br from-fuchsia-300 to-purple-300 shadow-fuchsia-300/30' : 'bg-gradient-to-br from-teal-custom to-indigo-custom shadow-teal-custom/30'}`}>
                   <Star className="text-white" size={36} />
                 </div>
-                <h3 className={`text-2xl font-bold mb-6 transition-colors duration-300 ${currentLocation === 'wayland' ? 'text-fuchsia-400 group-hover:text-purple-400' : 'text-indigo-custom group-hover:text-teal-custom'}`}>End-of-week performance</h3>
+                <h3 className={`text-2xl font-bold mb-6 transition-colors duration-300 ${currentLocation === 'wayland' ? 'text-fuchsia-300 group-hover:text-purple-300' : 'text-indigo-custom group-hover:text-teal-custom'}`}>End-of-week performance</h3>
                 <p className="text-white/90 leading-relaxed">Families invited Friday at 4:00 PM to celebrate your musical journey.</p>
               </div>
             </GlassCard>
@@ -172,11 +172,11 @@ export default function Home() {
             <div className="space-y-8">
               <GlassCard className="p-6 reveal-in animate-slide-up" hover>
                 <div className="flex items-start space-x-4">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center animate-pulse-soft ${currentLocation === 'wayland' ? 'bg-gradient-to-br from-purple-600 to-violet-500' : 'bg-gradient-to-br from-indigo-custom to-sky-custom'}`}>
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center animate-pulse-soft ${currentLocation === 'wayland' ? 'bg-gradient-to-br from-purple-300 to-violet-300' : 'bg-gradient-to-br from-indigo-custom to-sky-custom'}`}>
                     <Phone className="text-white" size={20} />
                   </div>
                   <div>
-                    <h4 className={`text-lg font-semibold mb-2 ${currentLocation === 'wayland' ? 'text-violet-400' : 'text-sky-custom'}`}>Phone</h4>
+                    <h4 className={`text-lg font-semibold mb-2 ${currentLocation === 'wayland' ? 'text-violet-300' : 'text-sky-custom'}`}>Phone</h4>
                     <p className="text-white/90">(339) 223-4581</p>
                     <p className="text-white/90">(555) 123-CAMP</p>
                   </div>
@@ -185,11 +185,11 @@ export default function Home() {
 
               <GlassCard className="p-6 reveal-in animate-slide-up" hover>
                 <div className="flex items-start space-x-4">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center animate-pulse-soft ${currentLocation === 'wayland' ? 'bg-gradient-to-br from-violet-500 to-fuchsia-500' : 'bg-gradient-to-br from-sky-custom to-teal-custom'}`}>
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center animate-pulse-soft ${currentLocation === 'wayland' ? 'bg-gradient-to-br from-violet-300 to-fuchsia-300' : 'bg-gradient-to-br from-sky-custom to-teal-custom'}`}>
                     <Mail className="text-white" size={20} />
                   </div>
                   <div>
-                    <h4 className={`text-lg font-semibold mb-2 ${currentLocation === 'wayland' ? 'text-purple-400' : 'text-sky-custom'}`}>Email</h4>
+                    <h4 className={`text-lg font-semibold mb-2 ${currentLocation === 'wayland' ? 'text-purple-300' : 'text-sky-custom'}`}>Email</h4>
                     <p className="text-white/90">theacappellaworkshop@gmail.com</p>
                   </div>
                 </div>
@@ -197,11 +197,11 @@ export default function Home() {
 
               <GlassCard className="p-6 reveal-in animate-slide-up" hover>
                 <div className="flex items-start space-x-4">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center animate-pulse-soft ${currentLocation === 'wayland' ? 'bg-gradient-to-br from-fuchsia-500 to-purple-600' : 'bg-gradient-to-br from-teal-custom to-indigo-custom'}`}>
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center animate-pulse-soft ${currentLocation === 'wayland' ? 'bg-gradient-to-br from-fuchsia-300 to-purple-300' : 'bg-gradient-to-br from-teal-custom to-indigo-custom'}`}>
                     <MapPin className="text-white" size={20} />
                   </div>
                   <div>
-                    <h4 className={`text-lg font-semibold mb-2 ${currentLocation === 'wayland' ? 'text-fuchsia-400' : 'text-sky-custom'}`}>Address</h4>
+                    <h4 className={`text-lg font-semibold mb-2 ${currentLocation === 'wayland' ? 'text-fuchsia-300' : 'text-sky-custom'}`}>Address</h4>
                     <p className="text-white/90">Temple Emunah</p>
                     <p className="text-white/90">9 Piper Rd, Lexington, MA</p>
                   </div>
@@ -210,11 +210,11 @@ export default function Home() {
 
               <GlassCard className="p-6 reveal-in animate-slide-up" hover>
                 <div className="flex items-start space-x-4">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center animate-pulse-soft ${currentLocation === 'wayland' ? 'bg-gradient-to-br from-purple-600 to-violet-500' : 'bg-gradient-to-br from-indigo-custom to-teal-custom'}`}>
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center animate-pulse-soft ${currentLocation === 'wayland' ? 'bg-gradient-to-br from-purple-300 to-violet-300' : 'bg-gradient-to-br from-indigo-custom to-teal-custom'}`}>
                     <Clock className="text-white" size={20} />
                   </div>
                   <div>
-                    <h4 className={`text-lg font-semibold mb-2 ${currentLocation === 'wayland' ? 'text-violet-400' : 'text-sky-custom'}`}>Camp Hours</h4>
+                    <h4 className={`text-lg font-semibold mb-2 ${currentLocation === 'wayland' ? 'text-violet-300' : 'text-sky-custom'}`}>Camp Hours</h4>
                     <p className="text-white/90">Monday - Friday: 9:00 AM - 4:00 PM</p>
                     <p className="text-white/90">Weekend: Closed</p>
                   </div>
@@ -225,7 +225,7 @@ export default function Home() {
             {/* Right Column - Location Map */}
             <div className="space-y-8">
               <GlassCard className="p-8 h-full reveal-in animate-slide-up">
-                <h3 className={`text-2xl font-bold mb-6 ${currentLocation === 'wayland' ? 'text-violet-400' : 'text-teal-custom'}`}>Find Us</h3>
+                <h3 className={`text-2xl font-bold mb-6 ${currentLocation === 'wayland' ? 'text-violet-300' : 'text-teal-custom'}`}>Find Us</h3>
                 <div className="mb-4">
                   <p className="text-white/90 font-medium">Temple Emunah</p>
                   <p className="text-white/70">9 Piper Rd, Lexington, MA</p>
