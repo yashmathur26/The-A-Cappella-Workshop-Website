@@ -177,8 +177,7 @@ export default function Home() {
                   </div>
                   <div>
                     <h4 className={`text-lg font-semibold mb-2 ${currentLocation === 'wayland' ? 'text-violet-300' : 'text-sky-custom'}`}>Phone</h4>
-                    <p className="text-white/90">(339) 223-4581</p>
-                    <p className="text-white/90">(555) 123-CAMP</p>
+                    <p className="text-white/90">{locationData[currentLocation].phone}</p>
                   </div>
                 </div>
               </GlassCard>
@@ -202,8 +201,8 @@ export default function Home() {
                   </div>
                   <div>
                     <h4 className={`text-lg font-semibold mb-2 ${currentLocation === 'wayland' ? 'text-fuchsia-300' : 'text-sky-custom'}`}>Address</h4>
-                    <p className="text-white/90">Temple Emunah</p>
-                    <p className="text-white/90">9 Piper Rd, Lexington, MA</p>
+                    <p className="text-white/90">{locationData[currentLocation].address}</p>
+                    <p className="text-white/90">{locationData[currentLocation].addressLine2}</p>
                   </div>
                 </div>
               </GlassCard>
@@ -227,8 +226,8 @@ export default function Home() {
               <GlassCard className="p-8 h-full reveal-in animate-slide-up">
                 <h3 className={`text-2xl font-bold mb-6 ${currentLocation === 'wayland' ? 'text-violet-300' : 'text-teal-custom'}`}>Find Us</h3>
                 <div className="mb-4">
-                  <p className="text-white/90 font-medium">Temple Emunah</p>
-                  <p className="text-white/70">9 Piper Rd, Lexington, MA</p>
+                  <p className="text-white/90 font-medium">{locationData[currentLocation].address}</p>
+                  <p className="text-white/70">{locationData[currentLocation].addressLine2}</p>
                 </div>
                 <div className="h-96 rounded-lg overflow-hidden border border-white/20">
                   <iframe

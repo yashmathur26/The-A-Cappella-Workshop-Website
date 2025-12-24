@@ -5,7 +5,7 @@ import { useLocation } from '@/contexts/LocationContext';
 
 export default function FAQ() {
   const [openSection, setOpenSection] = useState<string | null>(null);
-  const { currentLocation } = useLocation();
+  const { currentLocation, locationData } = useLocation();
 
   const getFAQSections = () => [
     {
@@ -23,47 +23,27 @@ export default function FAQ() {
       title: 'Schedule & Logistics',
       content: (
         <div className="space-y-4">
-          {currentLocation === 'lexington' ? (
-            <>
-              <div>
-                <h4 className="font-semibold mb-2 text-white text-lg">Location:</h4>
-                <p className="text-white text-base">Temple Emunah, 9 Piper Rd, Lexington, MA 02421</p>
-              </div>
-              <div>
-                <h4 className="font-semibold mb-2 text-white text-lg">Dates:</h4>
-                <p className="text-white text-base">Multiple week options available throughout the summer</p>
-              </div>
-              <div>
-                <h4 className="font-semibold mb-2 text-white text-lg">Times:</h4>
-                <p className="text-white text-base">Monday through Friday, 9:00 AM – 4:00 PM</p>
-                <p className="text-white text-sm mt-2">Each day is carefully structured to balance intensive vocal training, creative collaboration, and fun activities. Students will participate in small group rehearsals, skill-building workshops, and individual coaching sessions throughout the week.</p>
-              </div>
-            </>
-          ) : (
-            <>
-              <div>
-                <h4 className="font-semibold mb-2 text-white text-lg">Where:</h4>
-                <p className="text-white text-base">Hebrew College, 1860 Washington St, Newton, MA</p>
-              </div>
-              <div>
-                <h4 className="font-semibold mb-2 text-white text-lg">Dates:</h4>
-                <p className="text-white text-base">Week of August 18th</p>
-              </div>
-              <div>
-                <h4 className="font-semibold mb-2 text-white text-lg">Times:</h4>
-                <p className="text-white text-base">9am to 4pm, Monday through Friday</p>
-                <p className="text-white text-sm mt-2">Each day is carefully structured to balance intensive vocal training, creative collaboration, and fun activities. Students will participate in small group rehearsals, skill-building workshops, and individual coaching sessions throughout the week.</p>
-              </div>
-              <div>
-                <h4 className="font-semibold mb-2 text-white text-lg">Who:</h4>
-                <p className="text-white text-base">For rising 6th, 7th, 8th, and 9th graders</p>
-              </div>
-              <div>
-                <h4 className="font-semibold mb-2 text-white text-lg">Price:</h4>
-                <p className="text-white text-base">$600 for one week of the workshop</p>
-              </div>
-            </>
-          )}
+          <div>
+            <h4 className="font-semibold mb-2 text-white text-lg">Location:</h4>
+            <p className="text-white text-base">{locationData[currentLocation].address}, {locationData[currentLocation].addressLine2}</p>
+          </div>
+          <div>
+            <h4 className="font-semibold mb-2 text-white text-lg">Dates:</h4>
+            <p className="text-white text-base">{currentLocation === 'lexington' ? 'Multiple week options available throughout the summer' : currentLocation === 'newton-wellesley' ? 'August 10-14 and August 17-21, 2026' : 'August 3-7, 2026'}</p>
+          </div>
+          <div>
+            <h4 className="font-semibold mb-2 text-white text-lg">Times:</h4>
+            <p className="text-white text-base">Monday through Friday, 9:00 AM – 4:00 PM</p>
+            <p className="text-white text-sm mt-2">Each day is carefully structured to balance intensive vocal training, creative collaboration, and fun activities. Students will participate in small group rehearsals, skill-building workshops, and individual coaching sessions throughout the week.</p>
+          </div>
+          <div>
+            <h4 className="font-semibold mb-2 text-white text-lg">Who:</h4>
+            <p className="text-white text-base">For rising 6th, 7th, 8th, and 9th graders</p>
+          </div>
+          <div>
+            <h4 className="font-semibold mb-2 text-white text-lg">Price:</h4>
+            <p className="text-white text-base">${locationData[currentLocation].pricing.full} per week</p>
+          </div>
           <div>
             <h4 className="font-semibold mb-2 text-white">Drop-off & Pick-up:</h4>
             <p className="text-white">Our welcoming staff will be available at the main entrance each morning to greet students and ensure a smooth start to each day. Parents and guardians can expect prompt communication about pick-up procedures and any daily updates.</p>
@@ -91,11 +71,11 @@ export default function FAQ() {
         <div className="space-y-4">
           <div>
             <h4 className="font-semibold mb-2 text-white">Tuition:</h4>
-            <p className="text-white">{currentLocation === 'lexington' ? '$500 per week.' : '$600 for one week of the workshop.'}</p>
+            <p className="text-white">${locationData[currentLocation].pricing.full} per week.</p>
           </div>
           <div>
             <h4 className="font-semibold mb-2 text-white">Payment Options:</h4>
-            <p className="text-white">You can choose to pay the full tuition amount upfront, or secure your spot with a $150 non-refundable deposit and pay the remaining balance ({currentLocation === 'lexington' ? '$350' : '$450'}) via invoice prior to the start of the program.</p>
+            <p className="text-white">You can choose to pay the full tuition amount upfront, or secure your spot with a ${locationData[currentLocation].pricing.deposit} non-refundable deposit and pay the remaining balance (${locationData[currentLocation].pricing.full - locationData[currentLocation].pricing.deposit}) via invoice prior to the start of the program.</p>
           </div>
           <div>
             <h4 className="font-semibold mb-2 text-white">Refunds:</h4>

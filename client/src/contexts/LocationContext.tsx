@@ -7,6 +7,9 @@ interface LocationData {
   fullName: string;
   heroTitle: string;
   heroSubtitle: string;
+  phone: string;
+  address: string;
+  addressLine2: string;
   colors: {
     primary: string;
     accent: string;
@@ -42,6 +45,9 @@ export function LocationProvider({ children }: { children: ReactNode }) {
       fullName: 'Lexington A Cappella Camp',
       heroTitle: 'Lexington A Cappella Workshop',
       heroSubtitle: 'Sing. Collaborate. Perform.',
+      phone: '(781) 357-7819',
+      address: 'Temple Emunah',
+      addressLine2: '9 Piper Rd, Lexington, MA 02421',
       colors: {
         primary: 'from-blue-custom via-indigo-custom to-teal-custom',
         accent: 'text-sky-custom',
@@ -64,6 +70,9 @@ export function LocationProvider({ children }: { children: ReactNode }) {
       fullName: 'Newton A Cappella Camp',
       heroTitle: 'Newton A Cappella Workshop',
       heroSubtitle: 'Discover Your Voice. Create Harmony.',
+      phone: '(781) 879-4539',
+      address: 'Hebrew College',
+      addressLine2: '1860 Washington St, Newton, MA 02466',
       colors: {
         primary: 'from-emerald-600 via-green-500 to-teal-400',
         accent: 'text-emerald-400',
@@ -83,6 +92,9 @@ export function LocationProvider({ children }: { children: ReactNode }) {
       fullName: 'Wayland A Cappella Camp',
       heroTitle: 'Wayland A Cappella Workshop',
       heroSubtitle: 'Find Your Harmony. Share Your Voice.',
+      phone: '(781) 879-4539',
+      address: 'Wayland Location',
+      addressLine2: '141 Boston Post Rd, Wayland, MA 01778',
       colors: {
         primary: 'from-purple-500 via-violet-500 to-fuchsia-400',
         accent: 'text-violet-400',
