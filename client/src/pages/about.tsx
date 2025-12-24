@@ -2,14 +2,15 @@ import { useEffect } from 'react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { STAFF_BIOS } from '@/lib/constants';
 import { useLocation } from '@/contexts/LocationContext';
+import adamPhoto from "@assets/Screenshot_2025-12-23_at_10.08.52_PM_1766545735728.png";
 
-const NEWTON_STAFF = [
+const ADAM_STAFF = [
   {
     id: "adam",
     name: "Adam Bernstein",
-    title: "Newton Program Director",
+    title: "President",
     bio: "Adam Bernstein is a singer, pianist, music educator, and vocal/instrumental arranger from Lexington, MA. He graduated from Tufts University with a BA in Music, where he sang with the internationally-recognized a cappella group the Beelzebubs, ran varsity track, and studied abroad in Madrid. Now, Adam plays keys in a local band called Sunnydaze, leads an 80-person choir called Rock Voices Newton, and daylights as a private lessons instructor at The Real School of Music. He is a proud alum of the Lexington High School Madrigal Singers and Rock, Paper, Scissors, and couldn't be more excited to be bringing the workshop to a new audience in Newton this summer!",
-    imageUrl: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=300"
+    imageUrl: adamPhoto
   }
 ];
 
@@ -65,9 +66,9 @@ export default function About() {
 
         {/* Meet the Leadership */}
         <section>
-          <h2 className="text-2xl lg:text-3xl font-bold text-center mb-6 gradient-text">{currentLocation === 'newton-wellesley' ? 'Meet the Program Director' : 'Meet the Co-Presidents'}</h2>
+          <h2 className="text-2xl lg:text-3xl font-bold text-center mb-6 gradient-text">{(currentLocation === 'newton-wellesley' || currentLocation === 'wayland') ? 'Meet the President' : 'Meet the Co-Presidents'}</h2>
           <div className="space-y-8">
-            {(currentLocation === 'newton-wellesley' ? NEWTON_STAFF : STAFF_BIOS).map((staff) => (
+            {((currentLocation === 'newton-wellesley' || currentLocation === 'wayland') ? ADAM_STAFF : STAFF_BIOS).map((staff) => (
               <GlassCard key={staff.id} className="p-8 reveal-in" hover>
                 <div className="flex flex-col lg:flex-row gap-8 items-start">
                   <img 
