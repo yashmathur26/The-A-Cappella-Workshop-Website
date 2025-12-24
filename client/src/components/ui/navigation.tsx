@@ -154,7 +154,7 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
                   key={link.href}
                   href={link.href}
                   className={`text-white/80 hover:text-white transition-colors ${
-                    isActive(link.href) ? 'text-sky-custom' : ''
+                    isActive(link.href) ? (currentLocation === 'wayland' ? 'text-purple-400' : currentLocation === 'newton-wellesley' ? 'text-emerald-400' : 'text-sky-custom') : ''
                   }`}
                   onClick={() => setIsMenuOpen(false)}
                 >

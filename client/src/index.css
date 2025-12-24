@@ -100,6 +100,7 @@ body.location-wayland {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    padding-bottom: 0.1em;
   }
 
   /* Purple gradient text for Wayland - light/whitish purple */
@@ -108,6 +109,7 @@ body.location-wayland {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    padding-bottom: 0.1em;
   }
 
   /* Green gradient text for Newton */
@@ -116,6 +118,7 @@ body.location-wayland {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    padding-bottom: 0.1em;
   }
 
   /* Brand text styling */
@@ -384,6 +387,53 @@ body.location-wayland {
 
 .location-newton-wellesley .border-sky-custom\/30 {
   border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+/* Wayland Purple Theme Overrides */
+.location-wayland .nav-link:hover {
+  color: #c4b5fd;
+}
+
+.location-wayland .nav-link.active {
+  color: #a78bfa;
+}
+
+.location-wayland .cart-badge {
+  background: linear-gradient(135deg, #7c3aed, #a78bfa);
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.4);
+}
+
+.location-wayland .btn-gradient {
+  background: linear-gradient(135deg, #7c3aed, #8b5cf6, #a78bfa);
+  box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
+}
+
+.location-wayland .btn-gradient:hover {
+  background: linear-gradient(135deg, #6d28d9, #7c3aed, #8b5cf6);
+  box-shadow: 0 6px 20px rgba(124, 58, 237, 0.6);
+  transform: translateY(-2px);
+}
+
+.location-wayland .glass-card {
+  background: rgba(124, 58, 237, 0.15);
+  border: 1px solid rgba(196, 181, 253, 0.3);
+  backdrop-filter: blur(12px);
+}
+
+.location-wayland .text-teal-custom {
+  color: #a78bfa !important;
+}
+
+.location-wayland .text-sky-custom {
+  color: #c4b5fd !important;
+}
+
+.location-wayland .bg-sky-custom\/20 {
+  background: rgba(167, 139, 250, 0.2) !important;
+}
+
+.location-wayland .border-sky-custom\/30 {
+  border-color: rgba(167, 139, 250, 0.3) !important;
 }
 
   /* Scroll reveal animations */

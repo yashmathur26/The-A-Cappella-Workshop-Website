@@ -149,7 +149,7 @@ export default function FAQ() {
   return (
     <div className="min-h-screen">
       <div className="max-w-4xl mx-auto px-6 py-8">
-        <h1 className="text-4xl lg:text-5xl font-bold text-center mb-8 gradient-text">Frequently Asked Questions</h1>
+        <h1 className={`text-4xl lg:text-5xl font-bold text-center mb-8 ${currentLocation === 'wayland' ? 'gradient-text-purple' : currentLocation === 'newton-wellesley' ? 'gradient-text-green' : 'gradient-text'}`}>Frequently Asked Questions</h1>
         
         <div className="space-y-4">
           {FAQ_SECTIONS.map((section) => (
@@ -161,7 +161,7 @@ export default function FAQ() {
                 <h3 className="text-2xl font-semibold text-white">{section.title}</h3>
                 <ChevronDown 
                   className={`text-white transition-all duration-500 ease-out ${
-                    openSection === section.id ? 'rotate-180 text-sky-custom' : 'text-white/70'
+                    openSection === section.id ? `rotate-180 ${currentLocation === 'wayland' ? 'text-purple-400' : currentLocation === 'newton-wellesley' ? 'text-emerald-400' : 'text-sky-custom'}` : 'text-white/70'
                   }`}
                   size={20}
                 />
@@ -179,7 +179,7 @@ export default function FAQ() {
           <p className="text-white/80">Still have questions?</p>
           <a 
             href="mailto:info@acappellaworkshop.com" 
-            className="text-sky-custom hover:text-teal-custom transition-colors font-semibold"
+            className={`${currentLocation === 'wayland' ? 'text-purple-400 hover:text-violet-400' : currentLocation === 'newton-wellesley' ? 'text-emerald-400 hover:text-green-400' : 'text-sky-custom hover:text-teal-custom'} transition-colors font-semibold`}
           >
             Email us!
           </a>

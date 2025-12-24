@@ -1,8 +1,11 @@
 import { useEffect } from 'react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { Play, Video, Camera } from 'lucide-react';
+import { useLocation } from '@/contexts/LocationContext';
 
 export default function Gallery() {
+  const { currentLocation } = useLocation();
+  
   useEffect(() => {
     // Scroll reveal animation
     const observer = new IntersectionObserver((entries) => {
@@ -30,7 +33,7 @@ export default function Gallery() {
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center reveal-in">
             <h1 className="text-4xl lg:text-6xl font-bold mb-6 leading-tight text-white">
-              Gallery & <span className="gradient-text">Videos</span>
+              Gallery & <span className={currentLocation === 'wayland' ? 'gradient-text-purple' : currentLocation === 'newton-wellesley' ? 'gradient-text-green' : 'gradient-text'}>Videos</span>
             </h1>
             <p className="text-xl lg:text-2xl text-white/80 mb-8 max-w-3xl mx-auto">
               Experience the magic of The A Cappella Workshop through our collection of videos, performances, and memorable moments.
@@ -42,7 +45,7 @@ export default function Gallery() {
       {/* Featured Videos Section */}
       <section className="py-6">
         <div className="max-w-6xl mx-auto px-6">
-          <h2 className="text-3xl lg:text-4xl font-bold text-center mb-12 reveal-in gradient-text">Featured Videos</h2>
+          <h2 className={`text-3xl lg:text-4xl font-bold text-center mb-12 reveal-in ${currentLocation === 'wayland' ? 'gradient-text-purple' : currentLocation === 'newton-wellesley' ? 'gradient-text-green' : 'gradient-text'}`}>Featured Videos</h2>
           
           <div className="grid md:grid-cols-2 gap-8 mb-16">
             {/* Main Featured Video */}
@@ -56,7 +59,7 @@ export default function Gallery() {
                   <p className="text-white/90 font-medium">2025 Summer Camp Highlights</p>
                 </div>
               </div>
-              <h3 className="text-2xl font-bold mb-3 text-teal-custom">Camp Highlights</h3>
+              <h3 className={`text-2xl font-bold mb-3 ${currentLocation === 'wayland' ? 'text-purple-400' : currentLocation === 'newton-wellesley' ? 'text-emerald-400' : 'text-teal-custom'}`}>Camp Highlights</h3>
               <p className="text-white/80">See what an amazing week at The A Cappella Workshop looks like! From rehearsals to performances, watch our students grow and shine.</p>
             </GlassCard>
 
@@ -70,7 +73,7 @@ export default function Gallery() {
                   <p className="text-white/90 font-medium">Student Performance</p>
                 </div>
               </div>
-              <h3 className="text-2xl font-bold mb-3 text-sky-custom">Final Performance</h3>
+              <h3 className={`text-2xl font-bold mb-3 ${currentLocation === 'wayland' ? 'text-violet-400' : currentLocation === 'newton-wellesley' ? 'text-green-400' : 'text-sky-custom'}`}>Final Performance</h3>
               <p className="text-white/80">Watch our talented students perform the songs they've been working on all week in their end-of-camp showcase.</p>
             </GlassCard>
           </div>
@@ -80,7 +83,7 @@ export default function Gallery() {
       {/* Photo Gallery */}
       <section className="py-6">
         <div className="max-w-6xl mx-auto px-6">
-          <h2 className="text-3xl lg:text-4xl font-bold text-center mb-12 reveal-in gradient-text">Photo Gallery</h2>
+          <h2 className={`text-3xl lg:text-4xl font-bold text-center mb-12 reveal-in ${currentLocation === 'wayland' ? 'gradient-text-purple' : currentLocation === 'newton-wellesley' ? 'gradient-text-green' : 'gradient-text'}`}>Photo Gallery</h2>
           
           <div className="grid md:grid-cols-2 gap-6">
             {Array.from({ length: 4 }, (_, index) => (
