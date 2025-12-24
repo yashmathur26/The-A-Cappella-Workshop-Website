@@ -10,23 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-// Using a custom SVG logo that matches the microphone design
-const LogoSVG = () => (
-  <svg viewBox="0 0 100 100" className="w-10 h-10" fill="none">
-    <circle cx="50" cy="50" r="45" fill="rgba(56, 189, 248, 0.3)" stroke="rgba(56, 189, 248, 0.6)" strokeWidth="2"/>
-    <path d="M35 55L45 35L65 35L75 55L75 75C75 80 70 85 65 85L45 85C40 85 35 80 35 75Z" fill="#374151"/>
-    <circle cx="55" cy="30" r="8" fill="#374151"/>
-    <path d="M55 40L55 70" stroke="#374151" strokeWidth="3" strokeLinecap="round"/>
-    <path d="M45 45L50 40" stroke="#374151" strokeWidth="2"/>
-    <path d="M65 45L60 40" stroke="#374151" strokeWidth="2"/>
-    <path d="M40 65L45 60" stroke="#374151" strokeWidth="2"/>
-    <path d="M70 65L65 60" stroke="#374151" strokeWidth="2"/>
-    <circle cx="35" cy="45" r="1.5" fill="#374151"/>
-    <circle cx="75" cy="45" r="1.5" fill="#374151"/>
-    <path d="M30 35C28 37 30 40 32 38" stroke="#374151" strokeWidth="1.5" fill="none"/>
-    <path d="M80 35C82 37 80 40 78 38" stroke="#374151" strokeWidth="1.5" fill="none"/>
-  </svg>
-);
+import shopLogo from "@assets/Screenshot_2025-12-23_at_10.11.39_PM_1766545901890.png";
 
 interface NavigationProps {
   cartCount?: number;
@@ -76,9 +60,11 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
         <div className="flex items-center justify-between">
           {/* Logo and Brand */}
           <Link href="/" className="flex items-center space-x-3 flex-shrink-0">
-            <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-sky-custom/20 to-teal-custom/20 border-2 border-sky-custom/30 flex items-center justify-center">
-              <LogoSVG />
-            </div>
+            <img 
+              src={shopLogo} 
+              alt="The A Cappella Workshop Logo" 
+              className="w-10 h-10 rounded-full object-cover"
+            />
             <h1 className="text-xl font-bold text-white brand-text whitespace-nowrap">The A Cappella Workshop</h1>
           </Link>
           
