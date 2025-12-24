@@ -10,6 +10,7 @@ interface LocationData {
   phone: string;
   address: string;
   addressLine2: string;
+  mapUrl: string;
   colors: {
     primary: string;
     accent: string;
@@ -48,6 +49,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
       phone: '(781) 357-7819',
       address: 'Temple Emunah',
       addressLine2: '9 Piper Rd, Lexington, MA 02421',
+      mapUrl: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2944.123456789!2d-71.2271715!3d42.4208445!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89e39da7cf60964d%3A0xb9185605b60e37d8!2sTemple%20Emunah!5e0!3m2!1sen!2sus!4v1692820800000!5m2!1sen!2sus',
       colors: {
         primary: 'from-blue-custom via-indigo-custom to-teal-custom',
         accent: 'text-sky-custom',
@@ -73,6 +75,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
       phone: '(781) 879-4539',
       address: 'Hebrew College',
       addressLine2: '1860 Washington St, Newton, MA 02466',
+      mapUrl: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3160.5309634794144!2d-71.24349952382687!3d42.33576543663596!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89e3789ce4b32ab9%3A0x592d306c4d44fe37!2sHebrew%20College!5e1!3m2!1sen!2sus!4v1766546337890!5m2!1sen!2sus',
       colors: {
         primary: 'from-emerald-600 via-green-500 to-teal-400',
         accent: 'text-emerald-400',
@@ -95,6 +98,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
       phone: '(781) 879-4539',
       address: 'Wayland Location',
       addressLine2: '141 Boston Post Rd, Wayland, MA 01778',
+      mapUrl: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3159.317477380504!2d-71.34912842382583!3d42.35990583511107!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89e385a89cc2a215%3A0xb42b711833c755b9!2s141%20Boston%20Post%20Rd%2C%20Wayland%2C%20MA%2001778!5e1!3m2!1sen!2sus!4v1766546376182!5m2!1sen!2sus',
       colors: {
         primary: 'from-purple-500 via-violet-500 to-fuchsia-400',
         accent: 'text-violet-400',
