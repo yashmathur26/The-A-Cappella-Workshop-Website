@@ -19,7 +19,7 @@ export function GradientButton({
   const variantClasses = {
     primary: 'btn-gradient text-white',
     ghost: 'glass-card text-white hover:bg-white/20',
-    purple: 'bg-purple-300 hover:bg-purple-400 text-gray-900 shadow-lg shadow-purple-300/30 hover:shadow-purple-300/50'
+    purple: 'bg-purple-400 hover:bg-purple-500 text-gray-900 shadow-lg shadow-purple-400/30 hover:shadow-purple-400/50'
   };
 
   const sizeClasses = {
