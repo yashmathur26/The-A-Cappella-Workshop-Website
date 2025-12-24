@@ -394,7 +394,7 @@ export default function Register() {
 
         {/* Payment Options Explanation */}
         <GlassCard className="p-6 mb-12">
-          <h2 className="text-xl font-bold mb-4 text-sky-custom">Payment Options</h2>
+          <h2 className={`text-xl font-bold mb-4 ${currentLocation === 'wayland' ? 'text-purple-400' : currentLocation === 'newton-wellesley' ? 'text-emerald-400' : 'text-sky-custom'}`}>Payment Options</h2>
           <div className="space-y-3 text-white/90">
             <div className="flex items-start space-x-3">
               <span className="text-teal-custom font-bold">💳</span>
@@ -449,7 +449,7 @@ export default function Register() {
                           className={`w-full py-2.5 text-sm font-medium min-h-[44px] rounded-full transition-all ${
                             CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'full' 
                               ? 'bg-white/10 border-white/20 text-white hover:bg-white/20' 
-                              : 'bg-teal-600 hover:bg-teal-700 text-white border-0'
+                              : currentLocation === 'wayland' ? 'bg-purple-600 hover:bg-purple-700 text-white border-0' : currentLocation === 'newton-wellesley' ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-0' : 'bg-teal-600 hover:bg-teal-700 text-white border-0'
                           }`}
                           disabled={CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'deposit'}
                           onClick={() => {
@@ -476,7 +476,7 @@ export default function Register() {
                           className={`w-full py-2.5 text-sm font-medium min-h-[44px] rounded-full transition-all ${
                             CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'deposit' 
                               ? 'bg-white/10 border-white/20 text-white hover:bg-white/20' 
-                              : 'bg-sky-600 hover:bg-sky-700 text-white border-0'
+                              : currentLocation === 'wayland' ? 'bg-violet-600 hover:bg-violet-700 text-white border-0' : currentLocation === 'newton-wellesley' ? 'bg-green-600 hover:bg-green-700 text-white border-0' : 'bg-sky-600 hover:bg-sky-700 text-white border-0'
                           }`}
                           disabled={CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'full'}
                           onClick={() => {

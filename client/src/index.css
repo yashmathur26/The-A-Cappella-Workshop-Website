@@ -110,6 +110,14 @@ body.location-wayland {
     background-clip: text;
   }
 
+  /* Green gradient text for Newton */
+  .gradient-text-green {
+    background: linear-gradient(90deg, #34d399, #6ee7b7 50%, #a7f3d0);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
   /* Brand text styling */
   .brand-text {
     text-shadow: 0 0 20px rgba(14, 165, 233, 0.6), 0 0 40px rgba(14, 165, 233, 0.3);

@@ -39,12 +39,12 @@ export default function About() {
   return (
     <div className="min-h-screen">
       <div className="max-w-4xl mx-auto px-6 py-8">
-        <h1 className="text-4xl lg:text-5xl font-bold text-center mb-8 gradient-text">About The A Cappella Workshop{currentLocation === 'newton-wellesley' ? ' - Newton' : ''}</h1>
+        <h1 className={`text-4xl lg:text-5xl font-bold text-center mb-8 ${currentLocation === 'wayland' ? 'gradient-text-purple' : currentLocation === 'newton-wellesley' ? 'gradient-text-green' : 'gradient-text'}`}>About The A Cappella Workshop{currentLocation === 'newton-wellesley' ? ' - Newton' : currentLocation === 'wayland' ? ' - Wayland' : ''}</h1>
         
         {/* What is section */}
         <section className="mb-3">
           <GlassCard className="p-8 lg:p-12 reveal-in">
-            <h2 className="text-2xl lg:text-3xl font-bold mb-6 text-teal-custom">What is The A Cappella Workshop?</h2>
+            <h2 className={`text-2xl lg:text-3xl font-bold mb-6 ${currentLocation === 'wayland' ? 'text-purple-400' : currentLocation === 'newton-wellesley' ? 'text-emerald-400' : 'text-teal-custom'}`}>What is The A Cappella Workshop?</h2>
             <p className="text-lg text-white/90 leading-relaxed">
               {currentLocation === 'newton-wellesley' ? 
                 'Building on nearly a decade of success in Lexington, The A Cappella Workshop is excited to bring our innovative program to Newton! Our Newton location offers the same high-quality, student-centered approach that has made us a beloved summer tradition. We focus on small-group, collaborative singing where students learn to listen, blend, arrange, keep time, and perform with confidence. Whether you\'re a beginner or an experienced singer, our welcoming environment in Newton provides the perfect setting to discover your voice and create lasting musical memories. The week concludes with a special showcase performance for family and friends.' :
@@ -57,7 +57,7 @@ export default function About() {
         {/* How the week works */}
         <section className="mb-6">
           <GlassCard className="p-8 lg:p-12 reveal-in">
-            <h2 className="text-2xl lg:text-3xl font-bold mb-6 text-sky-custom">How the week works</h2>
+            <h2 className={`text-2xl lg:text-3xl font-bold mb-6 ${currentLocation === 'wayland' ? 'text-violet-400' : currentLocation === 'newton-wellesley' ? 'text-green-400' : 'text-sky-custom'}`}>How the week works</h2>
             <p className="text-lg text-white/90 leading-relaxed">
               The first day centers on group bonding, vocal range checks, and song selection — setting the foundation for a fun, successful week. From there, students rehearse repertoire for the Friday showcase, rotate through skill "tracks" (beatboxing, arranging, and music theory), and prepare short mock solos to receive supportive feedback from teachers.
             </p>
@@ -66,7 +66,7 @@ export default function About() {
 
         {/* Meet the Leadership */}
         <section>
-          <h2 className="text-2xl lg:text-3xl font-bold text-center mb-6 gradient-text">{(currentLocation === 'newton-wellesley' || currentLocation === 'wayland') ? 'Meet the President' : 'Meet the Co-Presidents'}</h2>
+          <h2 className={`text-2xl lg:text-3xl font-bold text-center mb-6 ${currentLocation === 'wayland' ? 'gradient-text-purple' : currentLocation === 'newton-wellesley' ? 'gradient-text-green' : 'gradient-text'}`}>{(currentLocation === 'newton-wellesley' || currentLocation === 'wayland') ? 'Meet the President' : 'Meet the Co-Presidents'}</h2>
           <div className="space-y-8">
             {((currentLocation === 'newton-wellesley' || currentLocation === 'wayland') ? ADAM_STAFF : STAFF_BIOS).map((staff) => (
               <GlassCard key={staff.id} className="p-8 reveal-in" hover>
@@ -77,7 +77,7 @@ export default function About() {
                     className="w-32 h-32 rounded-2xl object-cover mx-auto lg:mx-0 flex-shrink-0"
                   />
                   <div className="flex-1">
-                    <h3 className="text-xl font-bold mb-2 text-sky-custom">{staff.name} — {staff.title}</h3>
+                    <h3 className={`text-xl font-bold mb-2 ${currentLocation === 'wayland' ? 'text-purple-400' : currentLocation === 'newton-wellesley' ? 'text-emerald-400' : 'text-sky-custom'}`}>{staff.name} — {staff.title}</h3>
                     <p className="text-white/90 leading-relaxed">
                       {staff.bio}
                     </p>
