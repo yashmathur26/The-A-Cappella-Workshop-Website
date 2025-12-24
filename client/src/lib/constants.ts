@@ -1,4 +1,5 @@
 import arjunPhoto from "@assets/Screenshot_2025-12-23_at_10.04.26_PM_1766545472952.png";
+import yashPhoto from "@assets/Screenshot_2025-12-23_at_10.07.58_PM_1766545680949.png";
 
 export const WEEKS = [
   { id: "wk1", label: "June 22–26, 2026", price: 500, spots: 20 },
@@ -21,7 +22,7 @@ export const STAFF_BIOS = [
     name: "Yash Mathur",
     title: "Co-President",
     bio: "Yash is a freshman at the University of Massachusetts. At LHS, he sang in Peanut Butter & Jelly as the main arranger, performed with Madrigal Singers and Concert Choir, and took part in Singing Valentines during his junior and senior years. Yash can't wait to welcome a new group of students to the Workshop this summer.",
-    imageUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=300"
+    imageUrl: yashPhoto
   },
   {
     id: "shuntavi",
