@@ -1,5 +1,6 @@
 import arjunPhoto from "@assets/Screenshot_2025-12-23_at_10.04.26_PM_1766545472952.png";
 import yashPhoto from "@assets/Screenshot_2025-12-23_at_10.07.58_PM_1766545680949.png";
+import shuntaviPhoto from "@assets/Screenshot_2025-12-23_at_10.08.28_PM_1766545710728.png";
 
 export const WEEKS = [
   { id: "wk1", label: "June 22–26, 2026", price: 500, spots: 20 },
@@ -29,6 +30,6 @@ export const STAFF_BIOS = [
     name: "Shuntavi Schuman-Olivier",
     title: "Co-President/Teacher",
     bio: "Shuntavi is a rising freshman at Tufts University. At LHS, she led the co-ed a cappella group Noteworthy, sang in honors choirs (Chamber Singers and Concert Choir), and participated in Singing Valentines. She has attended A Cappella Academy for the past two years and loves teaching music. She's super excited for this summer!",
-    imageUrl: "https://images.unsplash.com/photo-1494790108755-2616c2e95fef?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=300"
+    imageUrl: shuntaviPhoto
   }
 ];
