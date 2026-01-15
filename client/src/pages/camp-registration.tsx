@@ -771,13 +771,7 @@ export default function Register() {
         <div className="lg:hidden fixed bottom-20 right-4 z-50">
           <button
             onClick={() => setShowMobileCart(true)}
-            className={`${
-              currentLocation === 'wayland' 
-                ? 'bg-purple-600 hover:bg-purple-700' 
-                : currentLocation === 'newton-wellesley'
-                ? 'bg-emerald-600 hover:bg-emerald-700'
-                : 'bg-sky-custom hover:bg-teal-600'
-            } text-white rounded-full p-4 shadow-lg flex items-center gap-2 transition-all transform hover:scale-105`}
+            className="bg-blue-600 hover:bg-blue-700 text-white rounded-full p-4 shadow-lg flex items-center gap-2 transition-all transform hover:scale-105 opacity-100"
           >
             <ShoppingCart size={20} />
             <span className="font-semibold">{cartItems.length}</span>
@@ -866,15 +860,9 @@ export default function Register() {
 
       {/* Mobile "Proceed to Step 2" Button - Fixed at bottom, only shows when cart has items and form not shown */}
       {cartItems.length > 0 && !showForm && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-gray-900/95 backdrop-blur-sm border-t border-white/10 p-4">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-gray-900 border-t border-white/10 p-4 shadow-2xl">
           <Button
-            className={`w-full border-0 rounded-full py-4 font-semibold text-lg ${
-              currentLocation === 'wayland' 
-                ? 'bg-purple-600 hover:bg-purple-700' 
-                : currentLocation === 'newton-wellesley'
-                ? 'bg-emerald-600 hover:bg-emerald-700'
-                : 'bg-blue-600 hover:bg-blue-700'
-            } text-white`}
+            className="w-full border-0 rounded-full py-4 font-semibold text-lg bg-blue-600 hover:bg-blue-700 text-white opacity-100"
             onClick={() => {
               setShowForm(true);
               // Auto scroll to the registration form
@@ -891,19 +879,20 @@ export default function Register() {
         </div>
       )}
 
-      {/* Mobile Checkout Button - Shows when form is shown and submitted */}
-      {cartItems.length > 0 && showForm && formSubmitted && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-gray-900/95 backdrop-blur-sm border-t border-white/10 p-4">
+      {/* Mobile Checkout Button - Shows when form is shown (always visible when form is shown) */}
+      {cartItems.length > 0 && showForm && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-gray-900 border-t border-white/10 p-4 shadow-2xl">
           <Button
-            className={`w-full border-0 rounded-full py-4 font-semibold text-lg ${
-              !parentName.trim() || !parentEmail.trim() || !childName.trim()
+            className={`w-full border-0 rounded-full py-4 font-semibold text-lg text-white opacity-100 ${
+              !formSubmitted || !parentName.trim() || !parentEmail.trim() || !childName.trim()
                 ? 'bg-gray-600 cursor-not-allowed'
-                : 'bg-green-600 hover:bg-green-700'
-            } text-white`}
+                : 'bg-blue-600 hover:bg-blue-700'
+            }`}
             onClick={proceedToPayment}
             disabled={cart.length === 0 || isLoading || !formSubmitted || !parentName.trim() || !parentEmail.trim() || !childName.trim()}
           >
             {isLoading ? 'Processing...' : 
+             !formSubmitted ? '⏳ Complete Form First' :
              !parentName.trim() || !parentEmail.trim() || !childName.trim() ? 'Fill in Contact Info First' :
              'Proceed to Checkout'}
           </Button>
