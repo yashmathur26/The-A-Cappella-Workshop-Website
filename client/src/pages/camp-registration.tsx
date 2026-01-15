@@ -428,8 +428,16 @@ export default function Register() {
                     className={`p-6 week-card ${CartManager.isInCart(week.id) ? 'selected' : ''}`}
                   >
                     <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h3 className="text-xl font-bold text-white">Week {index + 1}: <span className="font-normal">{week.label}</span></h3>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="text-xl font-bold text-white">Week {index + 1}: <span className="font-normal">{week.label}</span></h3>
+                          {/* "Filling up fast" badge for weeks 2 and 3 */}
+                          {(index === 1 || index === 2) && (
+                            <span className="px-2 py-1 text-xs font-semibold bg-orange-500/20 text-orange-300 border border-orange-500/30 rounded-full animate-pulse">
+                              ⚡ Filling up fast
+                            </span>
+                          )}
+                        </div>
                         {week.venue && (
                           <div className="mt-2">
                             <span className="text-sm text-white/70 flex items-center gap-2">
