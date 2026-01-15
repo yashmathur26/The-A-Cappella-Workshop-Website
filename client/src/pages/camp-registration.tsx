@@ -834,6 +834,42 @@ export default function Register() {
                 ))}
               </div>
 
+              {/* Contact Information - Mobile Only */}
+              {showForm && (
+                <div className="border-t border-white/20 pt-4 space-y-4">
+                  <h4 className="text-white font-semibold mb-2">Contact Information</h4>
+                  <div>
+                    <Label className="text-white text-sm mb-2 block">Parent/Guardian Name</Label>
+                    <Input
+                      value={parentName}
+                      onChange={(e) => setParentName(e.target.value)}
+                      placeholder="Enter parent name"
+                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-white text-sm mb-2 block">Parent Email</Label>
+                    <Input
+                      type="email"
+                      value={parentEmail}
+                      onChange={(e) => setParentEmail(e.target.value)}
+                      placeholder="parent@example.com"
+                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-white text-sm mb-2 block">Child's Name</Label>
+                    <Input
+                      value={childName}
+                      onChange={(e) => setChildName(e.target.value)}
+                      placeholder="Enter child's name"
+                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* Total */}
               <div className="border-t border-white/20 pt-4">
                 {hasDiscount && (
@@ -848,10 +884,38 @@ export default function Register() {
                     </div>
                   </div>
                 )}
-                <div className="flex justify-between text-lg font-semibold mb-2">
+                <div className="flex justify-between text-lg font-semibold mb-4">
                   <span className="text-white">Total:</span>
                   <span className="text-white">${cartTotal.toFixed(2)}</span>
                 </div>
+                
+                {/* Mobile Checkout Button in Drawer */}
+                {showForm && (
+                  <Button
+                    className={`w-full border-0 rounded-full py-3 font-semibold text-white ${
+                      !formSubmitted || !parentName.trim() || !parentEmail.trim() || !childName.trim()
+                        ? 'bg-gray-600 cursor-not-allowed'
+                        : 'bg-blue-600 hover:bg-blue-700'
+                    }`}
+                    onClick={() => {
+                      if (formSubmitted && parentName.trim() && parentEmail.trim() && childName.trim()) {
+                        setShowMobileCart(false);
+                        proceedToPayment();
+                      } else {
+                        toast({
+                          title: "Complete Required Fields",
+                          description: "Please fill in all contact information and submit the form first.",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                    disabled={!formSubmitted || !parentName.trim() || !parentEmail.trim() || !childName.trim()}
+                  >
+                    {!formSubmitted ? '⏳ Complete Form First' :
+                     !parentName.trim() || !parentEmail.trim() || !childName.trim() ? 'Fill in Contact Info' :
+                     'Proceed to Checkout'}
+                  </Button>
+                )}
               </div>
             </div>
           </div>
@@ -888,12 +952,24 @@ export default function Register() {
                 ? 'bg-gray-600 cursor-not-allowed'
                 : 'bg-blue-600 hover:bg-blue-700'
             }`}
-            onClick={proceedToPayment}
-            disabled={cart.length === 0 || isLoading || !formSubmitted || !parentName.trim() || !parentEmail.trim() || !childName.trim()}
+            onClick={() => {
+              if (formSubmitted && parentName.trim() && parentEmail.trim() && childName.trim()) {
+                proceedToPayment();
+              } else {
+                // Open cart drawer to fill in info
+                setShowMobileCart(true);
+                toast({
+                  title: "Complete Required Fields",
+                  description: "Please fill in all contact information in the cart.",
+                  variant: "destructive",
+                });
+              }
+            }}
+            disabled={isLoading}
           >
             {isLoading ? 'Processing...' : 
              !formSubmitted ? '⏳ Complete Form First' :
-             !parentName.trim() || !parentEmail.trim() || !childName.trim() ? 'Fill in Contact Info First' :
+             !parentName.trim() || !parentEmail.trim() || !childName.trim() ? 'Fill in Contact Info' :
              'Proceed to Checkout'}
           </Button>
         </div>
