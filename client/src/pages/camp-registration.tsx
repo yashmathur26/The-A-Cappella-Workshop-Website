@@ -9,7 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Tag, X, AlertTriangle, MapPin } from "lucide-react";
+import { Tag, X, AlertTriangle, MapPin, ShoppingCart } from "lucide-react";
 import { useLocation } from '@/contexts/LocationContext';
 
 
@@ -26,6 +26,7 @@ export default function Register() {
   const [childName, setChildName] = useState("");
   const [paymentStatus, setPaymentStatus] = useState<'none' | 'pending' | 'completed' | 'incomplete'>('none');
   const [formSubmitted, setFormSubmitted] = useState(false);
+  const [showMobileCart, setShowMobileCart] = useState(false);
   const [sessionId] = useState(() => {
     // Generate or retrieve session ID
     const stored = localStorage.getItem('registration-session-id');
@@ -339,7 +340,7 @@ export default function Register() {
   }, []);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen pb-24 lg:pb-0">
       <div className="max-w-7xl mx-auto px-6 py-20">
         <h1 className={`text-4xl lg:text-5xl font-bold text-center mb-8 ${currentLocation === 'wayland' ? 'gradient-text-purple' : 'gradient-text'}`}>Register for Summer 2026</h1>
         
@@ -571,8 +572,8 @@ export default function Register() {
             )}
           </div>
 
-          {/* Cart Sidebar */}
-          <div className="lg:col-span-1 mt-12 lg:mt-0">
+          {/* Cart Sidebar - Hidden on mobile */}
+          <div className="hidden lg:block lg:col-span-1 mt-12 lg:mt-0">
             <GlassCard className="p-6 sticky top-24">
               <h3 className="text-xl font-bold mb-6 text-white">Your Cart</h3>
               <div className="space-y-3 mb-6">
@@ -764,6 +765,150 @@ export default function Register() {
         </div>
 
       </div>
+
+      {/* Mobile Floating Cart Button - Only shows when cart has items */}
+      {cartItems.length > 0 && (
+        <div className="lg:hidden fixed bottom-20 right-4 z-50">
+          <button
+            onClick={() => setShowMobileCart(true)}
+            className={`${
+              currentLocation === 'wayland' 
+                ? 'bg-purple-600 hover:bg-purple-700' 
+                : currentLocation === 'newton-wellesley'
+                ? 'bg-emerald-600 hover:bg-emerald-700'
+                : 'bg-sky-custom hover:bg-teal-600'
+            } text-white rounded-full p-4 shadow-lg flex items-center gap-2 transition-all transform hover:scale-105`}
+          >
+            <ShoppingCart size={20} />
+            <span className="font-semibold">{cartItems.length}</span>
+            <span className="hidden sm:inline">item{cartItems.length !== 1 ? 's' : ''}</span>
+          </button>
+        </div>
+      )}
+
+      {/* Mobile Cart Drawer */}
+      {showMobileCart && (
+        <div className="lg:hidden fixed inset-0 z-50">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowMobileCart(false)}
+          />
+          {/* Drawer */}
+          <div className="absolute bottom-0 left-0 right-0 bg-gray-900 border-t border-white/20 rounded-t-2xl max-h-[80vh] overflow-y-auto">
+            <div className="p-4 border-b border-white/10 flex justify-between items-center sticky top-0 bg-gray-900">
+              <h3 className="text-xl font-bold text-white">Your Cart</h3>
+              <button
+                onClick={() => setShowMobileCart(false)}
+                className="text-white/70 hover:text-white"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              {/* Cart Items */}
+              <div className="space-y-3">
+                {cartItems.map(item => (
+                  <div key={item.weekId} className="flex justify-between items-start text-sm bg-white/5 rounded-lg p-3 border border-white/10">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-white/90 text-base font-medium">{item.label}</span>
+                        {item.location && (
+                          <span className="text-xs px-2 py-1 rounded bg-sky-custom/20 text-sky-custom border border-sky-custom/30">
+                            {item.location}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs px-2 py-1 rounded bg-white/10 text-white/70">
+                          {item.paymentType === 'deposit' ? 'Deposit' : 'Full Payment'}
+                        </span>
+                        <span className="text-white/90 font-medium">${item.price}</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        removeWeekFromCart(item.weekId);
+                        if (cartItems.length === 1) setShowMobileCart(false);
+                      }}
+                      className="ml-3 p-1 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded transition-colors"
+                      title="Remove from cart"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Total */}
+              <div className="border-t border-white/20 pt-4">
+                {hasDiscount && (
+                  <div className="space-y-2 mb-4 text-sm">
+                    <div className="flex justify-between text-white/80">
+                      <span>Subtotal:</span>
+                      <span>${cartSubtotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-green-400">
+                      <span>Discount ({CartManager.getPromoCode()}):</span>
+                      <span>-${discountAmount.toFixed(2)}</span>
+                    </div>
+                  </div>
+                )}
+                <div className="flex justify-between text-lg font-semibold mb-2">
+                  <span className="text-white">Total:</span>
+                  <span className="text-white">${cartTotal.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile "Proceed to Step 2" Button - Fixed at bottom, only shows when cart has items and form not shown */}
+      {cartItems.length > 0 && !showForm && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-gray-900/95 backdrop-blur-sm border-t border-white/10 p-4">
+          <Button
+            className={`w-full border-0 rounded-full py-4 font-semibold text-lg ${
+              currentLocation === 'wayland' 
+                ? 'bg-purple-600 hover:bg-purple-700' 
+                : currentLocation === 'newton-wellesley'
+                ? 'bg-emerald-600 hover:bg-emerald-700'
+                : 'bg-blue-600 hover:bg-blue-700'
+            } text-white`}
+            onClick={() => {
+              setShowForm(true);
+              // Auto scroll to the registration form
+              setTimeout(() => {
+                const formSection = document.querySelector('section:has(iframe)');
+                if (formSection) {
+                  formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+              }, 100);
+            }}
+          >
+            Proceed to Step 2 ({cartItems.length} {cartItems.length === 1 ? 'week' : 'weeks'})
+          </Button>
+        </div>
+      )}
+
+      {/* Mobile Checkout Button - Shows when form is shown and submitted */}
+      {cartItems.length > 0 && showForm && formSubmitted && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-gray-900/95 backdrop-blur-sm border-t border-white/10 p-4">
+          <Button
+            className={`w-full border-0 rounded-full py-4 font-semibold text-lg ${
+              !parentName.trim() || !parentEmail.trim() || !childName.trim()
+                ? 'bg-gray-600 cursor-not-allowed'
+                : 'bg-green-600 hover:bg-green-700'
+            } text-white`}
+            onClick={proceedToPayment}
+            disabled={cart.length === 0 || isLoading || !formSubmitted || !parentName.trim() || !parentEmail.trim() || !childName.trim()}
+          >
+            {isLoading ? 'Processing...' : 
+             !parentName.trim() || !parentEmail.trim() || !childName.trim() ? 'Fill in Contact Info First' :
+             'Proceed to Checkout'}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
