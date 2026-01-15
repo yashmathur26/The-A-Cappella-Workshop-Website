@@ -549,7 +549,11 @@ export default function Register() {
                   
                   <div className="bg-white/5 rounded-lg p-4 border border-white/10 mb-4">
                     <iframe 
-                      src="https://docs.google.com/forms/d/e/1FAIpQLSdHXYEXmGe39_L3Uq8f-T0653oFF2DEGLQMBDgN0vDC4ox1hA/viewform?embedded=true" 
+                      src={
+                        currentLocation === 'newton-wellesley' || currentLocation === 'wayland'
+                          ? "https://forms.gle/DvejUQb3TXEaobkSA?embedded=true"
+                          : "https://docs.google.com/forms/d/e/1FAIpQLSdHXYEXmGe39_L3Uq8f-T0653oFF2DEGLQMBDgN0vDC4ox1hA/viewform?embedded=true"
+                      }
                       width="100%" 
                       height="3729" 
                       frameBorder="0" 
