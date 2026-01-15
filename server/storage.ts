@@ -32,13 +32,19 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  private readonly _db: any;
+
+  constructor(drizzleDb: any) {
+    this._db = drizzleDb;
+  }
+
   // Week operations
   async getWeeks(): Promise<Week[]> {
-    return await db.select().from(weeks);
+    return await this._db.select().from(weeks);
   }
 
   async getWeek(id: string): Promise<Week | undefined> {
-    const [week] = await db.select().from(weeks).where(eq(weeks.id, id));
+    const [week] = await this._db.select().from(weeks).where(eq(weeks.id, id));
     return week || undefined;
   }
 
@@ -57,30 +63,36 @@ export class DatabaseStorage implements IStorage {
     ];
 
     for (const week of weeksData) {
-      await db.insert(weeks).values(week).onConflictDoNothing();
+      await this._db.insert(weeks).values(week).onConflictDoNothing();
     }
   }
 
   // Registration operations
   async getRegistrations(parentEmail?: string): Promise<Registration[]> {
     if (parentEmail) {
-      return await db.select().from(registrations).where(eq(registrations.parentEmail, parentEmail.toLowerCase()));
+      return await this._db
+        .select()
+        .from(registrations)
+        .where(eq(registrations.parentEmail, parentEmail.toLowerCase()));
     }
-    return await db.select().from(registrations);
+    return await this._db.select().from(registrations);
   }
 
   async getRegistration(id: string): Promise<Registration | undefined> {
-    const [registration] = await db.select().from(registrations).where(eq(registrations.id, id));
+    const [registration] = await this._db.select().from(registrations).where(eq(registrations.id, id));
     return registration || undefined;
   }
 
   async getRegistrationBySessionId(sessionId: string): Promise<Registration | undefined> {
-    const [registration] = await db.select().from(registrations).where(eq(registrations.stripeCheckoutSessionId, sessionId));
+    const [registration] = await this._db
+      .select()
+      .from(registrations)
+      .where(eq(registrations.stripeCheckoutSessionId, sessionId));
     return registration || undefined;
   }
 
   async createRegistration(regData: InsertRegistration): Promise<Registration> {
-    const [registration] = await db
+    const [registration] = await this._db
       .insert(registrations)
       .values({
         ...regData,
@@ -92,14 +104,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateRegistrationStatus(id: string, status: string): Promise<void> {
-    await db
+    await this._db
       .update(registrations)
       .set({ status, updatedAt: new Date() })
       .where(eq(registrations.id, id));
   }
 
   async updateRegistrationStripeData(id: string, sessionId?: string, paymentIntentId?: string): Promise<void> {
-    await db
+    await this._db
       .update(registrations)
       .set({ 
         stripeCheckoutSessionId: sessionId,
@@ -111,11 +123,11 @@ export class DatabaseStorage implements IStorage {
 
   // Payment operations
   async getPayments(parentEmail: string): Promise<Payment[]> {
-    return await db.select().from(payments).where(eq(payments.parentEmail, parentEmail.toLowerCase()));
+    return await this._db.select().from(payments).where(eq(payments.parentEmail, parentEmail.toLowerCase()));
   }
 
   async createPayment(paymentData: InsertPayment): Promise<Payment> {
-    const [payment] = await db
+    const [payment] = await this._db
       .insert(payments)
       .values({
         ...paymentData,
@@ -126,4 +138,117 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage: IStorage = new DatabaseStorage();
+class MemoryStorage implements IStorage {
+  private _weeks: Week[] = [];
+  private _registrations: Registration[] = [];
+  private _payments: Payment[] = [];
+
+  async getWeeks(): Promise<Week[]> {
+    return this._weeks;
+  }
+
+  async getWeek(id: string): Promise<Week | undefined> {
+    return this._weeks.find((w) => w.id === id);
+  }
+
+  async seedWeeks(): Promise<void> {
+    if (this._weeks.length > 0) return;
+
+    const weeksData: InsertWeek[] = [
+      { id: 'wk1', label: 'June 22–26, 2026', priceCents: 50000, capacity: 20 },
+      { id: 'wk2', label: 'July 27–31, 2026', priceCents: 50000, capacity: 20 },
+      { id: 'wk3', label: 'August 3–7, 2026', priceCents: 50000, capacity: 20 },
+      { id: 'wk4', label: 'August 10–14, 2026', priceCents: 50000, capacity: 20 },
+      { id: 'wk5', label: 'August 17–21, 2026', priceCents: 50000, capacity: 20 },
+    ];
+
+    this._weeks = weeksData.map((w) => ({
+      ...w,
+      createdAt: new Date(),
+    })) as Week[];
+  }
+
+  async getRegistrations(parentEmail?: string): Promise<Registration[]> {
+    if (!parentEmail) return this._registrations;
+    return this._registrations.filter((r) => r.parentEmail === parentEmail.toLowerCase());
+  }
+
+  async getRegistration(id: string): Promise<Registration | undefined> {
+    return this._registrations.find((r) => r.id === id);
+  }
+
+  async getRegistrationBySessionId(sessionId: string): Promise<Registration | undefined> {
+    return this._registrations.find((r) => r.stripeCheckoutSessionId === sessionId);
+  }
+
+  async createRegistration(regData: InsertRegistration): Promise<Registration> {
+    const now = new Date();
+    const id =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `reg_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
+    const registration: Registration = {
+      id,
+      weekId: regData.weekId,
+      parentName: regData.parentName,
+      parentEmail: regData.parentEmail.toLowerCase(),
+      childName: regData.childName,
+      status: regData.status ?? "pending",
+      paymentType: regData.paymentType,
+      amountPaidCents: regData.amountPaidCents ?? 0,
+      balanceDueCents: regData.balanceDueCents ?? 0,
+      promoCode: regData.promoCode ?? null,
+      stripeCheckoutSessionId: regData.stripeCheckoutSessionId ?? null,
+      stripePaymentIntentId: regData.stripePaymentIntentId ?? null,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    this._registrations.push(registration);
+    return registration;
+  }
+
+  async updateRegistrationStatus(id: string, status: string): Promise<void> {
+    const r = this._registrations.find((x) => x.id === id);
+    if (!r) return;
+    r.status = status;
+    r.updatedAt = new Date();
+  }
+
+  async updateRegistrationStripeData(id: string, sessionId?: string, paymentIntentId?: string): Promise<void> {
+    const r = this._registrations.find((x) => x.id === id);
+    if (!r) return;
+    r.stripeCheckoutSessionId = sessionId ?? r.stripeCheckoutSessionId;
+    r.stripePaymentIntentId = paymentIntentId ?? r.stripePaymentIntentId;
+    r.updatedAt = new Date();
+  }
+
+  async getPayments(parentEmail: string): Promise<Payment[]> {
+    const email = parentEmail.toLowerCase();
+    return this._payments.filter((p) => p.parentEmail === email);
+  }
+
+  async createPayment(paymentData: InsertPayment): Promise<Payment> {
+    const id =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `pay_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
+    const payment: Payment = {
+      id,
+      parentEmail: paymentData.parentEmail.toLowerCase(),
+      amountCents: paymentData.amountCents,
+      currency: paymentData.currency ?? "usd",
+      stripePaymentIntentId: paymentData.stripePaymentIntentId,
+      stripeCheckoutSessionId: paymentData.stripeCheckoutSessionId ?? null,
+      status: paymentData.status,
+      receivedAt: new Date(),
+    };
+
+    this._payments.push(payment);
+    return payment;
+  }
+}
+
+export const storage: IStorage = db ? new DatabaseStorage(db) : new MemoryStorage();

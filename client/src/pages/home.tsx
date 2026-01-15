@@ -1,9 +1,12 @@
 import { useEffect } from 'react';
 import { Link } from 'wouter';
-import { Users, GraduationCap, Star, Phone, Mail, MapPin, Clock, Play } from 'lucide-react';
+import { Users, GraduationCap, Star, Phone, Mail, MapPin, Calendar } from 'lucide-react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { GradientButton } from '@/components/ui/gradient-button';
 import { useLocation } from '@/contexts/LocationContext';
+
+// Import welcome image from Lexington gallery
+import welcomePhoto from "@gallery/photo1.JPG";
 
 export default function Home() {
   const { currentLocation, setLocation, locationData } = useLocation();
@@ -36,8 +39,8 @@ export default function Home() {
           currentLocation === 'lexington' 
             ? 'bg-gradient-to-r from-indigo-custom/20 to-teal-custom/20' 
             : currentLocation === 'newton-wellesley'
-            ? 'bg-gradient-to-r from-emerald-600/20 to-green-500/20'
-            : 'bg-gradient-to-r from-purple-300/20 to-violet-300/20'
+            ? 'bg-gradient-to-r from-emerald-700/20 via-green-600/15 to-teal-500/20'
+            : 'bg-gradient-to-r from-purple-300/20 via-violet-300/15 to-fuchsia-300/20'
         }`}></div>
         <div className="max-w-6xl mx-auto px-6 relative z-10">
           <div className="text-center reveal-in">
@@ -50,11 +53,8 @@ export default function Home() {
                 <><span className="bg-gradient-to-r from-purple-300 to-violet-300 bg-clip-text text-transparent">Wayland</span> A Cappella Workshop</>
               )}
             </h1>
-            <p className="text-xl lg:text-2xl text-white/80 mb-4 max-w-3xl mx-auto">
+            <p className="text-xl lg:text-2xl text-white/80 mb-8 max-w-3xl mx-auto">
               {locationData[currentLocation].heroSubtitle}
-            </p>
-            <p className="text-lg text-white/70 mb-8 max-w-3xl mx-auto">
-              A modern a cappella camp for rising 6th–9th graders.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center flex-wrap">
               <Link href="/camp-registration">
@@ -92,28 +92,21 @@ export default function Home() {
       </section>
 
 
-      {/* Welcome Video Section */}
+      {/* Welcome Section */}
       <section className="py-6">
         <div className="max-w-4xl mx-auto px-6">
           <GlassCard className="p-8 reveal-in" hover>
             <div className="text-center mb-8">
-              <h2 className={`text-3xl lg:text-4xl font-bold mb-4 ${currentLocation === 'wayland' ? 'gradient-text-purple' : 'gradient-text'}`}>Welcome to Camp</h2>
-              <p className="text-xl text-white/80">Watch our welcome message and see what makes The A Cappella Workshop special</p>
+              <h2 className={`text-3xl lg:text-4xl font-bold mb-4 ${currentLocation === 'wayland' ? 'gradient-text-purple' : 'gradient-text'}`}>The A Cappella Workshop</h2>
+              <p className="text-xl text-white/80">Welcome video coming soon!!!</p>
             </div>
             
-            <div className={`aspect-video rounded-lg flex items-center justify-center relative overflow-hidden border border-white/20 ${
-              currentLocation === 'wayland' 
-                ? 'bg-gradient-to-br from-purple-300/30 to-violet-300/30' 
-                : 'bg-gradient-to-br from-indigo-custom/30 to-teal-custom/30'
-            }`}>
-              <div className="absolute inset-0 bg-black/20"></div>
-              <div className="relative z-10 text-center">
-                <div className="w-24 h-24 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mb-6 mx-auto hover:bg-white/30 transition-colors cursor-pointer">
-                  <Play className="text-white ml-2" size={40} />
-                </div>
-                <h3 className="text-2xl font-bold text-white mb-2">Welcome Video</h3>
-                <p className="text-white/80">Click here when your welcome video is ready to upload</p>
-              </div>
+            <div className="aspect-video rounded-lg overflow-hidden border border-white/20">
+              <img 
+                src={welcomePhoto} 
+                alt="A Cappella Workshop campers" 
+                className="w-full h-full object-cover"
+              />
             </div>
           </GlassCard>
         </div>
@@ -121,7 +114,13 @@ export default function Home() {
 
       {/* Highlights Section */}
       <section className="py-16 relative overflow-hidden">
-        <div className={`absolute inset-0 ${currentLocation === 'wayland' ? 'bg-gradient-to-r from-purple-300/10 via-violet-300/5 to-fuchsia-300/10' : 'bg-gradient-to-r from-indigo-custom/10 via-sky-custom/5 to-teal-custom/10'}`}></div>
+        <div className={`absolute inset-0 ${
+          currentLocation === 'lexington'
+            ? 'bg-gradient-to-r from-indigo-custom/10 via-sky-custom/5 to-teal-custom/10'
+            : currentLocation === 'newton-wellesley'
+            ? 'bg-gradient-to-r from-emerald-600/10 via-green-500/5 to-teal-400/10'
+            : 'bg-gradient-to-r from-purple-300/10 via-violet-300/5 to-fuchsia-300/10'
+        }`}></div>
         <div className="max-w-6xl mx-auto px-6 relative z-10">
           <h2 className={`text-3xl lg:text-4xl font-bold text-center mb-16 ${currentLocation === 'wayland' ? 'gradient-text-purple' : 'gradient-text'}`}>What Makes Us Special</h2>
           <div className="grid md:grid-cols-3 gap-12">
@@ -201,8 +200,23 @@ export default function Home() {
                   </div>
                   <div>
                     <h4 className={`text-lg font-semibold mb-2 ${currentLocation === 'wayland' ? 'text-fuchsia-300' : 'text-sky-custom'}`}>Address</h4>
-                    <p className="text-white/90">{locationData[currentLocation].address}</p>
-                    <p className="text-white/90">{locationData[currentLocation].addressLine2}</p>
+                    {currentLocation === 'lexington' ? (
+                      <div className="space-y-4">
+                        <div>
+                          <p className="text-white/90 font-medium text-base">Temple Emunah</p>
+                          <p className="text-white/70 text-sm">9 Piper Rd, Lexington, MA 02421</p>
+                        </div>
+                        <div className="pt-3 border-t border-white/20">
+                          <p className="text-white/90 font-medium text-base">Follen Church</p>
+                          <p className="text-white/70 text-sm">755 Massachusetts Avenue, Lexington, MA 02420</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-white/90">{locationData[currentLocation].address}</p>
+                        <p className="text-white/90">{locationData[currentLocation].addressLine2}</p>
+                      </>
+                    )}
                   </div>
                 </div>
               </GlassCard>
@@ -210,64 +224,97 @@ export default function Home() {
               <GlassCard className="p-6 reveal-in animate-slide-up" hover>
                 <div className="flex items-start space-x-4">
                   <div className={`w-12 h-12 rounded-full flex items-center justify-center animate-pulse-soft ${currentLocation === 'wayland' ? 'bg-gradient-to-br from-purple-300 to-violet-300' : 'bg-gradient-to-br from-indigo-custom to-teal-custom'}`}>
-                    <Clock className="text-white" size={20} />
+                    <Calendar className="text-white" size={20} />
                   </div>
-                  <div>
-                    <h4 className={`text-lg font-semibold mb-2 ${currentLocation === 'wayland' ? 'text-violet-300' : 'text-sky-custom'}`}>Camp Hours</h4>
-                    <p className="text-white/90">Monday - Friday: 9:00 AM - 4:00 PM</p>
-                    <p className="text-white/90">Weekend: Closed</p>
+                  <div className="flex-1">
+                    <h4 className={`text-lg font-semibold mb-3 ${currentLocation === 'wayland' ? 'text-violet-300' : 'text-sky-custom'}`}>Weeks Running</h4>
+                    <div className="space-y-2">
+                      {locationData[currentLocation].weeks.map((week) => (
+                        <div key={week.id} className="text-white/90">
+                          <div className="flex items-start gap-2">
+                            <span className="font-medium">• {week.label}</span>
+                            <span className="text-white/70">(9:00 AM - 4:00 PM)</span>
+                          </div>
+                          {week.venue && (
+                            <div className="text-white/60 text-xs ml-4 mt-1 flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />
+                              {week.venue.name}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </GlassCard>
+
             </div>
 
-            {/* Right Column - Location Map */}
-            <div className="space-y-8">
-              <GlassCard className="p-8 h-full reveal-in animate-slide-up">
+            {/* Right Column - Location Maps */}
+            <div className="space-y-6">
+              <GlassCard className="p-8 reveal-in animate-slide-up">
                 <h3 className={`text-2xl font-bold mb-6 ${currentLocation === 'wayland' ? 'text-violet-300' : 'text-teal-custom'}`}>Find Us</h3>
-                <div className="mb-4">
-                  <p className="text-white/90 font-medium">{locationData[currentLocation].address}</p>
-                  <p className="text-white/70">{locationData[currentLocation].addressLine2}</p>
-                </div>
-                <div className="h-96 rounded-lg overflow-hidden border border-white/20">
-                  <iframe
-                    src={locationData[currentLocation].mapUrl}
-                    width="100%"
-                    height="100%"
-                    style={{ border: 0 }}
-                    allowFullScreen
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                    title={`${locationData[currentLocation].name} Location`}
-                  />
-                </div>
+                
+                {currentLocation === 'lexington' ? (
+                  <div className="space-y-8">
+                    {/* Temple Emunah */}
+                    <div>
+                      <h4 className="text-xl font-bold text-sky-custom mb-2">Temple Emunah</h4>
+                      <p className="text-white/80 mb-1">9 Piper Rd, Lexington, MA 02421</p>
+                      <p className="text-white/60 text-sm mb-4">Weeks: July 27–31, August 10–14, August 17–21</p>
+                      <div className="h-64 rounded-lg overflow-hidden border border-white/20">
+                        <iframe
+                          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2944.123456789!2d-71.2271715!3d42.4208445!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89e39da7cf60964d%3A0xb9185605b60e37d8!2sTemple%20Emunah!5e0!3m2!1sen!2sus!4v1692820800000!5m2!1sen!2sus"
+                          width="100%"
+                          height="100%"
+                          style={{ border: 0 }}
+                          allowFullScreen
+                          loading="lazy"
+                          referrerPolicy="no-referrer-when-downgrade"
+                          title="Temple Emunah Location"
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* Follen Church */}
+                    <div className="pt-6 border-t border-white/20">
+                      <h4 className="text-xl font-bold text-sky-custom mb-2">Follen Church</h4>
+                      <p className="text-white/80 mb-1">755 Massachusetts Avenue, Lexington, MA 02420</p>
+                      <p className="text-white/60 text-sm mb-4">Weeks: August 3–7, August 24–28</p>
+                      <div className="h-64 rounded-lg overflow-hidden border border-white/20">
+                        <iframe
+                          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d5889.806471077892!2d-71.20957172382262!3d42.4297945306929!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89e39d9180f2a243%3A0xcb6c786189931c66!2sFollen%20Church!5e0!3m2!1sen!2sus!4v1768470391604!5m2!1sen!2sus"
+                          width="100%"
+                          height="100%"
+                          style={{ border: 0 }}
+                          allowFullScreen
+                          loading="lazy"
+                          referrerPolicy="no-referrer-when-downgrade"
+                          title="Follen Church Location"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-white/90 font-medium">{locationData[currentLocation].address}</p>
+                    <p className="text-white/70 mb-4">{locationData[currentLocation].addressLine2}</p>
+                    <div className="h-96 rounded-lg overflow-hidden border border-white/20">
+                      <iframe
+                        src={locationData[currentLocation].mapUrl}
+                        width="100%"
+                        height="100%"
+                        style={{ border: 0 }}
+                        allowFullScreen
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                        title={`${locationData[currentLocation].name} Location`}
+                      />
+                    </div>
+                  </div>
+                )}
               </GlassCard>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Gallery Section */}
-      <section className="py-6">
-        <div className="max-w-6xl mx-auto px-6">
-          <h2 className={`text-3xl lg:text-4xl font-bold text-center mb-12 reveal-in ${currentLocation === 'wayland' ? 'gradient-text-purple' : 'gradient-text'}`}>Experience the Magic</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
-              "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
-              "https://images.unsplash.com/photo-1516280440614-37939bbacd81?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
-              "https://images.unsplash.com/photo-1511735111819-9a3f7709049c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
-              "https://images.unsplash.com/photo-1493612276216-ee3925520721?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
-              "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600"
-            ].map((src, index) => (
-              <GlassCard key={index} className="overflow-hidden reveal-in" hover>
-                <img 
-                  src={src}
-                  alt={`Music camp activity ${index + 1}`}
-                  className="w-full h-48 object-cover"
-                />
-              </GlassCard>
-            ))}
           </div>
         </div>
       </section>

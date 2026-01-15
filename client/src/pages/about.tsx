@@ -8,9 +8,10 @@ const ADAM_STAFF = [
   {
     id: "adam",
     name: "Adam Bernstein",
-    title: "President",
+    title: "Newton and Wayland Director",
     bio: "Adam Bernstein is a singer, pianist, music educator, and vocal/instrumental arranger from Lexington, MA. He graduated from Tufts University with a BA in Music, where he sang with the internationally-recognized a cappella group the Beelzebubs, ran varsity track, and studied abroad in Madrid. Now, Adam plays keys in a local band called Sunnydaze, leads an 80-person choir called Rock Voices Newton, and daylights as a private lessons instructor at The Real School of Music. He is a proud alum of the Lexington High School Madrigal Singers and Rock, Paper, Scissors, and couldn't be more excited to be bringing the workshop to a new audience in Newton this summer!",
-    imageUrl: adamPhoto
+    imageUrl: adamPhoto,
+    imageClassName: "",
   }
 ];
 
@@ -71,11 +72,13 @@ export default function About() {
             {((currentLocation === 'newton-wellesley' || currentLocation === 'wayland') ? ADAM_STAFF : STAFF_BIOS).map((staff) => (
               <GlassCard key={staff.id} className="p-8 reveal-in" hover>
                 <div className="flex flex-col lg:flex-row gap-8 items-start">
-                  <img 
-                    src={staff.imageUrl}
-                    alt={`${staff.name} headshot`}
-                    className="w-32 h-32 rounded-2xl object-cover mx-auto lg:mx-0 flex-shrink-0"
-                  />
+                  <div className="w-32 h-32 rounded-2xl overflow-hidden mx-auto lg:mx-0 flex-shrink-0">
+                    <img 
+                      src={staff.imageUrl}
+                      alt={`${staff.name} headshot`}
+                      className={`w-full h-full object-cover ${staff.imageClassName || ''}`}
+                    />
+                  </div>
                   <div className="flex-1">
                     <h3 className={`text-xl font-bold mb-2 ${currentLocation === 'wayland' ? 'text-purple-400' : currentLocation === 'newton-wellesley' ? 'text-emerald-400' : 'text-sky-custom'}`}>{staff.name} — {staff.title}</h3>
                     <p className="text-white/90 leading-relaxed">

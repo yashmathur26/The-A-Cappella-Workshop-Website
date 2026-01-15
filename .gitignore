@@ -4,3 +4,11 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+
+# Local state and binaries
+.local/
+cloudflared
+
+# Local secrets (Replit Secrets do not download with the repo)
+.env
+.env.*

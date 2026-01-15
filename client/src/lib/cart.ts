@@ -26,7 +26,10 @@ export class CartManager {
     'ADMIN': 'FIXED_0', // $0 total for admin
     'ADMIN1': 'FIXED_0.50', // $0.50 total for admin
     'ADMIND': 'FIXED_0.50', // $0.50 deposit test (with $499.50 remaining)
-    'ADMINF': 'FIXED_0.50' // $0.50 full payment test
+    'ADMINF': 'FIXED_0.50', // $0.50 full payment test
+    'ARJUN': 'FIXED_1', // $1 total for staff
+    'SHUNTAVI': 'FIXED_1', // $1 total for staff
+    'YASH': 'FIXED_1' // $1 total for staff
   };
 
   static getCart(): CartItem[] {
@@ -143,6 +146,9 @@ export class CartManager {
     if (promoCode === 'ADMIN1' || promoCode === 'ADMIND' || promoCode === 'ADMINF') {
       return 0.50; // Fixed $0.50 for admin testing
     }
+    if (promoCode === 'ARJUN' || promoCode === 'SHUNTAVI' || promoCode === 'YASH') {
+      return 1.00; // Fixed $1 for staff
+    }
     
     const discount = this.getDiscount();
     return Math.round((subtotal * (1 - discount)) * 100) / 100;
@@ -171,6 +177,9 @@ export class CartManager {
     }
     if (promoCode === 'ADMIN1' || promoCode === 'ADMIND' || promoCode === 'ADMINF') {
       return Math.round((subtotal - 0.50) * 100) / 100;
+    }
+    if (promoCode === 'ARJUN' || promoCode === 'SHUNTAVI' || promoCode === 'YASH') {
+      return Math.round((subtotal - 1.00) * 100) / 100;
     }
     
     const discount = this.getDiscount();

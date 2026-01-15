@@ -59,12 +59,20 @@
 
 /* Newton location background override */
 body.location-newton-wellesley {
-  background: linear-gradient(135deg, #0c1813, #064e3b) !important;
+  /* Multi-stop + radial overlays to reduce visible banding and match Lexington smoothness */
+  background:
+    radial-gradient(1200px 600px at 15% 10%, rgba(16, 185, 129, 0.18), rgba(16, 185, 129, 0) 60%),
+    radial-gradient(900px 500px at 85% 85%, rgba(20, 184, 166, 0.14), rgba(20, 184, 166, 0) 55%),
+    linear-gradient(135deg, #071a13 0%, #064e3b 48%, #0f766e 100%) !important;
 }
 
 /* Wayland location background override - light purple gradient */
 body.location-wayland {
-  background: linear-gradient(135deg, #1a0a2e 0%, #4c1d95 50%, #7c3aed 100%) !important;
+  /* Multi-stop + radial overlays to reduce visible banding and match Lexington smoothness */
+  background:
+    radial-gradient(1200px 600px at 15% 10%, rgba(196, 181, 253, 0.16), rgba(196, 181, 253, 0) 60%),
+    radial-gradient(900px 500px at 85% 85%, rgba(217, 70, 239, 0.12), rgba(217, 70, 239, 0) 55%),
+    linear-gradient(135deg, #140624 0%, #4c1d95 50%, #7c3aed 100%) !important;
 }
 
   html {
@@ -460,5 +468,10 @@ body.location-wayland {
     max-height: 800px;
     opacity: 1;
     transition: max-height 0.7s cubic-bezier(0.25, 0.1, 0.25, 1), opacity 0.5s ease-in-out;
+  }
+
+  /* Gallery photo fallback (shown when /public image 404s) */
+  .lexington-photo-fallback .lexington-fallback-layer {
+    display: flex;
   }
 }

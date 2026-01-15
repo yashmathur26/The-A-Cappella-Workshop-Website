@@ -1,3 +1,4 @@
+import "./env";
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
@@ -6,124 +7,144 @@ const app = express();
 
 // Webhook must be registered BEFORE express.json() to get raw body
 import Stripe from "stripe";
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
-}
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2025-07-30.basil" as any,
-});
+const stripe = process.env.STRIPE_SECRET_KEY
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: "2025-07-30.basil" as any,
+    })
+  : null;
 
-// Early webhook registration with raw body parsing
-app.post('/api/webhook', 
-  express.raw({ type: 'application/json' }), 
-  async (req, res) => {
-    const sig = req.headers['stripe-signature'];
-    
-    if (!process.env.STRIPE_WEBHOOK_SECRET) {
-      console.error('Missing STRIPE_WEBHOOK_SECRET');
-      return res.status(400).send('Missing webhook secret');
-    }
+if (stripe) {
+  // Early webhook registration with raw body parsing
+  app.post(
+    '/api/webhook',
+    express.raw({ type: 'application/json' }),
+    async (req, res) => {
+      const sig = req.headers['stripe-signature'];
 
-    let event;
+      if (!process.env.STRIPE_WEBHOOK_SECRET) {
+        console.error('Missing STRIPE_WEBHOOK_SECRET');
+        return res.status(400).send('Missing webhook secret');
+      }
 
-    try {
-      event = stripe.webhooks.constructEvent(req.body, sig!, process.env.STRIPE_WEBHOOK_SECRET);
-    } catch (err: any) {
-      console.error(`Webhook signature verification failed: ${err.message}`);
-      return res.status(400).send(`Webhook Error: ${err.message}`);
-    }
+      let event;
 
-    console.log(`✅ Webhook verified: ${event.type}`);
+      try {
+        event = stripe.webhooks.constructEvent(
+          req.body,
+          sig!,
+          process.env.STRIPE_WEBHOOK_SECRET,
+        );
+      } catch (err: any) {
+        console.error(`Webhook signature verification failed: ${err.message}`);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+      }
 
-    // Handle the event
-    if (event.type === 'checkout.session.completed') {
-      const session = event.data.object as Stripe.Checkout.Session;
-      console.log(`💰 Payment succeeded: session ${session.id}, status: ${session.payment_status}`);
-      
-      if (session.payment_status === 'paid') {
-        try {
-          // Import storage and email functions dynamically to avoid circular dependencies
-          const { storage } = await import("./storage");
-          const { sendRegistrationConfirmationEmail } = await import("./brevo");
-          
-          // Parse cart items from metadata
-          const itemsJson = session.metadata?.items_json;
-          const items = itemsJson ? JSON.parse(itemsJson) : [];
-          
-          // Get guest info from metadata
-          const parentEmail = session.customer_details?.email || session.metadata?.parentEmail || '';
-          const parentName = session.metadata?.parentName || '';
-          const childName = session.metadata?.childName || '';
-          
-          console.log(`👤 Processing guest payment for ${parentName} (${parentEmail}), ${items.length} items`);
+      console.log(`✅ Webhook verified: ${event.type}`);
 
-          // Create registrations for each cart item
-          for (const item of items) {
-            const paymentType = item.payment_type || 'full';
-            const fullPrice = 500; // Full camp price in dollars
-            
-            // Use actual amount charged from Stripe session
-            const actualAmountPaidCents = session.amount_total || 0;
-            const actualAmountPaid = actualAmountPaidCents / 100;
-            
-            // Calculate balance due based on actual payment vs full price
-            let balanceDueCents = 0;
-            if (paymentType === 'deposit') {
-              balanceDueCents = Math.max(0, (fullPrice * 100) - actualAmountPaidCents);
-            }
-            
-            // Create guest registration
-            const registration = await storage.createRegistration({
-              parentName,
-              parentEmail,
-              childName,
-              weekId: item.week_id,
-              status: 'paid',
-              stripeCheckoutSessionId: session.id,
-              stripePaymentIntentId: session.payment_intent as string || '',
-              paymentType,
-              amountPaidCents: actualAmountPaidCents,
-              balanceDueCents: Math.max(0, balanceDueCents),
-              promoCode: session.metadata?.promoCode || null,
-            });
-            console.log(`📝 Created registration for week ${item.week_id} (${paymentType}: $${actualAmountPaid}, balance: $${balanceDueCents / 100})`);
-          }
+      // Handle the event
+      if (event.type === 'checkout.session.completed') {
+        const session = event.data.object as Stripe.Checkout.Session;
+        console.log(
+          `💰 Payment succeeded: session ${session.id}, status: ${session.payment_status}`,
+        );
 
-          // Create payment record
-          await storage.createPayment({
-            parentEmail,
-            amountCents: session.amount_total || 0,
-            currency: session.currency || 'usd',
-            stripePaymentIntentId: session.payment_intent as string || '',
-            stripeCheckoutSessionId: session.id,
-            status: 'succeeded',
-          });
-          console.log(`💳 Created payment record for $${(session.amount_total || 0) / 100}`);
-          
-          // Send confirmation email
-          const week = await storage.getWeek(items[0]?.week_id);
-          if (week) {
-            await sendRegistrationConfirmationEmail(
-              parentEmail,
-              parentName,
-              childName,
-              week.label,
-              `$${(session.amount_total || 0) / 100}`,
-              {
-                receipt_url: '', // Stripe receipt URL if available
-              }
+        if (session.payment_status === 'paid') {
+          try {
+            // Import storage and email functions dynamically to avoid circular dependencies
+            const { storage } = await import("./storage");
+            const { sendRegistrationConfirmationEmail } = await import("./brevo");
+
+            // Parse cart items from metadata
+            const itemsJson = session.metadata?.items_json;
+            const items = itemsJson ? JSON.parse(itemsJson) : [];
+
+            // Get guest info from metadata
+            const parentEmail =
+              session.customer_details?.email || session.metadata?.parentEmail || '';
+            const parentName = session.metadata?.parentName || '';
+            const childName = session.metadata?.childName || '';
+
+            console.log(
+              `👤 Processing guest payment for ${parentName} (${parentEmail}), ${items.length} items`,
             );
-            console.log(`📧 Sent confirmation email to ${parentEmail}`);
+
+            // Create registrations for each cart item
+            for (const item of items) {
+              const paymentType = item.payment_type || 'full';
+              const fullPrice = 500; // Full camp price in dollars
+
+              // Use actual amount charged from Stripe session
+              const actualAmountPaidCents = session.amount_total || 0;
+              const actualAmountPaid = actualAmountPaidCents / 100;
+
+              // Calculate balance due based on actual payment vs full price
+              let balanceDueCents = 0;
+              if (paymentType === 'deposit') {
+                balanceDueCents = Math.max(
+                  0,
+                  (fullPrice * 100) - actualAmountPaidCents,
+                );
+              }
+
+              // Create guest registration
+              await storage.createRegistration({
+                parentName,
+                parentEmail,
+                childName,
+                weekId: item.week_id,
+                status: 'paid',
+                stripeCheckoutSessionId: session.id,
+                stripePaymentIntentId: (session.payment_intent as string) || '',
+                paymentType,
+                amountPaidCents: actualAmountPaidCents,
+                balanceDueCents: Math.max(0, balanceDueCents),
+                promoCode: session.metadata?.promoCode || null,
+              });
+              console.log(
+                `📝 Created registration for week ${item.week_id} (${paymentType}: $${actualAmountPaid}, balance: $${balanceDueCents / 100})`,
+              );
+            }
+
+            // Create payment record
+            await storage.createPayment({
+              parentEmail,
+              amountCents: session.amount_total || 0,
+              currency: session.currency || 'usd',
+              stripePaymentIntentId: (session.payment_intent as string) || '',
+              stripeCheckoutSessionId: session.id,
+              status: 'succeeded',
+            });
+            console.log(
+              `💳 Created payment record for $${(session.amount_total || 0) / 100}`,
+            );
+
+            // Send confirmation email
+            const week = await storage.getWeek(items[0]?.week_id);
+            if (week) {
+              await sendRegistrationConfirmationEmail(
+                parentEmail,
+                parentName,
+                childName,
+                week.label,
+                `$${(session.amount_total || 0) / 100}`,
+                {
+                  receipt_url: '', // Stripe receipt URL if available
+                },
+              );
+              console.log(`📧 Sent confirmation email to ${parentEmail}`);
+            }
+          } catch (error) {
+            console.error('❌ Error processing checkout session:', error);
           }
-        } catch (error) {
-          console.error('❌ Error processing checkout session:', error);
         }
       }
-    }
 
-    res.json({ received: true });
-  }
-);
+      res.json({ received: true });
+    },
+  );
+} else {
+  console.warn("STRIPE_SECRET_KEY is not set; Stripe webhook endpoint is disabled.");
+}
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -192,11 +213,18 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || '5000', 10);
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
+  // Replit-style settings (0.0.0.0 + reusePort) can fail on some local setups.
+  // In local development we bind to loopback and skip reusePort for maximum compatibility.
+  const host =
+    process.env.HOST ||
+    (app.get("env") === "development" ? "127.0.0.1" : "0.0.0.0");
+
+  const listenOptions: any =
+    app.get("env") === "development"
+      ? { port, host }
+      : { port, host, reusePort: true };
+
+  server.listen(listenOptions, () => {
     log(`serving on port ${port}`);
   });
 })();

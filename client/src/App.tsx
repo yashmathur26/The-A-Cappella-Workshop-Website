@@ -1,9 +1,10 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Navigation } from "@/components/ui/navigation";
+import { Footer } from "@/components/Footer";
 import { LocationProvider } from "@/contexts/LocationContext";
 import Home from "@/pages/home";
 import About from "@/pages/about";
@@ -14,6 +15,12 @@ import Status from "@/pages/status";
 import NotFound from "@/pages/not-found";
 
 function Router() {
+  const [location] = useLocation();
+  
+  // Show footer on all pages except registration pages
+  const showFooter = !location.startsWith('/camp-registration') && 
+                     !location.startsWith('/register');
+  
   return (
     <>
       <Navigation />
@@ -27,6 +34,7 @@ function Router() {
         <Route path="/success" component={Status} />
         <Route component={NotFound} />
       </Switch>
+      {showFooter && <Footer />}
     </>
   );
 }

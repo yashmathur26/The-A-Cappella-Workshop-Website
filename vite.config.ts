@@ -21,8 +21,10 @@ export default defineConfig({
       "@": path.resolve(import.meta.dirname, "client", "src"),
       "@shared": path.resolve(import.meta.dirname, "shared"),
       "@assets": path.resolve(import.meta.dirname, "attached_assets"),
+      "@gallery": path.resolve(import.meta.dirname, "Website Pictures Lexington"),
     },
   },
+  assetsInclude: ["**/*.JPG", "**/*.PNG"],
   root: path.resolve(import.meta.dirname, "client"),
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
@@ -30,8 +32,9 @@ export default defineConfig({
   },
   server: {
     fs: {
-      strict: true,
-      deny: ["**/.*"],
+      strict: false,
     },
+    port: undefined, // Don't use a separate port in middleware mode
+    strictPort: false,
   },
 });

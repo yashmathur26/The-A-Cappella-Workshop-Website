@@ -1,3 +1,4 @@
+import "./env";
 import type { Express } from "express";
 import express from "express";
 import { createServer, type Server } from "http";
@@ -10,13 +11,17 @@ import { sendRegistrationConfirmationEmail } from "./brevo";
 import { insertRegistrationSchema, type Week } from "@shared/schema";
 import { pool } from "./db";
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY. Please set it in your environment variables.');
-}
+const stripe = process.env.STRIPE_SECRET_KEY
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: "2025-07-30.basil",
+    })
+  : null;
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2025-07-30.basil",
-});
+if (!stripe) {
+  console.warn(
+    "STRIPE_SECRET_KEY is not set; payment endpoints will be disabled (local dev mode).",
+  );
+}
 
 // Ensure data/rosters directory exists
 function ensureRosterDirectory() {
@@ -42,16 +47,21 @@ function writeRosterRecord(record: any) {
 
 async function initializeDatabase() {
   try {
-    // Test database connection
-    const client = await pool.connect();
-    client.release();
-    console.log('Database initialized successfully');
-    
-    // Seed weeks
+    // Test database connection (if configured)
+    if (pool) {
+      const client = await pool.connect();
+      client.release();
+      console.log('Database initialized successfully');
+    } else {
+      console.warn('Database not configured; continuing without persistence.');
+    }
+
+    // Seed weeks (works for both DB and in-memory storage)
     await storage.seedWeeks();
   } catch (error) {
     console.error('Database initialization error:', error);
-    throw error;
+    // In local/dev mode we prefer the site to boot even if DB seeding fails.
+    // Routes that rely on persistence may be degraded.
   }
 }
 
@@ -113,6 +123,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create checkout session for guest checkout
   app.post("/api/create-checkout-session", express.json(), async (req, res) => {
     try {
+      if (!stripe) {
+        return res.status(501).json({
+          message:
+            "Payments are disabled because STRIPE_SECRET_KEY is not set on the server.",
+        });
+      }
+
       const { cartItems, promoCode, parentName, parentEmail, childName, locationName } = req.body;
       
       if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
@@ -137,7 +154,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           price_data: {
             currency: 'usd',
             product_data: {
-              name: 'A Cappella Workshop Registration (Admin Comp)',
+              name: `${locationName} - A Cappella Workshop Registration (Admin Comp)`,
+              description: `${locationName} location`,
             },
             unit_amount: 0,
           },
@@ -149,7 +167,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           price_data: {
             currency: 'usd',
             product_data: {
-              name: 'A Cappella Workshop Registration (Admin Special)',
+              name: `${locationName} - A Cappella Workshop Registration (Admin Special)`,
+              description: `${locationName} location`,
             },
             unit_amount: 50, // $0.50 total
           },
@@ -161,7 +180,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           price_data: {
             currency: 'usd',
             product_data: {
-              name: 'A Cappella Workshop Deposit (Testing)',
+              name: `${locationName} - A Cappella Workshop Deposit (Testing)`,
+              description: `${locationName} location`,
             },
             unit_amount: 50,
           },
@@ -173,25 +193,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
           price_data: {
             currency: 'usd',
             product_data: {
-              name: 'A Cappella Workshop Full Payment (Testing)',
+              name: `${locationName} - A Cappella Workshop Full Payment (Testing)`,
+              description: `${locationName} location`,
             },
             unit_amount: 50,
           },
           quantity: 1,
         }];
+      } else if (upperPromoCode === 'ARJUN' || upperPromoCode === 'SHUNTAVI' || upperPromoCode === 'YASH') {
+        // Staff promo - $1 total before fees
+        const processingFee = Math.round(1 * 0.036 * 100); // 3.6% of $1
+        lineItems = [{
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: `${locationName} - A Cappella Workshop (Staff - ${upperPromoCode})`,
+              description: `${locationName} location`,
+            },
+            unit_amount: 100, // $1.00
+          },
+          quantity: 1,
+        }];
+        if (processingFee > 0) {
+          lineItems.push({
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: 'Processing Fee (3.6%)',
+                description: 'To avoid this fee, pay via Zelle or check - email theacappellaworkshop@gmail.com',
+              },
+              unit_amount: processingFee,
+            },
+            quantity: 1,
+          });
+        }
       } else {
-        // Normal pricing
+        // Normal pricing - client sends correct deposit ($150) or full price ($500)
         lineItems = cartItems.map((item: any) => {
-          const amount = item.paymentType === 'deposit' 
-            ? Math.round(item.price * 100 * 0.3) 
-            : Math.round(item.price * 100);
+          const amount = Math.round(item.price * 100); // Price already correct from client
+          const itemLocation = item.location || locationName || 'Unknown Location';
 
           return {
             price_data: {
               currency: 'usd',
               product_data: {
-                name: `${item.location} - ${item.weekLabel} ${item.paymentType === 'deposit' ? '(Deposit)' : '(Full Payment)'}`,
-                description: item.paymentType === 'deposit' ? '30% deposit payment' : 'Full payment',
+                name: `${itemLocation} - ${item.weekLabel} ${item.paymentType === 'deposit' ? '(Deposit)' : '(Full Payment)'}`,
+                description: `${itemLocation} location - ${item.paymentType === 'deposit' ? '$150 deposit payment' : 'Full payment'}`,
               },
               unit_amount: amount,
             },
@@ -199,21 +246,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
         });
 
-        // Calculate 3% processing fee based on cart total
+        // Calculate 3.6% processing fee based on cart total
         const cartTotal = cartItems.reduce((total: number, item: any) => {
-          const amount = item.paymentType === 'deposit' 
-            ? item.price * 0.3 
-            : item.price;
-          return total + amount;
+          return total + item.price; // Price already correct from client
         }, 0);
-        const processingFee = Math.round(cartTotal * 0.03 * 100); // 3% fee in cents
+        const processingFee = Math.round(cartTotal * 0.036 * 100); // 3.6% fee in cents
 
         if (processingFee > 0) {
           lineItems.push({
             price_data: {
               currency: 'usd',
               product_data: {
-                name: 'Processing Fee (3%)',
+                name: 'Processing Fee (3.6%)',
                 description: 'To avoid this fee, pay via Zelle or check - email theacappellaworkshop@gmail.com',
               },
               unit_amount: processingFee,
@@ -235,6 +279,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           parentName,
           parentEmail,
           childName,
+          locationName: locationName || '',
           items_json: JSON.stringify(cartItems.map((item: any) => ({
             week_id: item.weekId,
             week_label: item.weekLabel,
@@ -242,7 +287,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             payment_type: item.paymentType || 'full',
           }))),
           promoCode: promoCode || '',
-          isAdminDiscount: ['ADMIN', 'ADMIN1', 'ADMIND', 'ADMINF'].includes(upperPromoCode || '') ? 'true' : 'false',
+          isAdminDiscount: ['ADMIN', 'ADMIN1', 'ADMIND', 'ADMINF', 'ARJUN', 'SHUNTAVI', 'YASH'].includes(upperPromoCode || '') ? 'true' : 'false',
         },
       });
 

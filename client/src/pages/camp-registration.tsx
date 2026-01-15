@@ -9,7 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Tag, X, AlertTriangle } from "lucide-react";
+import { Tag, X, AlertTriangle, MapPin } from "lucide-react";
 import { useLocation } from '@/contexts/LocationContext';
 
 
@@ -399,15 +399,15 @@ export default function Register() {
             <div className="flex items-start space-x-3">
               <span className="text-teal-custom font-bold">💳</span>
               <div>
-                <p className="font-semibold">Pay in Full ($500/week)</p>
+                <p className="font-semibold">Pay in Full (${locationData[currentLocation].pricing.full}/week)</p>
                 <p className="text-sm text-white/70">Complete payment today — no additional fees or invoices</p>
               </div>
             </div>
             <div className="flex items-start space-x-3">
               <span className="text-sky-custom font-bold">📄</span>
               <div>
-                <p className="font-semibold">Pay Deposit ($150/week)</p>
-                <p className="text-sm text-white/70">Secure your spot with a non-refundable deposit. We'll email you an invoice for the remaining $350, also available in your account dashboard.</p>
+                <p className="font-semibold">Pay Deposit (${locationData[currentLocation].pricing.deposit}/week)</p>
+                <p className="text-sm text-white/70">Secure your spot with a non-refundable deposit. We'll email you an invoice for the remaining ${locationData[currentLocation].pricing.full - locationData[currentLocation].pricing.deposit}, also available in your account dashboard.</p>
               </div>
             </div>
           </div>
@@ -419,7 +419,7 @@ export default function Register() {
             {/* Step 1: Choose Weeks */}
             <section>
               <h2 className="text-2xl font-bold mb-4 text-white">Step 1 — Choose Your Week(s)</h2>
-              <p className="text-white/80 mb-6">Select your preferred weeks and payment option. You can either pay the full amount or secure your spot with a $150 deposit and pay the remaining amount later through email invoice or your account dashboard.</p>
+              <p className="text-white/80 mb-6">Select ur preferred weeks and payment option.</p>
               <div className="grid gap-6">
                 {WEEKS.map((week, index) => (
                   <GlassCard 
@@ -429,6 +429,14 @@ export default function Register() {
                     <div className="flex justify-between items-start mb-4">
                       <div>
                         <h3 className="text-xl font-bold text-white">Week {index + 1}: <span className="font-normal">{week.label}</span></h3>
+                        {week.venue && (
+                          <div className="mt-2">
+                            <span className="text-sm text-white/70 flex items-center gap-2">
+                              <MapPin className="w-4 h-4" />
+                              {week.venue.name} - {week.venue.addressLine2}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="mb-4">
@@ -532,9 +540,9 @@ export default function Register() {
                   
                   <div className="bg-white/5 rounded-lg p-4 border border-white/10 mb-4">
                     <iframe 
-                      src="https://docs.google.com/forms/d/e/1FAIpQLSfU3ReIcBMTJge0QnuX-G1JaQo9av-pqt7AGHGA7PclvlRfKg/viewform?embedded=true" 
+                      src="https://docs.google.com/forms/d/e/1FAIpQLSdHXYEXmGe39_L3Uq8f-T0653oFF2DEGLQMBDgN0vDC4ox1hA/viewform?embedded=true" 
                       width="100%" 
-                      height="400" 
+                      height="3729" 
                       frameBorder="0" 
                       marginHeight={0}
                       marginWidth={0}
@@ -698,7 +706,7 @@ export default function Register() {
                   <span className="text-white">Total:</span>
                   <span className="text-white">${cartTotal.toFixed(2)}</span>
                 </div>
-                <p className="text-white/50 text-xs mb-4">* 3% processing fee will be added at checkout</p>
+                <p className="text-white/50 text-xs mb-4">* 3.6% processing fee will be added at checkout</p>
                 <div className="bg-white/5 border border-white/10 rounded-lg p-3 mb-4">
                   <p className="text-white/70 text-xs text-center">
                     Want to avoid fees? Pay via Zelle or check — email us at{' '}

@@ -1,9 +1,5 @@
 import axios from 'axios';
 
-if (!process.env.BREVO_API_KEY) {
-  throw new Error("BREVO_API_KEY environment variable must be set");
-}
-
 const BREVO_API_URL = 'https://api.brevo.com/v3';
 const API_KEY = process.env.BREVO_API_KEY;
 
@@ -14,6 +10,10 @@ interface EmailParams {
 }
 
 export async function sendBrevoEmail({ to, templateId, params }: EmailParams): Promise<boolean> {
+  if (!API_KEY) {
+    console.warn("BREVO_API_KEY is not set; skipping email send.");
+    return false;
+  }
   try {
     const response = await axios.post(
       `${BREVO_API_URL}/smtp/email`,

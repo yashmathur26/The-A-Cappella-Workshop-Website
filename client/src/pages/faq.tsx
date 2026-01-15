@@ -25,16 +25,26 @@ export default function FAQ() {
         <div className="space-y-4">
           <div>
             <h4 className="font-semibold mb-2 text-white text-lg">Location:</h4>
-            <p className="text-white text-base">{locationData[currentLocation].address}, {locationData[currentLocation].addressLine2}</p>
+            {currentLocation === 'lexington' ? (
+              <div className="space-y-3">
+                <div>
+                  <p className="text-white text-base font-medium">Temple Emunah</p>
+                  <p className="text-white/80 text-sm">9 Piper Rd, Lexington, MA 02421</p>
+                  <p className="text-white/60 text-sm">Weeks: July 27–31, August 10–14, August 17–21</p>
+                </div>
+                <div>
+                  <p className="text-white text-base font-medium">Follen Church</p>
+                  <p className="text-white/80 text-sm">755 Massachusetts Avenue, Lexington, MA 02420</p>
+                  <p className="text-white/60 text-sm">Weeks: August 3–7, August 24–28</p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-white text-base">{locationData[currentLocation].address}, {locationData[currentLocation].addressLine2}</p>
+            )}
           </div>
           <div>
             <h4 className="font-semibold mb-2 text-white text-lg">Dates:</h4>
-            <p className="text-white text-base">{currentLocation === 'lexington' ? 'Multiple week options available throughout the summer' : currentLocation === 'newton-wellesley' ? 'August 10-14 and August 17-21, 2026' : 'August 3-7, 2026'}</p>
-          </div>
-          <div>
-            <h4 className="font-semibold mb-2 text-white text-lg">Times:</h4>
-            <p className="text-white text-base">Monday through Friday, 9:00 AM – 4:00 PM</p>
-            <p className="text-white text-sm mt-2">Each day is carefully structured to balance intensive vocal training, creative collaboration, and fun activities. Students will participate in small group rehearsals, skill-building workshops, and individual coaching sessions throughout the week.</p>
+            <p className="text-white text-base">{currentLocation === 'lexington' ? 'July 27–31, August 3–7, August 10–14, August 17–21, August 24–28' : currentLocation === 'newton-wellesley' ? 'August 10–14 and August 17–21, 2026' : 'August 3–7, 2026'}</p>
           </div>
           <div>
             <h4 className="font-semibold mb-2 text-white text-lg">Who:</h4>

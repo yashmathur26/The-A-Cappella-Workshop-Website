@@ -22,12 +22,22 @@ export function log(message: string, source = "express") {
 export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
     middlewareMode: true,
-    hmr: { server },
+    hmr: { 
+      server,
+      // Use the same server for HMR WebSocket
+      port: undefined,
+    },
     allowedHosts: true as const,
+    // Explicitly prevent Vite from creating its own server
+    port: undefined,
+    strictPort: false,
   };
 
+  // Remove server config from viteConfig to avoid conflicts
+  const { server: _, ...configWithoutServer } = viteConfig as any;
+
   const vite = await createViteServer({
-    ...viteConfig,
+    ...configWithoutServer,
     configFile: false,
     customLogger: {
       ...viteLogger,
