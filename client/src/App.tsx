@@ -15,28 +15,38 @@ import CampRegistration from "@/pages/camp-registration";
 import Status from "@/pages/status";
 import NotFound from "@/pages/not-found";
 
-function LocationRedirect({ toLocation, redirectTo = '/' }: { toLocation: 'newton-wellesley' | 'wayland', redirectTo?: string }) {
+function LocationAwareHome({ location: routeLocation }: { location: 'lexington' | 'newton-wellesley' | 'wayland' }) {
   const { setLocation } = useLocationContext();
-  const [, setRoute] = useLocation();
   
   useEffect(() => {
-    setLocation(toLocation);
-    if (redirectTo) {
-      setRoute(redirectTo);
-    }
-  }, [toLocation, redirectTo, setLocation, setRoute]);
+    setLocation(routeLocation);
+  }, [routeLocation, setLocation]);
   
-  return null;
+  return <Home />;
 }
 
 function LocationAwareRegistration({ location: routeLocation }: { location: 'lexington' | 'newton-wellesley' | 'wayland' }) {
   const { setLocation, currentLocation } = useLocationContext();
+  const [location] = useLocation();
   
   useEffect(() => {
-    if (currentLocation !== routeLocation) {
-      setLocation(routeLocation);
+    // Always set the location based on the route, regardless of current location
+    setLocation(routeLocation);
+  }, [routeLocation, setLocation]);
+  
+  // If user switches location while on registration page, redirect to home for that location
+  useEffect(() => {
+    if (currentLocation !== routeLocation && (location.includes('/register') || location.includes('/camp-registration'))) {
+      // User changed location while on registration page - redirect to home
+      if (currentLocation === 'lexington') {
+        window.location.href = '/';
+      } else if (currentLocation === 'newton-wellesley') {
+        window.location.href = '/newton';
+      } else if (currentLocation === 'wayland') {
+        window.location.href = '/wayland';
+      }
     }
-  }, [routeLocation, currentLocation, setLocation]);
+  }, [currentLocation, routeLocation, location]);
   
   return <CampRegistration />;
 }
@@ -65,12 +75,14 @@ function Router() {
           <LocationAwareRegistration location="wayland" />
         </Route>
         <Route path="/newton">
-          <LocationRedirect toLocation="newton-wellesley" />
+          <LocationAwareHome location="newton-wellesley" />
         </Route>
         <Route path="/wayland">
-          <LocationRedirect toLocation="wayland" />
+          <LocationAwareHome location="wayland" />
         </Route>
-        <Route path="/" component={Home} />
+        <Route path="/">
+          <LocationAwareHome location="lexington" />
+        </Route>
         <Route path="/about" component={About} />
         <Route path="/faq" component={FAQ} />
         <Route path="/gallery" component={Gallery} />

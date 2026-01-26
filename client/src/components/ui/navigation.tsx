@@ -104,12 +104,14 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="bg-gray-900 border-gray-700 text-white">
-                <DropdownMenuItem 
-                  onClick={() => setAppLocation('lexington')}
-                  className={`cursor-pointer hover:bg-gray-800 ${currentLocation === 'lexington' ? 'bg-blue-900/50' : ''}`}
-                >
-                  <MapPin className="w-4 h-4 mr-2" />
-                  Lexington
+                <DropdownMenuItem asChild>
+                  <Link 
+                    href="/"
+                    className={`cursor-pointer hover:bg-gray-800 flex items-center ${currentLocation === 'lexington' ? 'bg-blue-900/50' : ''}`}
+                  >
+                    <MapPin className="w-4 h-4 mr-2" />
+                    Lexington
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link 
