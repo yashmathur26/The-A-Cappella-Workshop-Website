@@ -71,12 +71,12 @@ export default function Home() {
               </Link>
               <div className="flex gap-3 flex-wrap justify-center">
                 {currentLocation !== 'lexington' && (
-                  <button 
-                    onClick={() => setLocation('lexington')}
+                  <Link 
+                    href="/"
                     className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-3 rounded-full font-medium transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-blue-500/25"
                   >
                     Lexington
-                  </button>
+                  </Link>
                 )}
                 {currentLocation !== 'newton-wellesley' && (
                   <Link 
@@ -89,7 +89,7 @@ export default function Home() {
                 {currentLocation !== 'wayland' && (
                   <Link 
                     href="/wayland"
-                    className="bg-purple-300 hover:bg-purple-400 text-gray-900 px-6 py-3 rounded-full font-medium transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-purple-300/25"
+                    className="bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 text-white px-6 py-3 rounded-full font-medium transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25"
                   >
                     Wayland
                   </Link>
