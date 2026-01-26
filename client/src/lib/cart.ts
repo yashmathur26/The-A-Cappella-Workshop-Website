@@ -22,6 +22,7 @@ export class CartManager {
   
   // Promo codes and their discounts
   private static readonly PROMO_CODES = {
+    'EARLYBIRD': 0.10, // 10% discount
     'SHOP': 0.20, // 20% discount
     'ADMIN': 'FIXED_0', // $0 total for admin
     'ADMIN1': 'FIXED_0.50', // $0.50 total for admin
