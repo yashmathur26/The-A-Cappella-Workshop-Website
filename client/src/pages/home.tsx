@@ -98,13 +98,7 @@ export default function Home() {
           <GlassCard className="p-8 reveal-in" hover>
             <div className="text-center mb-8">
               <h2 className={`text-3xl lg:text-4xl font-bold mb-4 ${currentLocation === 'wayland' ? 'gradient-text-purple' : 'gradient-text'}`}>The A Cappella Workshop</h2>
-              {currentLocation === 'lexington' ? (
-                <p className="text-lg text-white/90 leading-relaxed text-left">
-                  Founded in 2015, The A Cappella Workshop (The 'Shop) is a beloved community program where rising 6th-9th grade students dive into the world of a cappella through large group performances while exploring musicality, vocal technique, music theory, and more! Our environment is friendly and high-energy and guides students through learning how to listen, blend, keep time, lead, and perform with confidence. Taught by exceptional student teachers from local high school a cappella programs, The 'Shop guides both beginners and experienced singers through a week of making music, learning new skills, and having fun. Each week ends with a performance for families, friends, and community members to showcase the students' work. Secure your spot for summer 2026 TODAY!
-                </p>
-              ) : (
-                <p className="text-xl text-white/80">Welcome video coming soon!!!</p>
-              )}
+              <p className="text-xl text-white/80">Welcome video coming soon!!!</p>
             </div>
             
             <div className="aspect-video rounded-lg overflow-hidden border border-white/20">
