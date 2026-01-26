@@ -112,7 +112,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Highlights Section */}
+      {/* What is The A Cappella Workshop Section */}
       <section className="py-16 relative overflow-hidden">
         <div className={`absolute inset-0 ${
           currentLocation === 'lexington'
@@ -121,42 +121,18 @@ export default function Home() {
             ? 'bg-gradient-to-r from-emerald-600/10 via-green-500/5 to-teal-400/10'
             : 'bg-gradient-to-r from-purple-300/10 via-violet-300/5 to-fuchsia-300/10'
         }`}></div>
-        <div className="max-w-6xl mx-auto px-6 relative z-10">
-          <h2 className={`text-3xl lg:text-4xl font-bold text-center mb-16 ${currentLocation === 'wayland' ? 'gradient-text-purple' : 'gradient-text'}`}>What Makes Us Special</h2>
-          <div className="grid md:grid-cols-3 gap-12">
-            <GlassCard className="p-10 reveal-in animate-slide-up relative group overflow-hidden" hover>
-              <div className={`absolute top-0 right-0 w-32 h-32 rounded-full -translate-y-16 translate-x-16 group-hover:scale-150 transition-transform duration-700 ${currentLocation === 'wayland' ? 'bg-gradient-to-br from-purple-300/20 to-violet-300/20' : 'bg-gradient-to-br from-indigo-custom/20 to-sky-custom/20'}`}></div>
-              <div className="relative z-10">
-                <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-8 animate-float shadow-lg ${currentLocation === 'wayland' ? 'bg-gradient-to-br from-purple-300 to-violet-300 shadow-purple-300/30' : 'bg-gradient-to-br from-indigo-custom to-sky-custom shadow-indigo-custom/30'}`}>
-                  <Users className="text-white" size={36} />
-                </div>
-                <h3 className={`text-2xl font-bold mb-6 transition-colors duration-300 ${currentLocation === 'wayland' ? 'text-violet-300 group-hover:text-purple-300' : 'text-teal-custom group-hover:text-sky-custom'}`}>Teacher-guided small-group singing</h3>
-                <p className="text-white/90 leading-relaxed">Build confidence through harmony, blend, and teamwork in supportive peer groups.</p>
-              </div>
-            </GlassCard>
-            
-            <GlassCard className="p-10 reveal-in animate-slide-up relative group overflow-hidden" hover>
-              <div className={`absolute top-0 right-0 w-32 h-32 rounded-full -translate-y-16 translate-x-16 group-hover:scale-150 transition-transform duration-700 ${currentLocation === 'wayland' ? 'bg-gradient-to-br from-violet-300/20 to-fuchsia-300/20' : 'bg-gradient-to-br from-sky-custom/20 to-teal-custom/20'}`}></div>
-              <div className="relative z-10">
-                <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-8 animate-pulse-soft shadow-lg ${currentLocation === 'wayland' ? 'bg-gradient-to-br from-violet-300 to-fuchsia-300 shadow-violet-300/30' : 'bg-gradient-to-br from-sky-custom to-teal-custom shadow-sky-custom/30'}`}>
-                  <GraduationCap className="text-white" size={36} />
-                </div>
-                <h3 className={`text-2xl font-bold mb-6 transition-colors duration-300 ${currentLocation === 'wayland' ? 'text-purple-300 group-hover:text-violet-300' : 'text-sky-custom group-hover:text-teal-custom'}`}>Skills that last</h3>
-                <p className="text-white/90 leading-relaxed">Beatboxing, arranging, music theory, and rehearsal strategies you'll use forever.</p>
-              </div>
-            </GlassCard>
-            
-            <GlassCard className="p-10 reveal-in animate-slide-up relative group overflow-hidden" hover>
-              <div className={`absolute top-0 right-0 w-32 h-32 rounded-full -translate-y-16 translate-x-16 group-hover:scale-150 transition-transform duration-700 ${currentLocation === 'wayland' ? 'bg-gradient-to-br from-fuchsia-300/20 to-purple-300/20' : 'bg-gradient-to-br from-teal-custom/20 to-indigo-custom/20'}`}></div>
-              <div className="relative z-10">
-                <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-8 animate-float shadow-lg ${currentLocation === 'wayland' ? 'bg-gradient-to-br from-fuchsia-300 to-purple-300 shadow-fuchsia-300/30' : 'bg-gradient-to-br from-teal-custom to-indigo-custom shadow-teal-custom/30'}`}>
-                  <Star className="text-white" size={36} />
-                </div>
-                <h3 className={`text-2xl font-bold mb-6 transition-colors duration-300 ${currentLocation === 'wayland' ? 'text-fuchsia-300 group-hover:text-purple-300' : 'text-indigo-custom group-hover:text-teal-custom'}`}>End-of-week performance</h3>
-                <p className="text-white/90 leading-relaxed">Families invited Friday at 4:00 PM to celebrate your musical journey.</p>
-              </div>
-            </GlassCard>
-          </div>
+        <div className="max-w-4xl mx-auto px-6 relative z-10">
+          <GlassCard className="p-8 lg:p-12 reveal-in">
+            <h2 className={`text-2xl lg:text-3xl font-bold mb-6 ${currentLocation === 'wayland' ? 'text-purple-400' : currentLocation === 'newton-wellesley' ? 'text-emerald-400' : 'text-teal-custom'}`}>What is The A Cappella Workshop?</h2>
+            <p className="text-lg text-white/90 leading-relaxed">
+              {currentLocation === 'lexington' ?
+                'Founded in 2015, The A Cappella Workshop (The \'Shop) is a beloved community program where rising 6th-9th grade students dive into the world of a cappella through large group performances while exploring musicality, vocal technique, music theory, and more! Our environment is friendly and high-energy and guides students through learning how to listen, blend, keep time, lead, and perform with confidence. Taught by exceptional student teachers from local high school a cappella programs, The \'Shop guides both beginners and experienced singers through a week of making music, learning new skills, and having fun. Each week ends with a performance for families, friends, and community members to showcase the students\' work. Secure your spot for summer 2026 TODAY!' :
+                currentLocation === 'newton-wellesley' ? 
+                'Building on nearly a decade of success in Lexington, The A Cappella Workshop is excited to bring our innovative program to Newton! Our Newton location offers the same high-quality, student-centered approach that has made us a beloved summer tradition. We focus on small-group, collaborative singing where students learn to listen, blend, arrange, keep time, and perform with confidence. Whether you\'re a beginner or an experienced singer, our welcoming environment in Newton provides the perfect setting to discover your voice and create lasting musical memories. The week concludes with a special showcase performance for family and friends.' :
+                'Running since 2015, The A Cappella Workshop is a summer program for middle-school singers who want to explore contemporary a cappella in a friendly, high-energy environment. We focus on student-led, small-group singing: learning how to listen, blend, arrange, keep time, and perform with confidence. Our sessions are welcoming to both beginners and experienced singers, and every week ends with a performance for family and friends.'
+              }
+            </p>
+          </GlassCard>
         </div>
       </section>
 
