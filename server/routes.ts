@@ -184,13 +184,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // Determine cancel URL based on location
+      let cancelUrl = `${host}/camp-registration`; // Default to Lexington
+      if (locationName?.toLowerCase().includes('newton')) {
+        cancelUrl = `${host}/newton/register`;
+      } else if (locationName?.toLowerCase().includes('wayland')) {
+        cancelUrl = `${host}/wayland/register`;
+      }
+
       // Create checkout session
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
         line_items: lineItems,
         mode: 'payment',
         success_url: `${host}/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${host}/camp-registration`,
+        cancel_url: cancelUrl,
         customer_email: parentEmail,
         metadata: {
           parentName,
