@@ -141,6 +141,18 @@ body.location-wayland {
     transition: all 0.3s ease;
   }
 
+  /* Logo with transparent white background */
+  .logo-no-white {
+    mix-blend-mode: multiply;
+    filter: contrast(1.1);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .logo-no-white {
+      mix-blend-mode: screen;
+    }
+  }
+
   /* Gradient button */
   .btn-gradient {
     background: linear-gradient(90deg, #1e40af, #0ea5e9 60%, #14b8a6);

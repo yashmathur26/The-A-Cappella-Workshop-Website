@@ -63,7 +63,7 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
             <img 
               src={shopLogo} 
               alt="The A Cappella Workshop Logo" 
-              className="w-10 h-10 rounded-full object-cover"
+              className="w-10 h-10 rounded-full object-cover logo-no-white"
             />
             <h1 className="text-xl font-bold text-white brand-text whitespace-nowrap">The A Cappella Workshop</h1>
           </Link>
