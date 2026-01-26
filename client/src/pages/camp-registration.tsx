@@ -153,6 +153,15 @@ export default function Register() {
     if (isValid) {
       // Check if EARLYBIRD can be applied (only for full payments)
       if (promoCode.toUpperCase() === 'EARLYBIRD') {
+        // Check if EARLYBIRD has expired
+        const today = new Date();
+        const expiryDate = new Date('2025-02-15T23:59:59');
+        if (today > expiryDate) {
+          setPromoError("EARLYBIRD promo code has expired. It was only valid until February 15, 2025.");
+          CartManager.removePromoCode();
+          return;
+        }
+        
         const cart = CartManager.getCartItems();
         const hasDepositItems = cart.some(item => item.paymentType === 'deposit');
         if (hasDepositItems) {
@@ -167,7 +176,18 @@ export default function Register() {
         description: `You saved $${CartManager.getDiscountAmount()} with code ${promoCode.toUpperCase()}`,
       });
     } else {
-      setPromoError("Invalid promo code");
+      // Check if it's an expired EARLYBIRD code
+      if (promoCode.toUpperCase() === 'EARLYBIRD') {
+        const today = new Date();
+        const expiryDate = new Date('2025-02-15T23:59:59');
+        if (today > expiryDate) {
+          setPromoError("EARLYBIRD promo code has expired. It was only valid until February 15, 2025.");
+        } else {
+          setPromoError("Invalid promo code");
+        }
+      } else {
+        setPromoError("Invalid promo code");
+      }
     }
   };
 

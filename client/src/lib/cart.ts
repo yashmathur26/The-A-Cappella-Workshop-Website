@@ -156,6 +156,15 @@ export class CartManager {
     const promoCode = this.getPromoCode();
     const discount = this.PROMO_CODES[promoCode as keyof typeof this.PROMO_CODES];
     
+    // Check if EARLYBIRD has expired (after February 15th)
+    if (promoCode === 'EARLYBIRD') {
+      const today = new Date();
+      const expiryDate = new Date('2025-02-15T23:59:59'); // February 15, 2025 at end of day
+      if (today > expiryDate) {
+        return 0; // EARLYBIRD has expired
+      }
+    }
+    
     // EARLYBIRD only applies if all items in cart are full payments
     if (promoCode === 'EARLYBIRD' && discount) {
       const cart = this.getCart();
@@ -194,6 +203,15 @@ export class CartManager {
     if (typeof window === 'undefined') return false;
     const upperCode = code.toUpperCase();
     
+    // Check if EARLYBIRD has expired (after February 15th)
+    if (upperCode === 'EARLYBIRD') {
+      const today = new Date();
+      const expiryDate = new Date('2025-02-15T23:59:59'); // February 15, 2025 at end of day
+      if (today > expiryDate) {
+        return false; // EARLYBIRD has expired
+      }
+    }
+    
     if (upperCode === '' || this.PROMO_CODES[upperCode as keyof typeof this.PROMO_CODES]) {
       localStorage.setItem(this.PROMO_KEY, upperCode);
       this.triggerCartUpdate();
@@ -210,6 +228,16 @@ export class CartManager {
 
   static isValidPromoCode(code: string, location?: string): boolean {
     const upperCode = code.toUpperCase();
+    
+    // Check if EARLYBIRD has expired (after February 15th)
+    if (upperCode === 'EARLYBIRD') {
+      const today = new Date();
+      const expiryDate = new Date('2025-02-15T23:59:59'); // February 15, 2025 at end of day
+      if (today > expiryDate) {
+        return false; // EARLYBIRD has expired
+      }
+    }
+    
     return !!this.PROMO_CODES[upperCode as keyof typeof this.PROMO_CODES];
   }
 
