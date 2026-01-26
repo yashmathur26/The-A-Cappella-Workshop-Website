@@ -22,15 +22,7 @@ export class CartManager {
   
   // Promo codes and their discounts
   private static readonly PROMO_CODES = {
-    'EARLYBIRD': 0.10, // 10% discount
-    'SHOP': 0.20, // 20% discount
-    'ADMIN': 'FIXED_0', // $0 total for admin
-    'ADMIN1': 'FIXED_0.50', // $0.50 total for admin
-    'ADMIND': 'FIXED_0.50', // $0.50 deposit test (with $499.50 remaining)
-    'ADMINF': 'FIXED_0.50', // $0.50 full payment test
-    'ARJUN': 'FIXED_1', // $1 total for staff
-    'SHUNTAVI': 'FIXED_1', // $1 total for staff
-    'YASH': 'FIXED_1' // $1 total for staff
+    'EARLYBIRD': 0.10 // 10% discount
   };
 
   static getCart(): CartItem[] {
@@ -138,19 +130,6 @@ export class CartManager {
 
   static getCartTotal(): number {
     const subtotal = this.getCartItems().reduce((total, item) => total + item.price, 0);
-    const promoCode = this.getPromoCode();
-    
-    // Special handling for ADMIN promo codes
-    if (promoCode === 'ADMIN') {
-      return 0.00; // Fixed $0 for admin
-    }
-    if (promoCode === 'ADMIN1' || promoCode === 'ADMIND' || promoCode === 'ADMINF') {
-      return 0.50; // Fixed $0.50 for admin testing
-    }
-    if (promoCode === 'ARJUN' || promoCode === 'SHUNTAVI' || promoCode === 'YASH') {
-      return 1.00; // Fixed $1 for staff
-    }
-    
     const discount = this.getDiscount();
     return Math.round((subtotal * (1 - discount)) * 100) / 100;
   }
@@ -162,27 +141,11 @@ export class CartManager {
   static getDiscount(): number {
     const promoCode = this.getPromoCode();
     const discount = this.PROMO_CODES[promoCode as keyof typeof this.PROMO_CODES];
-    
-    // Return 0 for special codes like ADMIN
-    if (typeof discount === 'string') return 0;
     return discount || 0;
   }
 
   static getDiscountAmount(): number {
     const subtotal = this.getCartSubtotal();
-    const promoCode = this.getPromoCode();
-    
-    // Special handling for ADMIN promo codes
-    if (promoCode === 'ADMIN') {
-      return Math.round((subtotal - 0.00) * 100) / 100;
-    }
-    if (promoCode === 'ADMIN1' || promoCode === 'ADMIND' || promoCode === 'ADMINF') {
-      return Math.round((subtotal - 0.50) * 100) / 100;
-    }
-    if (promoCode === 'ARJUN' || promoCode === 'SHUNTAVI' || promoCode === 'YASH') {
-      return Math.round((subtotal - 1.00) * 100) / 100;
-    }
-    
     const discount = this.getDiscount();
     return Math.round(subtotal * discount * 100) / 100;
   }

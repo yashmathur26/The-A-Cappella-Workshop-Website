@@ -144,127 +144,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const protocol = req.get('x-forwarded-proto') || (req.secure ? 'https' : 'http');
       const host = `${protocol}://${req.get('host')}`;
 
-      // Calculate pricing with promo codes
-      const upperPromoCode = promoCode?.toUpperCase();
-      let lineItems;
+      // Calculate pricing - EARLYBIRD discount is applied on client side
+      // Client sends discounted prices, so we use them directly
+      const lineItems = cartItems.map((item: any) => {
+        const amount = Math.round(item.price * 100); // Price already includes discount from client
+        const itemLocation = item.location || locationName || 'Unknown Location';
 
-      if (upperPromoCode === 'ADMIN') {
-        // Admin gets everything for free
-        lineItems = cartItems.map((item: any) => ({
+        return {
           price_data: {
             currency: 'usd',
             product_data: {
-              name: `${locationName} - A Cappella Workshop Registration (Admin Comp)`,
-              description: `${locationName} location`,
+              name: `${itemLocation} - ${item.weekLabel} ${item.paymentType === 'deposit' ? '(Deposit)' : '(Full Payment)'}`,
+              description: `${itemLocation} location - ${item.paymentType === 'deposit' ? '$150 deposit payment' : 'Full payment'}`,
             },
-            unit_amount: 0,
+            unit_amount: amount,
           },
           quantity: 1,
-        }));
-      } else if (upperPromoCode === 'ADMIN1') {
-        // ADMIN1 gets everything for $0.50 total
-        lineItems = [{
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: `${locationName} - A Cappella Workshop Registration (Admin Special)`,
-              description: `${locationName} location`,
-            },
-            unit_amount: 50, // $0.50 total
-          },
-          quantity: 1,
-        }];
-      } else if (upperPromoCode === 'ADMIND') {
-        // ADMIND tests deposit functionality - $0.50 paid, $499.50 remaining
-        lineItems = [{
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: `${locationName} - A Cappella Workshop Deposit (Testing)`,
-              description: `${locationName} location`,
-            },
-            unit_amount: 50,
-          },
-          quantity: 1,
-        }];
-      } else if (upperPromoCode === 'ADMINF') {
-        // ADMINF tests full payment functionality - $0.50 total, no balance
-        lineItems = [{
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: `${locationName} - A Cappella Workshop Full Payment (Testing)`,
-              description: `${locationName} location`,
-            },
-            unit_amount: 50,
-          },
-          quantity: 1,
-        }];
-      } else if (upperPromoCode === 'ARJUN' || upperPromoCode === 'SHUNTAVI' || upperPromoCode === 'YASH') {
-        // Staff promo - $1 total before fees
-        const processingFee = Math.round(1 * 0.036 * 100); // 3.6% of $1
-        lineItems = [{
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: `${locationName} - A Cappella Workshop (Staff - ${upperPromoCode})`,
-              description: `${locationName} location`,
-            },
-            unit_amount: 100, // $1.00
-          },
-          quantity: 1,
-        }];
-        if (processingFee > 0) {
-          lineItems.push({
-            price_data: {
-              currency: 'usd',
-              product_data: {
-                name: 'Processing Fee (3.6%)',
-                description: 'To avoid this fee, pay via Zelle or check - email theacappellaworkshop@gmail.com',
-              },
-              unit_amount: processingFee,
-            },
-            quantity: 1,
-          });
-        }
-      } else {
-        // Normal pricing - client sends correct deposit ($150) or full price ($500)
-        lineItems = cartItems.map((item: any) => {
-          const amount = Math.round(item.price * 100); // Price already correct from client
-          const itemLocation = item.location || locationName || 'Unknown Location';
+        };
+      });
 
-          return {
-            price_data: {
-              currency: 'usd',
-              product_data: {
-                name: `${itemLocation} - ${item.weekLabel} ${item.paymentType === 'deposit' ? '(Deposit)' : '(Full Payment)'}`,
-                description: `${itemLocation} location - ${item.paymentType === 'deposit' ? '$150 deposit payment' : 'Full payment'}`,
-              },
-              unit_amount: amount,
+      // Calculate 3.6% processing fee based on cart total (after discount)
+      const cartTotal = cartItems.reduce((total: number, item: any) => {
+        return total + item.price; // Price already includes discount from client
+      }, 0);
+      const processingFee = Math.round(cartTotal * 0.036 * 100); // 3.6% fee in cents
+
+      if (processingFee > 0) {
+        lineItems.push({
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: 'Processing Fee (3.6%)',
+              description: 'To avoid this fee, pay via Zelle or check - email theacappellaworkshop@gmail.com',
             },
-            quantity: 1,
-          };
+            unit_amount: processingFee,
+          },
+          quantity: 1,
         });
-
-        // Calculate 3.6% processing fee based on cart total
-        const cartTotal = cartItems.reduce((total: number, item: any) => {
-          return total + item.price; // Price already correct from client
-        }, 0);
-        const processingFee = Math.round(cartTotal * 0.036 * 100); // 3.6% fee in cents
-
-        if (processingFee > 0) {
-          lineItems.push({
-            price_data: {
-              currency: 'usd',
-              product_data: {
-                name: 'Processing Fee (3.6%)',
-                description: 'To avoid this fee, pay via Zelle or check - email theacappellaworkshop@gmail.com',
-              },
-              unit_amount: processingFee,
-            },
-            quantity: 1,
-          });
-        }
       }
 
       // Create checkout session
@@ -287,7 +203,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             payment_type: item.paymentType || 'full',
           }))),
           promoCode: promoCode || '',
-          isAdminDiscount: ['ADMIN', 'ADMIN1', 'ADMIND', 'ADMINF', 'ARJUN', 'SHUNTAVI', 'YASH'].includes(upperPromoCode || '') ? 'true' : 'false',
         },
       });
 
