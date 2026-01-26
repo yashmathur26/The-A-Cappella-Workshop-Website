@@ -33,7 +33,7 @@ function toYouTubeEmbedUrl(url: string): string {
 const LEXINGTON_VIDEOS = [
   {
     id: "lex-perf-1",
-    title: "Performance Video 1",
+    title: "Performance Video 1 (coming soon)",
     description: "A full performance from our Lexington showcase.",
     // If you have a YouTube/Vimeo embed URL later, put it here:
     // youtubeUrl: "https://www.youtube.com/watch?v=...."
@@ -41,7 +41,7 @@ const LEXINGTON_VIDEOS = [
   },
   {
     id: "lex-perf-2",
-    title: "Performance Video 2",
+    title: "Performance Video 2 (coming soon)",
     description: "Another showcase performance from Lexington.",
     youtubeUrl: "",
   },
