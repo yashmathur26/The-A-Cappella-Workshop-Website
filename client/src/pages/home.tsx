@@ -11,6 +11,15 @@ import welcomePhoto from "@gallery/photo1.JPG";
 export default function Home() {
   const { currentLocation, setLocation, locationData } = useLocation();
 
+  const getRegistrationUrl = () => {
+    if (currentLocation === 'newton-wellesley') {
+      return '/newton/register';
+    } else if (currentLocation === 'wayland') {
+      return '/wayland/register';
+    }
+    return '/camp-registration';
+  };
+
   useEffect(() => {
     // Scroll reveal animation
     const observer = new IntersectionObserver((entries) => {
@@ -57,7 +66,7 @@ export default function Home() {
               {locationData[currentLocation].heroSubtitle}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center flex-wrap">
-              <Link href="/camp-registration">
+              <Link href={getRegistrationUrl()}>
                 <GradientButton size="lg" variant={currentLocation === 'wayland' ? 'purple' : 'primary'}>Register Now</GradientButton>
               </Link>
               <div className="flex gap-3 flex-wrap justify-center">
@@ -301,7 +310,7 @@ export default function Home() {
           <GlassCard className="p-12 reveal-in">
             <h2 className={`text-3xl lg:text-4xl font-bold mb-6 ${currentLocation === 'wayland' ? 'gradient-text-purple' : 'gradient-text'}`}>Ready to sing?</h2>
             <p className="text-xl text-white/80 mb-8">Join us for an unforgettable week of music, friendship, and growth.</p>
-            <Link href="/camp-registration">
+            <Link href={getRegistrationUrl()}>
               <GradientButton size="lg" variant={currentLocation === 'wayland' ? 'purple' : 'primary'}>Register Now</GradientButton>
             </Link>
           </GlassCard>

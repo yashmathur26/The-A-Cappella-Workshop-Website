@@ -47,6 +47,15 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
     return false;
   };
 
+  const getRegistrationUrl = () => {
+    if (currentLocation === 'newton-wellesley') {
+      return '/newton/register';
+    } else if (currentLocation === 'wayland') {
+      return '/wayland/register';
+    }
+    return '/camp-registration';
+  };
+
   const navLinks = [
     { href: '/', label: 'Home' },
     { href: '/about', label: 'About Us' },
@@ -124,13 +133,13 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
             </DropdownMenu>
             
             <Link
-              href="/camp-registration"
+              href={getRegistrationUrl()}
               className="btn-gradient px-4 py-2 rounded-full text-white font-medium hover:text-white text-sm whitespace-nowrap"
             >
               Register Now
             </Link>
             
-            <Link href="/camp-registration" className="relative">
+            <Link href={getRegistrationUrl()} className="relative">
               <ShoppingCart className="text-white/80 hover:text-white cursor-pointer" size={18} />
               {currentCartCount > 0 && (
                 <span className="cart-badge absolute -top-2 -right-2 text-xs text-white rounded-full w-4 h-4 flex items-center justify-center">
@@ -167,7 +176,7 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
               ))}
               <div className="space-y-3">
                 <Link
-                  href="/camp-registration"
+                  href={getRegistrationUrl()}
                   className="btn-gradient px-6 py-2 rounded-full text-white font-medium inline-block text-center"
                   onClick={() => setIsMenuOpen(false)}
                 >

@@ -29,6 +29,18 @@ function LocationRedirect({ toLocation, redirectTo = '/' }: { toLocation: 'newto
   return null;
 }
 
+function LocationAwareRegistration({ location: routeLocation }: { location: 'lexington' | 'newton-wellesley' | 'wayland' }) {
+  const { setLocation, currentLocation } = useLocationContext();
+  
+  useEffect(() => {
+    if (currentLocation !== routeLocation) {
+      setLocation(routeLocation);
+    }
+  }, [routeLocation, currentLocation, setLocation]);
+  
+  return <CampRegistration />;
+}
+
 function Router() {
   const [location] = useLocation();
   
@@ -40,6 +52,18 @@ function Router() {
     <>
       <Navigation />
       <Switch>
+        <Route path="/newton/camp-registration">
+          <LocationAwareRegistration location="newton-wellesley" />
+        </Route>
+        <Route path="/newton/register">
+          <LocationAwareRegistration location="newton-wellesley" />
+        </Route>
+        <Route path="/wayland/camp-registration">
+          <LocationAwareRegistration location="wayland" />
+        </Route>
+        <Route path="/wayland/register">
+          <LocationAwareRegistration location="wayland" />
+        </Route>
         <Route path="/newton">
           <LocationRedirect toLocation="newton-wellesley" />
         </Route>
