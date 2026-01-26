@@ -307,7 +307,7 @@ export default function Home() {
       {/* CTA Section */}
       <section className="py-6">
         <div className="max-w-4xl mx-auto px-6 text-center">
-          <GlassCard className="p-12 reveal-in">
+          <GlassCard className="p-12 reveal-in text-center">
             <h2 className={`text-3xl lg:text-4xl font-bold mb-6 ${currentLocation === 'wayland' ? 'gradient-text-purple' : 'gradient-text'}`}>Ready to sing?</h2>
             <p className="text-xl text-white/80 mb-8">Join us for an unforgettable week of music, friendship, and growth.</p>
             <div className="flex justify-center">
