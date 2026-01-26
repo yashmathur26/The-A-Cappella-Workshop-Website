@@ -140,6 +140,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
         full: 500,
         deposit: 150,
       },
+      formUrl: 'https://docs.google.com/forms/d/e/1FAIpQLSdHXYEXmGe39_L3Uq8f-T0653oFF2DEGLQMBDgN0vDC4ox1hA/viewform?embedded=true',
     },
     'newton-wellesley': {
       name: 'Newton',
@@ -163,6 +164,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
         full: 600,
         deposit: 150,
       },
+      formUrl: 'https://forms.gle/DvejUQb3TXEaobkSA?embedded=true',
     },
     wayland: {
       name: 'Wayland',
@@ -185,6 +187,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
         full: 600,
         deposit: 150,
       },
+      formUrl: 'https://forms.gle/DvejUQb3TXEaobkSA?embedded=true',
     },
   };
 
