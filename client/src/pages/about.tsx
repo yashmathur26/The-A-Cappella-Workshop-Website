@@ -49,6 +49,8 @@ export default function About() {
             <p className="text-lg text-white/90 leading-relaxed">
               {currentLocation === 'newton-wellesley' ? 
                 'Building on nearly a decade of success in Lexington, The A Cappella Workshop is excited to bring our innovative program to Newton! Our Newton location offers the same high-quality, student-centered approach that has made us a beloved summer tradition. We focus on small-group, collaborative singing where students learn to listen, blend, arrange, keep time, and perform with confidence. Whether you\'re a beginner or an experienced singer, our welcoming environment in Newton provides the perfect setting to discover your voice and create lasting musical memories. The week concludes with a special showcase performance for family and friends.' :
+                currentLocation === 'lexington' ?
+                'Founded in 2015, The A Cappella Workshop (The \'Shop) is a beloved community program where rising 6th-9th grade students dive into the world of a cappella through large group performances while exploring musicality, vocal technique, music theory, and more! Our environment is friendly and high-energy and guides students through learning how to listen, blend, keep time, lead, and perform with confidence. Taught by exceptional student teachers from local high school a cappella programs, The \'Shop guides both beginners and experienced singers through a week of making music, learning new skills, and having fun. Each week ends with a performance for families, friends, and community members to showcase the students\' work. Secure your spot for summer 2026 TODAY!' :
                 'Running since 2015, The A Cappella Workshop is a summer program for middle-school singers who want to explore contemporary a cappella in a friendly, high-energy environment. We focus on student-led, small-group singing: learning how to listen, blend, arrange, keep time, and perform with confidence. Our sessions are welcoming to both beginners and experienced singers, and every week ends with a performance for family and friends.'
               }
             </p>
@@ -58,9 +60,14 @@ export default function About() {
         {/* How the week works */}
         <section className="mb-6">
           <GlassCard className="p-8 lg:p-12 reveal-in">
-            <h2 className={`text-2xl lg:text-3xl font-bold mb-6 ${currentLocation === 'wayland' ? 'text-violet-400' : currentLocation === 'newton-wellesley' ? 'text-green-400' : 'text-sky-custom'}`}>How the week works</h2>
+            <h2 className={`text-2xl lg:text-3xl font-bold mb-6 ${currentLocation === 'wayland' ? 'text-violet-400' : currentLocation === 'newton-wellesley' ? 'text-green-400' : 'text-sky-custom'}`}>
+              {currentLocation === 'lexington' ? 'Our Program' : 'How the week works'}
+            </h2>
             <p className="text-lg text-white/90 leading-relaxed">
-              The first day centers on group bonding, vocal range checks, and song selection — setting the foundation for a fun, successful week. From there, students rehearse repertoire for the Friday showcase, rotate through skill "tracks" (beatboxing, arranging, and music theory), and prepare short mock solos to receive supportive feedback from teachers.
+              {currentLocation === 'lexington' ? 
+                'The first day of the workshop centers around group bonding between students and staff, vocal range testing, and song selection, setting the stage for a fun and successful week! From there, students learn, rehearse, and workshop repertoire for the Friday showcase, rotate through skill specific "tracks" (beatboxing, a cappella arranging, music theory, songwriting, and more), and prepare short mock solos to receive supportive, helpful feedback from our experienced teachers.' :
+                'The first day centers on group bonding, vocal range checks, and song selection — setting the foundation for a fun, successful week. From there, students rehearse repertoire for the Friday showcase, rotate through skill "tracks" (beatboxing, arranging, and music theory), and prepare short mock solos to receive supportive feedback from teachers.'
+              }
             </p>
           </GlassCard>
         </section>

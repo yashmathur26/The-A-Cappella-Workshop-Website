@@ -13,8 +13,13 @@ export default function FAQ() {
       title: 'General Camp Information',
       content: (
         <div>
-          <h4 className="font-semibold mb-3 text-white text-lg">Who is the camp for?</h4>
-          <p className="text-white text-base">This camp is designed for rising 6th, 7th, 8th, and 9th graders who are passionate about singing and want to explore the exciting world of contemporary a cappella music. Whether you're a seasoned choir member or just beginning your musical journey, our program welcomes all skill levels. We believe that every student has a unique voice worth celebrating, and our experienced instructors are skilled at meeting each participant where they are in their musical development.</p>
+          <h4 className="font-semibold mb-3 text-white text-lg">Who is the workshop for?</h4>
+          <p className="text-white text-base">
+            {currentLocation === 'lexington' ? 
+              'The A Cappella Workshop is designed for rising 6th, 7th, 8th, and 9th graders who are passionate about singing and want to explore the exciting world of a cappella performance. Whether you\'re a seasoned choir member or just beginning your musical journey, our program welcomes all skill levels!' :
+              'This camp is designed for rising 6th, 7th, 8th, and 9th graders who are passionate about singing and want to explore the exciting world of contemporary a cappella music. Whether you\'re a seasoned choir member or just beginning your musical journey, our program welcomes all skill levels. We believe that every student has a unique voice worth celebrating, and our experienced instructors are skilled at meeting each participant where they are in their musical development.'
+            }
+          </p>
         </div>
       )
     },
@@ -56,11 +61,21 @@ export default function FAQ() {
           </div>
           <div>
             <h4 className="font-semibold mb-2 text-white">Drop-off & Pick-up:</h4>
-            <p className="text-white">Our welcoming staff will be available at the main entrance each morning to greet students and ensure a smooth start to each day. Parents and guardians can expect prompt communication about pick-up procedures and any daily updates.</p>
+            <p className="text-white">
+              {currentLocation === 'lexington' ?
+                'Our staff will be available at the main entrance each morning to greet students and ensure a smooth start to each day! Drop off occurs between 8:45-9am and pick-up occurs between 3:45-4pm. Parents and guardians can communicate changes to their drop-off and pick-up plans via email to theacappellaworkshop@gmail.com' :
+                'Our welcoming staff will be available at the main entrance each morning to greet students and ensure a smooth start to each day. Parents and guardians can expect prompt communication about pick-up procedures and any daily updates.'
+              }
+            </p>
           </div>
           <div>
-            <h4 className="font-semibold mb-2 text-white">Weekly Showcase:</h4>
-            <p className="text-white">Every week culminates in an exciting performance showcase on Friday at 4:00 PM, where family and friends are warmly invited to celebrate the incredible musical growth and achievements of our students. This performance represents the collaborative work and individual progress made throughout the week.</p>
+            <h4 className="font-semibold mb-2 text-white">{currentLocation === 'lexington' ? 'End-of-Week Showcase:' : 'Weekly Showcase:'}</h4>
+            <p className="text-white">
+              {currentLocation === 'lexington' ?
+                'Every week culminates in a final performance showcase on Friday at 4:00 PM, where family, friends, and community members are invited to celebrate the incredible musical growth and achievements of our students.' :
+                'Every week culminates in an exciting performance showcase on Friday at 4:00 PM, where family and friends are warmly invited to celebrate the incredible musical growth and achievements of our students. This performance represents the collaborative work and individual progress made throughout the week.'
+              }
+            </p>
           </div>
         </div>
       )
@@ -70,7 +85,12 @@ export default function FAQ() {
       title: 'Curriculum & Experience',
       content: (
         <div>
-          <p className="text-white text-base">Students spend the week learning how to sing contemporary a cappella. Day one focuses on bonding, vocal range checks, and song selection. Throughout the week, students rehearse for the showcase, rotate through beatboxing, arranging, and music theory tracks, and prepare short mock solos for supportive feedback. We're always amazed by the growth students show by Friday!</p>
+          <p className="text-white text-base">
+            {currentLocation === 'lexington' ?
+              'Students spend the week learning the various aspects of a cappella performance. The first day of the workshop centers around group bonding between students and staff, vocal range testing, and song selection, setting the stage for a fun and successful week! From there, students learn, rehearse, and workshop repertoire for the Friday showcase, rotate through skill specific "tracks" (beatboxing, a cappella arranging, music theory, songwriting, and more), and prepare short mock solos to receive supportive, helpful feedback from our experienced teachers. We\'re always amazed by the growth and leadership students show by Friday!' :
+              'Students spend the week learning how to sing contemporary a cappella. Day one focuses on bonding, vocal range checks, and song selection. Throughout the week, students rehearse for the showcase, rotate through beatboxing, arranging, and music theory tracks, and prepare short mock solos for supportive feedback. We\'re always amazed by the growth students show by Friday!'
+            }
+          </p>
         </div>
       )
     },
@@ -85,7 +105,12 @@ export default function FAQ() {
           </div>
           <div>
             <h4 className="font-semibold mb-2 text-white">Payment Options:</h4>
-            <p className="text-white">You can choose to pay the full tuition amount upfront, or secure your spot with a ${locationData[currentLocation].pricing.deposit} non-refundable deposit and pay the remaining balance (${locationData[currentLocation].pricing.full - locationData[currentLocation].pricing.deposit}) via invoice prior to the start of the program.</p>
+            <p className="text-white">
+              {currentLocation === 'lexington' ?
+                `You can choose to pay the full tuition amount upfront, or secure your spot with a $${locationData[currentLocation].pricing.deposit} non-refundable deposit and pay the remaining balance ($${locationData[currentLocation].pricing.full - locationData[currentLocation].pricing.deposit}) via invoice prior to the start of the program. To inquire about financial aid, please email us at theacappellaworkshop@gmail.com.` :
+                `You can choose to pay the full tuition amount upfront, or secure your spot with a $${locationData[currentLocation].pricing.deposit} non-refundable deposit and pay the remaining balance ($${locationData[currentLocation].pricing.full - locationData[currentLocation].pricing.deposit}) via invoice prior to the start of the program.`
+              }
+            </p>
           </div>
           <div>
             <h4 className="font-semibold mb-2 text-white">Refunds:</h4>
@@ -105,7 +130,12 @@ export default function FAQ() {
       title: 'Supervision & Safety',
       content: (
         <div>
-          <p className="text-white">{currentLocation === 'lexington' ? 'Each week is led by 2 teachers with 3–4 teaching assistants, all experienced members of the Lexington High School a cappella and choral programs.' : 'Each week is led by experienced instructors and teaching assistants with extensive background in a cappella and choral programs.'} Students are supervised throughout the day in a positive, inclusive environment. During registration, families can share allergies or health needs; our staff carefully accommodates these to help every student feel comfortable and included.</p>
+          <p className="text-white">
+            {currentLocation === 'lexington' ? 
+              'Each week is led by 2 teachers and 3-4 teaching assistants, who are all exceptional, experienced members of local a cappella and choral programs. Students are supervised throughout the day in a positive, inclusive environment. During registration, families can share allergies or health needs which our staff carefully accommodates to help every student feel safe, comfortable, and included.' :
+              'Each week is led by experienced instructors and teaching assistants with extensive background in a cappella and choral programs. Students are supervised throughout the day in a positive, inclusive environment. During registration, families can share allergies or health needs; our staff carefully accommodates these to help every student feel comfortable and included.'
+            }
+          </p>
         </div>
       )
     }

@@ -420,7 +420,7 @@ export default function Register() {
             {/* Step 1: Choose Weeks */}
             <section>
               <h2 className="text-2xl font-bold mb-4 text-white">Step 1 — Choose Your Week(s)</h2>
-              <p className="text-white/80 mb-6">Select ur preferred weeks and payment option.</p>
+              <p className="text-white/80 mb-6">Select your preferred weeks and payment option.</p>
               <div className="grid gap-6">
                 {WEEKS.map((week, index) => (
                   <GlassCard 
@@ -627,45 +627,6 @@ export default function Register() {
                 )}
               </div>
               
-              {/* Promo Code Section */}
-              {cartItems.length > 0 && (
-                <div className="mb-6">
-                  <Label className="text-white text-xs mb-2 block">Promo Code</Label>
-                  <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-                    <Input
-                      value={promoCode}
-                      onChange={(e) => setPromoCode(e.target.value)}
-                      placeholder="Enter promo code"
-                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50 flex-1"
-                      onKeyPress={(e) => e.key === 'Enter' && handlePromoCodeSubmit()}
-                    />
-                    {CartManager.getPromoCode() ? (
-                      <button
-                        onClick={handleRemovePromo}
-                        className="px-3 py-2 bg-red-500/20 border border-red-400/30 text-red-200 rounded hover:bg-red-500/30 transition-colors"
-                      >
-                        <X size={16} />
-                      </button>
-                    ) : (
-                      <button
-                        onClick={handlePromoCodeSubmit}
-                        className="px-3 py-2 bg-sky-custom/20 border border-sky-custom/30 text-sky-200 rounded hover:bg-sky-custom/30 transition-colors"
-                      >
-                        <Tag size={16} />
-                      </button>
-                    )}
-                  </div>
-                  {promoError && (
-                    <p className="text-red-400 text-xs mt-1">{promoError}</p>
-                  )}
-                  {CartManager.getPromoCode() && (
-                    <p className="text-green-400 text-xs mt-1">
-                      Code "{CartManager.getPromoCode()}" applied!
-                    </p>
-                  )}
-                </div>
-              )}
-              
               {/* Contact Information */}
               {cartItems.length > 0 && showForm && (
                 <div className="mb-6 space-y-4">
@@ -698,6 +659,43 @@ export default function Register() {
                       placeholder="Enter child's name"
                       className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
                     />
+                  </div>
+                  
+                  {/* Promo Code Section */}
+                  <div>
+                    <Label className="text-white text-sm mb-2 block">Promo Code (Optional)</Label>
+                    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                      <Input
+                        value={promoCode}
+                        onChange={(e) => setPromoCode(e.target.value)}
+                        placeholder="Enter promo code"
+                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50 flex-1"
+                        onKeyPress={(e) => e.key === 'Enter' && handlePromoCodeSubmit()}
+                      />
+                      {CartManager.getPromoCode() ? (
+                        <button
+                          onClick={handleRemovePromo}
+                          className="px-3 py-2 bg-red-500/20 border border-red-400/30 text-red-200 rounded hover:bg-red-500/30 transition-colors"
+                        >
+                          <X size={16} />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={handlePromoCodeSubmit}
+                          className="px-3 py-2 bg-sky-custom/20 border border-sky-custom/30 text-sky-200 rounded hover:bg-sky-custom/30 transition-colors"
+                        >
+                          <Tag size={16} />
+                        </button>
+                      )}
+                    </div>
+                    {promoError && (
+                      <p className="text-red-400 text-xs mt-1">{promoError}</p>
+                    )}
+                    {CartManager.getPromoCode() && (
+                      <p className="text-green-400 text-xs mt-1">
+                        Code "{CartManager.getPromoCode()}" applied!
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
@@ -878,6 +876,43 @@ export default function Register() {
                       placeholder="Enter child's name"
                       className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
                     />
+                  </div>
+                  
+                  {/* Promo Code Section - Mobile */}
+                  <div>
+                    <Label className="text-white text-sm mb-2 block">Promo Code (Optional)</Label>
+                    <div className="flex space-x-2">
+                      <Input
+                        value={promoCode}
+                        onChange={(e) => setPromoCode(e.target.value)}
+                        placeholder="Enter promo code"
+                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50 flex-1"
+                        onKeyPress={(e) => e.key === 'Enter' && handlePromoCodeSubmit()}
+                      />
+                      {CartManager.getPromoCode() ? (
+                        <button
+                          onClick={handleRemovePromo}
+                          className="px-3 py-2 bg-red-500/20 border border-red-400/30 text-red-200 rounded hover:bg-red-500/30 transition-colors"
+                        >
+                          <X size={16} />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={handlePromoCodeSubmit}
+                          className="px-3 py-2 bg-sky-custom/20 border border-sky-custom/30 text-sky-200 rounded hover:bg-sky-custom/30 transition-colors"
+                        >
+                          <Tag size={16} />
+                        </button>
+                      )}
+                    </div>
+                    {promoError && (
+                      <p className="text-red-400 text-xs mt-1">{promoError}</p>
+                    )}
+                    {CartManager.getPromoCode() && (
+                      <p className="text-green-400 text-xs mt-1">
+                        Code "{CartManager.getPromoCode()}" applied!
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
