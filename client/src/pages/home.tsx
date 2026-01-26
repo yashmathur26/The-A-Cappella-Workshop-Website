@@ -153,7 +153,7 @@ export default function Home() {
                 </div>
                 <h3 className={`text-2xl font-bold mb-6 transition-colors duration-300 ${currentLocation === 'wayland' ? 'text-purple-300 group-hover:text-violet-300' : 'text-sky-custom group-hover:text-teal-custom'}`}>Skills that last</h3>
                 <p className="text-white/90 leading-relaxed">
-                  {currentLocation === 'lexington' ? 'Beatboxing, music theory, arranging, songwriting, and solo singing technique to grow students into stronger musicians.' : 'Beatboxing, arranging, music theory, and rehearsal strategies you'll use forever.'}
+                  {currentLocation === 'lexington' ? 'Beatboxing, music theory, arranging, songwriting, and solo singing technique to grow students into stronger musicians.' : 'Beatboxing, arranging, music theory, and rehearsal strategies you\'ll use forever.'}
                 </p>
               </div>
             </GlassCard>
