@@ -310,9 +310,11 @@ export default function Home() {
           <GlassCard className="p-12 reveal-in">
             <h2 className={`text-3xl lg:text-4xl font-bold mb-6 ${currentLocation === 'wayland' ? 'gradient-text-purple' : 'gradient-text'}`}>Ready to sing?</h2>
             <p className="text-xl text-white/80 mb-8">Join us for an unforgettable week of music, friendship, and growth.</p>
-            <Link href={getRegistrationUrl()}>
-              <GradientButton size="lg" variant={currentLocation === 'wayland' ? 'purple' : 'primary'}>Register Now</GradientButton>
-            </Link>
+            <div className="flex justify-center">
+              <Link href={getRegistrationUrl()}>
+                <GradientButton size="lg" variant={currentLocation === 'wayland' ? 'purple' : 'primary'}>Register Now</GradientButton>
+              </Link>
+            </div>
           </GlassCard>
         </div>
       </section>
