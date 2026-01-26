@@ -130,12 +130,8 @@ export default function Home() {
                 <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-8 animate-float shadow-lg ${currentLocation === 'wayland' ? 'bg-gradient-to-br from-purple-300 to-violet-300 shadow-purple-300/30' : 'bg-gradient-to-br from-indigo-custom to-sky-custom shadow-indigo-custom/30'}`}>
                   <Users className="text-white" size={36} />
                 </div>
-                <h3 className={`text-2xl font-bold mb-6 transition-colors duration-300 ${currentLocation === 'wayland' ? 'text-violet-300 group-hover:text-purple-300' : currentLocation === 'lexington' ? 'text-teal-custom group-hover:text-sky-custom' : 'text-teal-custom group-hover:text-sky-custom'}`}>
-                  {currentLocation === 'lexington' ? 'Teacher-guided rehearsal and performance' : 'Teacher-guided small-group singing'}
-                </h3>
-                <p className="text-white/90 leading-relaxed">
-                  {currentLocation === 'lexington' ? 'Build confidence and explore musicality, vocal technique, and leadership.' : 'Build confidence through harmony, blend, and teamwork in supportive peer groups.'}
-                </p>
+                <h3 className={`text-2xl font-bold mb-6 transition-colors duration-300 ${currentLocation === 'wayland' ? 'text-violet-300 group-hover:text-purple-300' : 'text-teal-custom group-hover:text-sky-custom'}`}>Teacher-guided small-group singing</h3>
+                <p className="text-white/90 leading-relaxed">Build confidence through harmony, blend, and teamwork in supportive peer groups.</p>
               </div>
             </GlassCard>
             
@@ -146,9 +142,7 @@ export default function Home() {
                   <GraduationCap className="text-white" size={36} />
                 </div>
                 <h3 className={`text-2xl font-bold mb-6 transition-colors duration-300 ${currentLocation === 'wayland' ? 'text-purple-300 group-hover:text-violet-300' : 'text-sky-custom group-hover:text-teal-custom'}`}>Skills that last</h3>
-                <p className="text-white/90 leading-relaxed">
-                  {currentLocation === 'lexington' ? 'Beatboxing, music theory, arranging, songwriting, and solo singing technique to grow students into stronger musicians.' : 'Beatboxing, arranging, music theory, and rehearsal strategies you\'ll use forever.'}
-                </p>
+                <p className="text-white/90 leading-relaxed">Beatboxing, arranging, music theory, and rehearsal strategies you'll use forever.</p>
               </div>
             </GlassCard>
             
@@ -159,9 +153,7 @@ export default function Home() {
                   <Star className="text-white" size={36} />
                 </div>
                 <h3 className={`text-2xl font-bold mb-6 transition-colors duration-300 ${currentLocation === 'wayland' ? 'text-fuchsia-300 group-hover:text-purple-300' : 'text-indigo-custom group-hover:text-teal-custom'}`}>End-of-week performance</h3>
-                <p className="text-white/90 leading-relaxed">
-                  {currentLocation === 'lexington' ? "Families, friends, and community members invited on Friday to celebrate students' work and musical journey." : 'Families invited Friday at 4:00 PM to celebrate your musical journey.'}
-                </p>
+                <p className="text-white/90 leading-relaxed">Families invited Friday at 4:00 PM to celebrate your musical journey.</p>
               </div>
             </GlassCard>
           </div>
