@@ -151,17 +151,23 @@ export default function Register() {
     
     const isValid = CartManager.setPromoCode(promoCode.trim(), currentLocation);
     if (isValid) {
+      // Check if EARLYBIRD can be applied (only for full payments)
+      if (promoCode.toUpperCase() === 'EARLYBIRD') {
+        const cart = CartManager.getCartItems();
+        const hasDepositItems = cart.some(item => item.paymentType === 'deposit');
+        if (hasDepositItems) {
+          setPromoError("EARLYBIRD discount only applies to full payments. Remove deposit items to use this code.");
+          CartManager.removePromoCode();
+          return;
+        }
+      }
       setPromoError("");
       toast({
         title: "Promo code applied!",
         description: `You saved $${CartManager.getDiscountAmount()} with code ${promoCode.toUpperCase()}`,
       });
     } else {
-      if (promoCode.toUpperCase() === 'EARLYBIRD' && currentLocation !== 'lexington') {
-        setPromoError("EARLYBIRD discount is only available for Lexington location");
-      } else {
-        setPromoError("Invalid promo code");
-      }
+      setPromoError("Invalid promo code");
     }
   };
 
@@ -214,12 +220,22 @@ export default function Register() {
     
     try {
       // Apply discount to cart items before sending to Stripe
+      // For EARLYBIRD, only apply discount to full payment items
+      const promoCode = CartManager.getPromoCode();
       const discountedCartItems = cart.map(item => {
-        const discount = CartManager.getDiscount();
-        const discountedPrice = item.price * (1 - discount);
+        if (promoCode === 'EARLYBIRD' && item.paymentType === 'full') {
+          const discount = CartManager.getDiscount();
+          const discountedPrice = item.price * (1 - discount);
+          return {
+            ...item,
+            price: discountedPrice,
+            weekLabel: item.label, // Add weekLabel for server compatibility
+          };
+        }
+        // For deposits or non-EARLYBIRD codes, use original price
         return {
           ...item,
-          price: discountedPrice,
+          price: item.price,
           weekLabel: item.label, // Add weekLabel for server compatibility
         };
       });

@@ -129,7 +129,21 @@ export class CartManager {
   }
 
   static getCartTotal(): number {
-    const subtotal = this.getCartItems().reduce((total, item) => total + item.price, 0);
+    const cart = this.getCartItems();
+    const promoCode = this.getPromoCode();
+    
+    // For EARLYBIRD, only apply discount to full payment items
+    if (promoCode === 'EARLYBIRD') {
+      const fullPaymentItems = cart.filter(item => item.paymentType === 'full');
+      const depositItems = cart.filter(item => item.paymentType === 'deposit');
+      const fullPaymentSubtotal = fullPaymentItems.reduce((total, item) => total + item.price, 0);
+      const depositSubtotal = depositItems.reduce((total, item) => total + item.price, 0);
+      const discount = this.PROMO_CODES['EARLYBIRD'] || 0;
+      const discountedFull = fullPaymentSubtotal * (1 - discount);
+      return Math.round((discountedFull + depositSubtotal) * 100) / 100;
+    }
+    
+    const subtotal = cart.reduce((total, item) => total + item.price, 0);
     const discount = this.getDiscount();
     return Math.round((subtotal * (1 - discount)) * 100) / 100;
   }
@@ -141,10 +155,31 @@ export class CartManager {
   static getDiscount(): number {
     const promoCode = this.getPromoCode();
     const discount = this.PROMO_CODES[promoCode as keyof typeof this.PROMO_CODES];
+    
+    // EARLYBIRD only applies if all items in cart are full payments
+    if (promoCode === 'EARLYBIRD' && discount) {
+      const cart = this.getCart();
+      if (cart.length === 0) return 0;
+      // Check if all items are full payments
+      const allFullPayments = cart.every(item => item.paymentType === 'full');
+      return allFullPayments ? discount : 0;
+    }
+    
     return discount || 0;
   }
 
   static getDiscountAmount(): number {
+    const promoCode = this.getPromoCode();
+    
+    // For EARLYBIRD, only calculate discount on full payment items
+    if (promoCode === 'EARLYBIRD') {
+      const cart = this.getCartItems();
+      const fullPaymentItems = cart.filter(item => item.paymentType === 'full');
+      const fullPaymentSubtotal = fullPaymentItems.reduce((total, item) => total + item.price, 0);
+      const discount = this.PROMO_CODES['EARLYBIRD'] || 0;
+      return Math.round(fullPaymentSubtotal * discount * 100) / 100;
+    }
+    
     const subtotal = this.getCartSubtotal();
     const discount = this.getDiscount();
     return Math.round(subtotal * discount * 100) / 100;
@@ -158,11 +193,6 @@ export class CartManager {
   static setPromoCode(code: string, location?: string): boolean {
     if (typeof window === 'undefined') return false;
     const upperCode = code.toUpperCase();
-    
-    // EARLYBIRD is only valid for Lexington
-    if (upperCode === 'EARLYBIRD' && location !== 'lexington') {
-      return false;
-    }
     
     if (upperCode === '' || this.PROMO_CODES[upperCode as keyof typeof this.PROMO_CODES]) {
       localStorage.setItem(this.PROMO_KEY, upperCode);
@@ -180,12 +210,6 @@ export class CartManager {
 
   static isValidPromoCode(code: string, location?: string): boolean {
     const upperCode = code.toUpperCase();
-    
-    // EARLYBIRD is only valid for Lexington
-    if (upperCode === 'EARLYBIRD' && location !== 'lexington') {
-      return false;
-    }
-    
     return !!this.PROMO_CODES[upperCode as keyof typeof this.PROMO_CODES];
   }
 
