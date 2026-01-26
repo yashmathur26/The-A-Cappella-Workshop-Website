@@ -14,7 +14,7 @@ export function GradientButton({
   className,
   ...props 
 }: GradientButtonProps) {
-  const baseClasses = 'rounded-full font-semibold transition-all text-center';
+  const baseClasses = 'rounded-full font-semibold transition-all text-center flex items-center justify-center';
   
   const variantClasses = {
     primary: 'btn-gradient text-white',
