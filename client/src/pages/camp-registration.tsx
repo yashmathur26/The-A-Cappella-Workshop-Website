@@ -548,7 +548,7 @@ export default function Register() {
                 <GlassCard className="p-6">
                   <p className="text-white/80 mb-2">Please fill out your student information below.</p>
                   
-                  <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                  <div className="bg-white/5 rounded-lg p-2 border border-white/10 mb-2">
                     <iframe 
                       src={
                         currentLocation === 'newton-wellesley' || currentLocation === 'wayland'
@@ -556,7 +556,7 @@ export default function Register() {
                           : "https://docs.google.com/forms/d/e/1FAIpQLSdHXYEXmGe39_L3Uq8f-T0653oFF2DEGLQMBDgN0vDC4ox1hA/viewform?embedded=true"
                       }
                       width="100%" 
-                      height="3729" 
+                      height="800" 
                       frameBorder="0" 
                       marginHeight={0}
                       marginWidth={0}
@@ -575,7 +575,7 @@ export default function Register() {
                           description: "You can now proceed to checkout.",
                         });
                       }}
-                      className="w-full bg-green-600 hover:bg-green-700 text-white"
+                      className="w-full bg-green-600 hover:bg-green-700 text-white mt-2"
                     >
                       I've Submitted the Form — Proceed to Checkout
                     </Button>
