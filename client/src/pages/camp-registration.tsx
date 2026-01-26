@@ -155,9 +155,9 @@ export default function Register() {
       if (promoCode.toUpperCase() === 'EARLYBIRD') {
         // Check if EARLYBIRD has expired
         const today = new Date();
-        const expiryDate = new Date('2025-02-15T23:59:59');
+        const expiryDate = new Date('2026-02-15T23:59:59');
         if (today > expiryDate) {
-          setPromoError("EARLYBIRD promo code has expired. It was only valid until February 15, 2025.");
+          setPromoError("EARLYBIRD promo code has expired. It was only valid until February 15, 2026.");
           CartManager.removePromoCode();
           return;
         }
@@ -179,9 +179,9 @@ export default function Register() {
       // Check if it's an expired EARLYBIRD code
       if (promoCode.toUpperCase() === 'EARLYBIRD') {
         const today = new Date();
-        const expiryDate = new Date('2025-02-15T23:59:59');
+        const expiryDate = new Date('2026-02-15T23:59:59');
         if (today > expiryDate) {
-          setPromoError("EARLYBIRD promo code has expired. It was only valid until February 15, 2025.");
+          setPromoError("EARLYBIRD promo code has expired. It was only valid until February 15, 2026.");
         } else {
           setPromoError("Invalid promo code");
         }

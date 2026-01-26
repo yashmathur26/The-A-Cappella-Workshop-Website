@@ -159,7 +159,7 @@ export class CartManager {
     // Check if EARLYBIRD has expired (after February 15th)
     if (promoCode === 'EARLYBIRD') {
       const today = new Date();
-      const expiryDate = new Date('2025-02-15T23:59:59'); // February 15, 2025 at end of day
+      const expiryDate = new Date('2026-02-15T23:59:59'); // February 15, 2026 at end of day
       if (today > expiryDate) {
         return 0; // EARLYBIRD has expired
       }
@@ -232,7 +232,7 @@ export class CartManager {
     // Check if EARLYBIRD has expired (after February 15th)
     if (upperCode === 'EARLYBIRD') {
       const today = new Date();
-      const expiryDate = new Date('2025-02-15T23:59:59'); // February 15, 2025 at end of day
+      const expiryDate = new Date('2026-02-15T23:59:59'); // February 15, 2026 at end of day
       if (today > expiryDate) {
         return false; // EARLYBIRD has expired
       }
