@@ -155,9 +155,15 @@ export class CartManager {
     return localStorage.getItem(this.PROMO_KEY) || '';
   }
 
-  static setPromoCode(code: string): boolean {
+  static setPromoCode(code: string, location?: string): boolean {
     if (typeof window === 'undefined') return false;
     const upperCode = code.toUpperCase();
+    
+    // EARLYBIRD is only valid for Lexington
+    if (upperCode === 'EARLYBIRD' && location !== 'lexington') {
+      return false;
+    }
+    
     if (upperCode === '' || this.PROMO_CODES[upperCode as keyof typeof this.PROMO_CODES]) {
       localStorage.setItem(this.PROMO_KEY, upperCode);
       this.triggerCartUpdate();
@@ -172,8 +178,15 @@ export class CartManager {
     this.triggerCartUpdate();
   }
 
-  static isValidPromoCode(code: string): boolean {
-    return !!this.PROMO_CODES[code.toUpperCase() as keyof typeof this.PROMO_CODES];
+  static isValidPromoCode(code: string, location?: string): boolean {
+    const upperCode = code.toUpperCase();
+    
+    // EARLYBIRD is only valid for Lexington
+    if (upperCode === 'EARLYBIRD' && location !== 'lexington') {
+      return false;
+    }
+    
+    return !!this.PROMO_CODES[upperCode as keyof typeof this.PROMO_CODES];
   }
 
   private static triggerCartUpdate(): void {

@@ -149,7 +149,7 @@ export default function Register() {
       return;
     }
     
-    const isValid = CartManager.setPromoCode(promoCode.trim());
+    const isValid = CartManager.setPromoCode(promoCode.trim(), currentLocation);
     if (isValid) {
       setPromoError("");
       toast({
@@ -157,7 +157,11 @@ export default function Register() {
         description: `You saved $${CartManager.getDiscountAmount()} with code ${promoCode.toUpperCase()}`,
       });
     } else {
-      setPromoError("Invalid promo code");
+      if (promoCode.toUpperCase() === 'EARLYBIRD' && currentLocation !== 'lexington') {
+        setPromoError("EARLYBIRD discount is only available for Lexington location");
+      } else {
+        setPromoError("Invalid promo code");
+      }
     }
   };
 
