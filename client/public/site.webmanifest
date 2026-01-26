@@ -1,0 +1,19 @@
+{
+  "name": "The A Cappella Workshop",
+  "short_name": "A Cappella Workshop",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#1e40af",
+  "background_color": "#0b1220",
+  "display": "standalone"
+}
