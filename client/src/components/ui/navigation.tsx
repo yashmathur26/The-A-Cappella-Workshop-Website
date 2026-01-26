@@ -102,19 +102,23 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
                   <MapPin className="w-4 h-4 mr-2" />
                   Lexington
                 </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => setAppLocation('newton-wellesley')}
-                  className={`cursor-pointer hover:bg-gray-800 ${currentLocation === 'newton-wellesley' ? 'bg-emerald-900/50' : ''}`}
-                >
-                  <MapPin className="w-4 h-4 mr-2" />
-                  Newton
+                <DropdownMenuItem asChild>
+                  <Link 
+                    href="/newton"
+                    className={`cursor-pointer hover:bg-gray-800 flex items-center ${currentLocation === 'newton-wellesley' ? 'bg-emerald-900/50' : ''}`}
+                  >
+                    <MapPin className="w-4 h-4 mr-2" />
+                    Newton
+                  </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => setAppLocation('wayland')}
-                  className={`cursor-pointer hover:bg-gray-800 ${currentLocation === 'wayland' ? 'bg-purple-900/50' : ''}`}
-                >
-                  <MapPin className="w-4 h-4 mr-2" />
-                  Wayland
+                <DropdownMenuItem asChild>
+                  <Link 
+                    href="/wayland"
+                    className={`cursor-pointer hover:bg-gray-800 flex items-center ${currentLocation === 'wayland' ? 'bg-purple-900/50' : ''}`}
+                  >
+                    <MapPin className="w-4 h-4 mr-2" />
+                    Wayland
+                  </Link>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

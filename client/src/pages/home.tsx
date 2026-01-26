@@ -70,20 +70,20 @@ export default function Home() {
                   </button>
                 )}
                 {currentLocation !== 'newton-wellesley' && (
-                  <button 
-                    onClick={() => setLocation('newton-wellesley')}
+                  <Link 
+                    href="/newton"
                     className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white px-6 py-3 rounded-full font-medium transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-emerald-500/25"
                   >
                     Newton
-                  </button>
+                  </Link>
                 )}
                 {currentLocation !== 'wayland' && (
-                  <button 
-                    onClick={() => setLocation('wayland')}
+                  <Link 
+                    href="/wayland"
                     className="bg-purple-300 hover:bg-purple-400 text-gray-900 px-6 py-3 rounded-full font-medium transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-purple-300/25"
                   >
                     Wayland
-                  </button>
+                  </Link>
                 )}
               </div>
             </div>

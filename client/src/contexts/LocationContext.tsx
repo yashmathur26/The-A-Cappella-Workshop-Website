@@ -219,7 +219,9 @@ export function LocationProvider({ children }: { children: ReactNode }) {
       setLocation, 
       locationData 
     }}>
-      {children}
+      <div data-location-provider>
+        {children}
+      </div>
     </LocationContext.Provider>
   );
 }
