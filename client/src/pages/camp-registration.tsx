@@ -213,8 +213,19 @@ export default function Register() {
     setPaymentStatus('pending');
     
     try {
+      // Apply discount to cart items before sending to Stripe
+      const discountedCartItems = cart.map(item => {
+        const discount = CartManager.getDiscount();
+        const discountedPrice = item.price * (1 - discount);
+        return {
+          ...item,
+          price: discountedPrice,
+          weekLabel: item.label, // Add weekLabel for server compatibility
+        };
+      });
+      
       const response = await apiRequest('POST', '/api/create-checkout-session', {
-        cartItems: cart,
+        cartItems: discountedCartItems,
         promoCode: CartManager.getPromoCode(),
         parentName: parentName.trim(),
         parentEmail: parentEmail.trim(),

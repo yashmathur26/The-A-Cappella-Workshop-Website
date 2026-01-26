@@ -149,12 +149,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const lineItems = cartItems.map((item: any) => {
         const amount = Math.round(item.price * 100); // Price already includes discount from client
         const itemLocation = item.location || locationName || 'Unknown Location';
+        const weekLabel = item.weekLabel || item.label || 'Week';
 
         return {
           price_data: {
             currency: 'usd',
             product_data: {
-              name: `${itemLocation} - ${item.weekLabel} ${item.paymentType === 'deposit' ? '(Deposit)' : '(Full Payment)'}`,
+              name: `${itemLocation} - ${weekLabel} ${item.paymentType === 'deposit' ? '(Deposit)' : '(Full Payment)'}`,
               description: `${itemLocation} location - ${item.paymentType === 'deposit' ? '$150 deposit payment' : 'Full payment'}`,
             },
             unit_amount: amount,
@@ -198,7 +199,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           locationName: locationName || '',
           items_json: JSON.stringify(cartItems.map((item: any) => ({
             week_id: item.weekId,
-            week_label: item.weekLabel,
+            week_label: item.weekLabel || item.label || 'Week',
             student_name: childName,
             payment_type: item.paymentType || 'full',
           }))),
