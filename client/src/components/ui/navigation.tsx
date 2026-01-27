@@ -163,7 +163,7 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
         {/* Mobile Menu */}
         {isMenuOpen && (
           <div className="md:hidden mt-4 py-4 border-t border-white/10">
-            <div className="flex flex-col space-y-4">
+            <div className="flex flex-col space-y-4 items-center text-center">
               {navLinks.map((link) => (
                 <Link
                   key={link.href}
@@ -176,10 +176,10 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
                   {link.label}
                 </Link>
               ))}
-              <div className="space-y-3">
+              <div className="space-y-3 w-full flex justify-center">
                 <Link
                   href={getRegistrationUrl()}
-                  className="btn-gradient px-6 py-2 rounded-full text-white font-medium inline-block text-center"
+                  className="btn-gradient px-6 py-2 rounded-full text-white font-medium inline-block text-center flex items-center justify-center"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Register Now

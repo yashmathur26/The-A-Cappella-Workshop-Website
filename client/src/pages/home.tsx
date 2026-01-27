@@ -65,11 +65,11 @@ export default function Home() {
             <p className="text-xl lg:text-2xl text-white/80 mb-8 max-w-3xl mx-auto">
               {locationData[currentLocation].heroSubtitle}
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center flex-wrap">
-              <Link href={getRegistrationUrl()}>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center flex-wrap">
+              <Link href={getRegistrationUrl()} className="flex justify-center">
                 <GradientButton size="lg" variant={currentLocation === 'wayland' ? 'purple' : 'primary'}>Register Now</GradientButton>
               </Link>
-              <div className="flex gap-3 flex-wrap justify-center">
+              <div className="flex gap-3 flex-wrap justify-center items-center w-full sm:w-auto">
                 {currentLocation !== 'lexington' && (
                   <Link 
                     href="/"
