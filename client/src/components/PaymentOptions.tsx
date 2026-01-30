@@ -118,7 +118,7 @@ export function PaymentOptions({ registrationIds, totalAmount, onCancel }: Payme
                           <AlertCircle className="w-4 h-4 text-orange-400 mt-0.5 flex-shrink-0" />
                           <div className="text-orange-300 text-xs">
                             <p className="font-medium mb-1">Non-refundable deposit</p>
-                            <p>We'll email you an invoice for the remaining ${remainingBalance}, which will also be available in your account dashboard.</p>
+                            <p>We'll email you an invoice for the remaining ${remainingBalance} prior to the start of the program.</p>
                           </div>
                         </div>
                       </div>

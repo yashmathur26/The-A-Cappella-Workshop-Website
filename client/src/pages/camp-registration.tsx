@@ -392,12 +392,12 @@ export default function Register() {
 
   return (
     <div className="min-h-screen pb-24 lg:pb-0">
-      <div className="max-w-7xl mx-auto px-6 py-20">
-        <h1 className={`text-4xl lg:text-5xl font-bold text-center mb-8 ${currentLocation === 'wayland' ? 'gradient-text-purple' : 'gradient-text'}`}>Register for Summer 2026</h1>
+      <div className="max-w-7xl mx-auto px-6 py-20 flex flex-col items-center lg:items-stretch">
+        <h1 className={`text-4xl lg:text-5xl font-bold text-center mb-8 w-full ${currentLocation === 'wayland' ? 'gradient-text-purple' : 'gradient-text'}`}>Register for Summer 2026</h1>
         
         {/* Payment Status Messages */}
         {paymentStatus === 'pending' && (
-          <GlassCard className="p-6 mb-8">
+          <GlassCard className="p-6 mb-8 w-full max-w-3xl lg:max-w-none">
             <div className="text-center">
               <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-blue-500/20 flex items-center justify-center">
                 <AlertTriangle className="w-6 h-6 text-blue-400" />
@@ -411,7 +411,7 @@ export default function Register() {
         )}
 
         {paymentStatus === 'incomplete' && (
-          <GlassCard className="p-6 mb-8">
+          <GlassCard className="p-6 mb-8 w-full max-w-3xl lg:max-w-none">
             <div className="text-center">
               <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-orange-500/20 flex items-center justify-center">
                 <X className="w-6 h-6 text-orange-400" />
@@ -431,7 +431,7 @@ export default function Register() {
         )}
 
         {paymentStatus === 'completed' && (
-          <GlassCard className="p-6 mb-8">
+          <GlassCard className="p-6 mb-8 w-full max-w-3xl lg:max-w-none">
             <div className="text-center">
               <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-green-500/20 flex items-center justify-center">
                 <Tag className="w-6 h-6 text-green-400" />
@@ -445,8 +445,8 @@ export default function Register() {
         )}
 
         {/* Payment Options Explanation */}
-        <GlassCard className="p-6 mb-12">
-          <h2 className={`text-xl font-bold mb-4 ${currentLocation === 'wayland' ? 'text-purple-400' : currentLocation === 'newton-wellesley' ? 'text-emerald-400' : 'text-sky-custom'}`}>Payment Options</h2>
+        <GlassCard className="p-6 mb-12 w-full max-w-3xl lg:max-w-none">
+          <h2 className={`text-xl font-bold mb-4 text-center lg:text-left ${currentLocation === 'wayland' ? 'text-purple-400' : currentLocation === 'newton-wellesley' ? 'text-emerald-400' : 'text-sky-custom'}`}>Payment Options</h2>
           <div className="space-y-3 text-white/90">
             <div className="flex items-start space-x-3">
               <span className="text-teal-custom font-bold">💳</span>
@@ -459,20 +459,20 @@ export default function Register() {
               <span className="text-sky-custom font-bold">📄</span>
               <div>
                 <p className="font-semibold">Pay Deposit (${locationData[currentLocation].pricing.deposit}/week)</p>
-                <p className="text-sm text-white/70">Secure your spot with a non-refundable deposit. We'll email you an invoice for the remaining ${locationData[currentLocation].pricing.full - locationData[currentLocation].pricing.deposit}, also available in your account dashboard.</p>
+                <p className="text-sm text-white/70">Secure your spot with a non-refundable deposit. We'll email you an invoice for the remaining ${locationData[currentLocation].pricing.full - locationData[currentLocation].pricing.deposit} prior to the start of the program.</p>
               </div>
             </div>
           </div>
         </GlassCard>
         
-        <div className="lg:grid lg:grid-cols-3 lg:gap-8 xl:gap-12">
+        <div className="w-full max-w-3xl lg:max-w-none lg:grid lg:grid-cols-3 lg:gap-8 xl:gap-12">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-8 lg:space-y-12">
+          <div className="lg:col-span-2 space-y-8 lg:space-y-12 w-full">
             {/* Step 1: Choose Weeks */}
-            <section>
-              <h2 className="text-2xl font-bold mb-4 text-white">Step 1 — Choose Your Week(s)</h2>
-              <p className="text-white/80 mb-6">Select your preferred weeks and payment option.</p>
-              <div className="grid gap-6">
+            <section className="w-full">
+              <h2 className="text-2xl font-bold mb-4 text-white text-center lg:text-left">Step 1 — Choose Your Week(s)</h2>
+              <p className="text-white/80 mb-6 text-center lg:text-left">Select your preferred weeks and payment option.</p>
+              <div className="grid gap-6 w-full">
                 {WEEKS.map((week, index) => (
                   <GlassCard 
                     key={week.id} 
@@ -563,8 +563,8 @@ export default function Register() {
 
             {/* Step 2: Registration Form - Only show after weeks are selected */}
             {showForm && (
-              <section>
-                <h2 className="text-2xl font-bold mb-6 text-white">Step 2 — Complete Registration Form</h2>
+              <section className="w-full">
+                <h2 className="text-2xl font-bold mb-6 text-white text-center lg:text-left">Step 2 — Complete Registration Form</h2>
                 
                 {/* Form Submission Status */}
                 <GlassCard className={`p-4 mb-2 ${formSubmitted ? 'bg-green-500/10 border-green-500/30' : 'bg-blue-500/10 border-blue-500/30'}`}>

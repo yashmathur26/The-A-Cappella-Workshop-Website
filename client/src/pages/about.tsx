@@ -54,9 +54,8 @@ export default function About() {
         </section>
 
         {/* What Makes Us Special */}
-        {(
-          <section className="mb-6">
-            <h2 className={`text-3xl lg:text-4xl font-bold text-center mb-12 ${currentLocation === 'wayland' ? 'gradient-text-purple' : 'gradient-text'}`}>What Makes Us Special</h2>
+        <section className="mb-6">
+          <h2 className={`text-3xl lg:text-4xl font-bold text-center mb-12 ${currentLocation === 'wayland' ? 'gradient-text-purple' : currentLocation === 'newton-wellesley' ? 'gradient-text-green' : 'gradient-text'}`}>What Makes Us Special</h2>
             <div className="grid md:grid-cols-3 gap-8">
               <GlassCard className="p-8 reveal-in animate-slide-up relative group overflow-hidden" hover>
                 <div className="absolute top-0 right-0 w-32 h-32 rounded-full -translate-y-16 translate-x-16 group-hover:scale-150 transition-transform duration-700 bg-gradient-to-br from-indigo-custom/20 to-sky-custom/20"></div>
@@ -92,9 +91,8 @@ export default function About() {
               </GlassCard>
             </div>
           </section>
-        )
 
-        {/* How the week works */}
+        {/* Our Program */}
         <section className="mb-6">
           <GlassCard className="p-8 lg:p-12 reveal-in">
             <h2 className={`text-2xl lg:text-3xl font-bold mb-6 ${currentLocation === 'wayland' ? 'text-violet-400' : currentLocation === 'newton-wellesley' ? 'text-green-400' : 'text-sky-custom'}`}>
