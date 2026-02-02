@@ -618,6 +618,10 @@ export default function Register() {
                     <Button
                       onClick={() => {
                         setFormSubmitted(true);
+                        // On mobile, automatically open the cart drawer to fill in contact info
+                        if (window.innerWidth < 1024) {
+                          setShowMobileCart(true);
+                        }
                         toast({
                           title: "Form Confirmed! ✅",
                           description: "You can now proceed to checkout.",
@@ -625,7 +629,7 @@ export default function Register() {
                       }}
                       className="w-full bg-green-600 hover:bg-green-700 text-white mt-2"
                     >
-                      I've Submitted the Form — Proceed to Checkout
+                      I have submitted the form.
                     </Button>
                   )}
                 </GlassCard>
