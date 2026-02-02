@@ -72,7 +72,7 @@ export default function Status() {
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <div className="flex justify-center">
                 <Link href="/">
                   <GradientButton className="w-full sm:w-auto">Return to Home</GradientButton>
                 </Link>
@@ -89,7 +89,7 @@ export default function Status() {
               <p className="text-white/70 mb-8">
                 Your payment was cancelled. No charges have been made to your account.
               </p>
-              <div className="space-y-4">
+              <div className="flex justify-center">
                 <Link href="/camp-registration">
                   <GradientButton className="w-full sm:w-auto">Try Again</GradientButton>
                 </Link>

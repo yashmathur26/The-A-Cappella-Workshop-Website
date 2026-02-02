@@ -98,17 +98,42 @@ If your backend is hosted separately, you'll need to configure the API base URL:
 
 3. **Important**: Make sure your backend has CORS configured to allow requests from your Cloudflare Pages domain
 
-### Custom Domain (Optional)
+### Custom Domain and fixing “the link doesn’t work” (no www)
 
-1. In your Cloudflare Pages project, go to "Custom domains"
-2. Add your domain
-3. Follow the DNS configuration instructions
+Search results often show **https://theacappellaworkshop.com** (no www). If that URL doesn’t load but **https://www.theacappellaworkshop.com** does, the apex domain isn’t connected. Do this so both work:
+
+1. **Add both domains in Cloudflare Pages**
+   - In your Pages project go to **Settings → Custom domains**
+   - Add **theacappellaworkshop.com** (apex/root)
+   - Add **www.theacappellaworkshop.com**
+   - Use the DNS instructions Cloudflare shows for each
+
+2. **DNS (if the domain is on Cloudflare)**
+   - **DNS → Records**
+   - For the apex: either a **CNAME** to your Pages hostname (e.g. `your-project.pages.dev`) with **Proxy** on, or the **A** record Cloudflare suggests for Pages
+   - For **www**: **CNAME** to `your-project.pages.dev` (or the hostname Pages gives you)
+
+3. **Optional: redirect www → non‑www**
+   - **Rules → Redirect Rules → Create rule**
+   - Name: e.g. “WWW to apex”
+   - When: **Hostname** equals `www.theacappellaworkshop.com`
+   - Then: **Dynamic redirect** to `https://theacappellaworkshop.com/${uri.path}` with status **301**
+   - Save and deploy
+
+After this, **https://theacappellaworkshop.com** (the link from search) should load the site.
+
+### Custom Domain (summary)
+
+1. In your Cloudflare Pages project, go to **Custom domains**
+2. Add both **theacappellaworkshop.com** and **www.theacappellaworkshop.com**
+3. Apply the DNS records Cloudflare shows for your project
 
 ## Troubleshooting
 
 - **Build fails**: Check the build logs in Cloudflare dashboard
 - **Routes not working**: Ensure `_redirects` file is in `dist/public` after build
 - **API calls failing**: Check CORS settings on your backend and verify API URL is correct
+- **Search result link (theacappellaworkshop.com) doesn’t work**: The apex domain isn’t set. Add **theacappellaworkshop.com** in Pages Custom domains and fix DNS (see “Custom Domain and fixing the link” above).
 
 ## Quick Deploy Command
 
