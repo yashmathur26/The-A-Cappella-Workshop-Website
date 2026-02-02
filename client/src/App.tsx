@@ -97,10 +97,12 @@ function Router() {
         <Route component={NotFound} />
       </Switch>
       {showFooter && <Footer />}
-      {/* Visitor Counter - Fixed bottom left */}
-      <div className="fixed bottom-4 left-4 z-30">
-        <VisitorStats />
-      </div>
+      {/* Visitor Counter - Fixed bottom left, only on home pages */}
+      {(location === '/' || location === '/newton' || location === '/wayland') && (
+        <div className="fixed bottom-4 left-4 z-30">
+          <VisitorStats />
+        </div>
+      )}
     </>
   );
 }
