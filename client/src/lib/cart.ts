@@ -20,9 +20,14 @@ export class CartManager {
   private static readonly STORAGE_KEY = 'acappella-cart';
   private static readonly PROMO_KEY = 'acappella-promo';
   
-  // Promo codes and their discounts
+  // Promo codes and their discounts (percentage off)
   private static readonly PROMO_CODES = {
     'EARLYBIRD': 0.10 // 10% discount
+  };
+
+  // Fixed-price promo codes: final price per week in dollars
+  private static readonly FIXED_PRICE_PROMOS: Record<string, number> = {
+    'DOLLAR': 1 // $1 per week
   };
 
   static getCart(): CartItem[] {
@@ -132,6 +137,12 @@ export class CartManager {
     const cart = this.getCartItems();
     const promoCode = this.getPromoCode();
     
+    // DOLLAR: $1 per week
+    if (promoCode === 'DOLLAR') {
+      const pricePerItem = this.FIXED_PRICE_PROMOS['DOLLAR'] ?? 1;
+      return Math.round(cart.length * pricePerItem * 100) / 100;
+    }
+    
     // For EARLYBIRD, only apply discount to full payment items
     if (promoCode === 'EARLYBIRD') {
       const fullPaymentItems = cart.filter(item => item.paymentType === 'full');
@@ -180,6 +191,13 @@ export class CartManager {
   static getDiscountAmount(): number {
     const promoCode = this.getPromoCode();
     
+    // DOLLAR: discount = subtotal - ($1 × items)
+    if (promoCode === 'DOLLAR') {
+      const subtotal = this.getCartSubtotal();
+      const totalWithPromo = this.getCartTotal();
+      return Math.round((subtotal - totalWithPromo) * 100) / 100;
+    }
+    
     // For EARLYBIRD, only calculate discount on full payment items
     if (promoCode === 'EARLYBIRD') {
       const cart = this.getCartItems();
@@ -212,7 +230,9 @@ export class CartManager {
       }
     }
     
-    if (upperCode === '' || this.PROMO_CODES[upperCode as keyof typeof this.PROMO_CODES]) {
+    const isPercentCode = upperCode in this.PROMO_CODES;
+    const isFixedPriceCode = upperCode in this.FIXED_PRICE_PROMOS;
+    if (upperCode === '' || isPercentCode || isFixedPriceCode) {
       localStorage.setItem(this.PROMO_KEY, upperCode);
       this.triggerCartUpdate();
       return true;
@@ -238,7 +258,10 @@ export class CartManager {
       }
     }
     
-    return !!this.PROMO_CODES[upperCode as keyof typeof this.PROMO_CODES];
+    return !!(
+      this.PROMO_CODES[upperCode as keyof typeof this.PROMO_CODES] ||
+      this.FIXED_PRICE_PROMOS[upperCode]
+    );
   }
 
   private static triggerCartUpdate(): void {

@@ -11,7 +11,8 @@ export default function Status() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const success = params.get('ok') === '1';
+    // Success when Stripe redirects with ok=1, or when session_id is present (legacy/redirect)
+    const success = params.get('ok') === '1' || !!params.get('session_id');
     setIsSuccess(success);
     
     // Clear cart on successful payment

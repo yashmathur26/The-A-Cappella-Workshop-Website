@@ -66,7 +66,7 @@ export default function Home() {
               {locationData[currentLocation].heroSubtitle}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center flex-wrap">
-              <Link href={getRegistrationUrl()} className="flex justify-center">
+              <Link href={getRegistrationUrl()} className="w-full sm:w-auto flex justify-center">
                 <GradientButton size="lg" variant={currentLocation === 'wayland' ? 'purple' : 'primary'}>Register Now</GradientButton>
               </Link>
               <div className="flex gap-3 flex-wrap justify-center items-center w-full sm:w-auto">
@@ -305,8 +305,8 @@ export default function Home() {
           <GlassCard className="p-12 reveal-in text-center">
             <h2 className={`text-3xl lg:text-4xl font-bold mb-6 ${currentLocation === 'wayland' ? 'gradient-text-purple' : 'gradient-text'}`}>Ready to sing?</h2>
             <p className="text-xl text-white/80 mb-8">Join us for an unforgettable week of music, friendship, and growth.</p>
-            <div className="flex justify-center">
-              <Link href={getRegistrationUrl()}>
+            <div className="flex justify-center w-full">
+              <Link href={getRegistrationUrl()} className="w-full sm:w-auto flex justify-center">
                 <GradientButton size="lg" variant={currentLocation === 'wayland' ? 'purple' : 'primary'}>Register Now</GradientButton>
               </Link>
             </div>

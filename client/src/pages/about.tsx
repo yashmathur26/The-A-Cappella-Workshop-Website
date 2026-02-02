@@ -10,7 +10,7 @@ const ADAM_STAFF = [
     id: "adam",
     name: "Adam Bernstein",
     title: "Newton and Wayland Director",
-    bio: "Adam Bernstein is a singer, pianist, music educator, and vocal/instrumental arranger from Lexington, MA. He graduated from Tufts University with a BA in Music, where he sang with the internationally-recognized a cappella group the Beelzebubs, ran varsity track, and studied abroad in Madrid. Now, Adam plays keys in a local band called Sunnydaze, leads an 80-person choir called Rock Voices Newton, and daylights as a private lessons instructor at The Real School of Music. He is a proud alum of the Lexington High School Madrigal Singers and Rock, Paper, Scissors, and couldn't be more excited to be bringing the workshop to a new audience in Newton this summer!",
+    bio: "Adam Bernstein is a singer, pianist, music educator, and vocal and instrumental arranger from Lexington, MA. He graduated from Tufts University with a BA in Music, where he sang with the internationally-recognized a cappella group the Beelzebubs, ran varsity track, and studied abroad in Madrid. Now, Adam plays keys in a local band called Sunnydaze, leads an 80-person choir called Rock Voices Newton, and daylights as a private lessons instructor at The Real School of Music. He is a proud alum of the Lexington High School Madrigal Singers and Rock, Paper, Scissors, and couldn't be more excited to be bringing the workshop to a new audience in Newton this summer!",
     imageUrl: adamPhoto,
     imageClassName: "",
   }

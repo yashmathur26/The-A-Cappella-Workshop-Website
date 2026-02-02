@@ -43,8 +43,16 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
 
   const isActive = (path: string) => {
     if (path === '/' && location === '/') return true;
-    if (path !== '/' && location.startsWith(path)) return true;
+    if (path === '/newton' && (location === '/newton' || location.startsWith('/newton/'))) return true;
+    if (path === '/wayland' && (location === '/wayland' || location.startsWith('/wayland/'))) return true;
+    if (path !== '/' && !path.startsWith('/newton') && !path.startsWith('/wayland') && location.startsWith(path)) return true;
     return false;
+  };
+
+  const getHomeUrl = () => {
+    if (currentLocation === 'newton-wellesley') return '/newton';
+    if (currentLocation === 'wayland') return '/wayland';
+    return '/';
   };
 
   const getRegistrationUrl = () => {
@@ -57,7 +65,7 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
   };
 
   const navLinks = [
-    { href: '/', label: 'Home' },
+    { href: getHomeUrl(), label: 'Home' },
     { href: '/about', label: 'About Us' },
     { href: '/faq', label: 'FAQ' },
     { href: '/gallery', label: 'Gallery' },
@@ -68,7 +76,7 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
       <div className="max-w-7xl mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
           {/* Logo and Brand */}
-          <Link href="/" className="flex items-center space-x-3 flex-shrink-0">
+          <Link href={getHomeUrl()} className="flex items-center space-x-3 flex-shrink-0">
             <img 
               src={shopLogo} 
               alt="The A Cappella Workshop Logo" 

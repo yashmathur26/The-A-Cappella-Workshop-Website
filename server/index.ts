@@ -68,23 +68,20 @@ if (stripe) {
               `👤 Processing guest payment for ${parentName} (${parentEmail}), ${items.length} items`,
             );
 
+            // Split session total across items so each registration has correct amount
+            const totalCents = session.amount_total || 0;
+            const numItems = items.length;
+            const perItemCents = numItems > 0 ? Math.round(totalCents / numItems) : 0;
+            const fullPriceCents = 50000; // $500 full camp price
+
             // Create registrations for each cart item
             for (const item of items) {
               const paymentType = item.payment_type || 'full';
-              const fullPrice = 500; // Full camp price in dollars
-
-              // Use actual amount charged from Stripe session
-              const actualAmountPaidCents = session.amount_total || 0;
-              const actualAmountPaid = actualAmountPaidCents / 100;
-
-              // Calculate balance due based on actual payment vs full price
-              let balanceDueCents = 0;
-              if (paymentType === 'deposit') {
-                balanceDueCents = Math.max(
-                  0,
-                  (fullPrice * 100) - actualAmountPaidCents,
-                );
-              }
+              const amountPaidCents = perItemCents;
+              const balanceDueCents =
+                paymentType === 'deposit'
+                  ? Math.max(0, fullPriceCents - perItemCents)
+                  : 0;
 
               // Create guest registration
               await storage.createRegistration({
@@ -96,12 +93,12 @@ if (stripe) {
                 stripeCheckoutSessionId: session.id,
                 stripePaymentIntentId: (session.payment_intent as string) || '',
                 paymentType,
-                amountPaidCents: actualAmountPaidCents,
-                balanceDueCents: Math.max(0, balanceDueCents),
+                amountPaidCents,
+                balanceDueCents,
                 promoCode: session.metadata?.promoCode || null,
               });
               console.log(
-                `📝 Created registration for week ${item.week_id} (${paymentType}: $${actualAmountPaid}, balance: $${balanceDueCents / 100})`,
+                `📝 Created registration for week ${item.week_id} (${paymentType}: $${amountPaidCents / 100}, balance: $${balanceDueCents / 100})`,
               );
             }
 

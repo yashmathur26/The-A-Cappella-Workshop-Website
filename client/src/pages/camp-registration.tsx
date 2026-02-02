@@ -240,23 +240,30 @@ export default function Register() {
     
     try {
       // Apply discount to cart items before sending to Stripe
-      // For EARLYBIRD, only apply discount to full payment items
       const promoCode = CartManager.getPromoCode();
       const discountedCartItems = cart.map(item => {
+        // DOLLAR: $1 per week
+        if (promoCode === 'DOLLAR') {
+          return {
+            ...item,
+            price: 1,
+            weekLabel: item.label,
+          };
+        }
+        // EARLYBIRD: only full payment items
         if (promoCode === 'EARLYBIRD' && item.paymentType === 'full') {
           const discount = CartManager.getDiscount();
           const discountedPrice = item.price * (1 - discount);
           return {
             ...item,
             price: discountedPrice,
-            weekLabel: item.label, // Add weekLabel for server compatibility
+            weekLabel: item.label,
           };
         }
-        // For deposits or non-EARLYBIRD codes, use original price
         return {
           ...item,
           price: item.price,
-          weekLabel: item.label, // Add weekLabel for server compatibility
+          weekLabel: item.label,
         };
       });
       

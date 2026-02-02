@@ -197,7 +197,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         payment_method_types: ['card'],
         line_items: lineItems,
         mode: 'payment',
-        success_url: `${host}/success?session_id={CHECKOUT_SESSION_ID}`,
+        success_url: `${host}/success?session_id={CHECKOUT_SESSION_ID}&ok=1`,
         cancel_url: cancelUrl,
         customer_email: parentEmail,
         metadata: {
@@ -219,6 +219,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating checkout session:", error);
       res.status(500).json({ message: "Failed to create checkout session" });
+    }
+  });
+
+  // Payment status check (for polling after checkout)
+  app.get("/api/payment-status/:sessionId", async (req, res) => {
+    try {
+      if (!stripe) {
+        return res.status(501).json({ message: "Payments are disabled" });
+      }
+      const { sessionId } = req.params;
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      res.json({
+        status: session.payment_status,
+        sessionStatus: session.status,
+        paymentIntent: session.payment_intent,
+      });
+    } catch (error: any) {
+      console.error("Error checking payment status:", error);
+      res.status(500).json({ message: error?.message || "Error checking payment status" });
     }
   });
 
