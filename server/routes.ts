@@ -8,8 +8,8 @@ import fs from "fs";
 import path from "path";
 import { storage } from "./storage";
 import { sendRegistrationConfirmationEmail } from "./brevo";
-import { insertRegistrationSchema, type Week } from "@shared/schema";
-import { pool } from "./db";
+import { insertRegistrationSchema, type Week, visits } from "@shared/schema";
+import { pool, db } from "./db";
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, {
@@ -130,14 +130,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const { cartItems, promoCode, parentName, parentEmail, childName, locationName } = req.body;
+      const { cartItems, promoCode, parentEmail, childName, locationName } = req.body;
       
       if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
         return res.status(400).json({ message: "Cart items are required" });
       }
 
-      if (!parentName || !parentEmail || !childName) {
-        return res.status(400).json({ message: "Parent name, email, and child name are required" });
+      if (!parentEmail || !childName) {
+        return res.status(400).json({ message: "Email and child name are required" });
       }
 
       // Get the host for redirect URLs
@@ -155,8 +155,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           price_data: {
             currency: 'usd',
             product_data: {
-              name: `${itemLocation} - ${weekLabel} ${item.paymentType === 'deposit' ? '(Deposit)' : '(Full Payment)'}`,
-              description: `${itemLocation} location - ${item.paymentType === 'deposit' ? '$150 deposit payment' : 'Full payment'}`,
+              name: `${childName} - ${itemLocation} - ${weekLabel} ${item.paymentType === 'deposit' ? '(Deposit)' : '(Full Payment)'}`,
+              description: `${childName} - ${itemLocation} - ${weekLabel} ${item.paymentType === 'deposit' ? '$150 deposit payment' : 'Full payment'}`,
             },
             unit_amount: amount,
           },
@@ -200,8 +200,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success_url: `${host}/success?session_id={CHECKOUT_SESSION_ID}&ok=1`,
         cancel_url: cancelUrl,
         customer_email: parentEmail,
+        // Show child name on Stripe Checkout
+        custom_fields: [
+          {
+            key: 'child_name',
+            label: { type: 'custom', custom: 'Child name' },
+            type: 'text',
+            optional: true,
+            text: { default_value: childName },
+          },
+        ],
         metadata: {
-          parentName,
           parentEmail,
           childName,
           locationName: locationName || '',
@@ -228,7 +237,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!stripe) {
         return res.status(501).json({ message: "Payments are disabled" });
       }
-      const { sessionId } = req.params;
+      const sessionId = req.params.sessionId;
       const session = await stripe.checkout.sessions.retrieve(sessionId);
       res.json({
         status: session.payment_status,
@@ -238,6 +247,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error checking payment status:", error);
       res.status(500).json({ message: error?.message || "Error checking payment status" });
+    }
+  });
+
+  // Record a visit
+  app.post("/api/visits", express.json(), async (req, res) => {
+    try {
+      const { path, visitorId } = req.body;
+      
+      if (!path) {
+        return res.status(400).json({ message: "Path is required" });
+      }
+
+      if (!visitorId) {
+        return res.status(400).json({ message: "Visitor ID is required" });
+      }
+
+      await storage.recordVisit(path, visitorId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error recording visit:", error);
+      res.status(500).json({ message: "Failed to record visit" });
+    }
+  });
+
+  // Get visitor statistics
+  app.get("/api/visits/stats", async (req, res) => {
+    try {
+      const totalUniqueVisitors = await storage.getTotalUniqueVisitors();
+      const visitsToday = await storage.getUniqueVisitsToday();
+      
+      res.json({
+        totalVisits: totalUniqueVisitors, // Total unique visitors (all time)
+        visitsToday, // Total unique visitors today
+      });
+    } catch (error) {
+      console.error("Error fetching visit stats:", error);
+      res.status(500).json({ message: "Failed to fetch visit statistics" });
+    }
+  });
+
+  // Reset visitor statistics (admin/dev only - be careful!)
+  app.post("/api/visits/reset", express.json(), async (req, res) => {
+    try {
+      // Simple protection - you can add proper auth later
+      const { confirm } = req.body;
+      if (confirm !== 'RESET_ALL_VISITS') {
+        return res.status(400).json({ message: "Confirmation required" });
+      }
+
+      if (db) {
+        // Delete all visits from database
+        await db.delete(visits);
+        res.json({ success: true, message: "All visitor data reset" });
+      } else {
+        // Clear in-memory storage
+        const memoryStorage = storage as any;
+        if (memoryStorage._visits) {
+          memoryStorage._visits = [];
+        }
+        res.json({ success: true, message: "All visitor data reset (in-memory)" });
+      }
+    } catch (error) {
+      console.error("Error resetting visit stats:", error);
+      res.status(500).json({ message: "Failed to reset visit statistics" });
     }
   });
 

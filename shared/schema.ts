@@ -55,6 +55,20 @@ export const payments = pgTable("payments", {
   receivedAt: timestamp("received_at").defaultNow(),
 });
 
+// Visits table - tracks website visitors
+export const visits = pgTable("visits", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  visitorId: text("visitor_id").notNull(), // Unique visitor identifier (stored in localStorage)
+  path: text("path").notNull(), // The page path visited
+  date: timestamp("date").notNull().defaultNow(), // Date of visit
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_visits_date").on(table.date),
+  index("idx_visits_path").on(table.path),
+  index("idx_visits_visitor").on(table.visitorId),
+  index("idx_visits_visitor_date").on(table.visitorId, table.date),
+]);
+
 // Relations
 export const weeksRelations = relations(weeks, ({ many }) => ({
   registrations: many(registrations),
@@ -88,3 +102,6 @@ export type InsertRegistration = z.infer<typeof insertRegistrationSchema>;
 
 export type Payment = typeof payments.$inferSelect;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+
+export type Visit = typeof visits.$inferSelect;
+export type InsertVisit = typeof visits.$inferInsert;

@@ -6,7 +6,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Navigation } from "@/components/ui/navigation";
 import { Footer } from "@/components/Footer";
+import { VisitorStats } from "@/components/VisitorStats";
 import { LocationProvider, useLocation as useLocationContext } from "@/contexts/LocationContext";
+import { useVisitTracker } from "@/hooks/use-visit-tracker";
 import Home from "@/pages/home";
 import About from "@/pages/about";
 import FAQ from "@/pages/faq";
@@ -54,6 +56,9 @@ function LocationAwareRegistration({ location: routeLocation }: { location: 'lex
 function Router() {
   const [location] = useLocation();
   
+  // Track visits automatically
+  useVisitTracker();
+  
   // Show footer on all pages except registration pages
   const showFooter = !location.startsWith('/camp-registration') && 
                      !location.startsWith('/register');
@@ -92,6 +97,10 @@ function Router() {
         <Route component={NotFound} />
       </Switch>
       {showFooter && <Footer />}
+      {/* Visitor Counter - Fixed bottom left */}
+      <div className="fixed bottom-4 left-4 z-30">
+        <VisitorStats />
+      </div>
     </>
   );
 }

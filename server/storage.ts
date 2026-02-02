@@ -2,15 +2,18 @@ import {
   weeks,
   registrations,
   payments,
+  visits,
   type Week,
   type InsertWeek,
   type Registration,
   type InsertRegistration,
   type Payment,
   type InsertPayment,
+  type Visit,
+  type InsertVisit,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, gte, lt, lte } from "drizzle-orm";
 
 export interface IStorage {
   // Week operations
@@ -29,6 +32,12 @@ export interface IStorage {
   // Payment operations
   getPayments(parentEmail: string): Promise<Payment[]>;
   createPayment(payment: InsertPayment): Promise<Payment>;
+
+  // Visit operations
+  recordVisit(path: string, visitorId: string): Promise<Visit>;
+  getTotalUniqueVisitors(): Promise<number>;
+  getUniqueVisitsToday(): Promise<number>;
+  getVisitsByDate(startDate?: Date, endDate?: Date): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -135,6 +144,92 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return payment;
+  }
+
+  // Visit operations
+  async recordVisit(path: string, visitorId: string): Promise<Visit> {
+    // Check if this visitor has already visited today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const existingVisit = await this._db
+      .select()
+      .from(visits)
+      .where(
+        and(
+          eq(visits.visitorId, visitorId),
+          gte(visits.date, today),
+          lt(visits.date, tomorrow)
+        )
+      )
+      .limit(1);
+
+    // If visitor already visited today, don't create a new record
+    // Just return the existing visit (or create a new one if it doesn't exist)
+    if (existingVisit.length > 0) {
+      return existingVisit[0];
+    }
+
+    // First visit today for this visitor - create a new record
+    const [visit] = await this._db
+      .insert(visits)
+      .values({
+        path,
+        visitorId,
+        date: new Date(),
+      })
+      .returning();
+    return visit;
+  }
+
+  async getTotalUniqueVisitors(): Promise<number> {
+    // Count distinct visitor IDs
+    const result = await this._db
+      .select({ count: sql<number>`count(distinct ${visits.visitorId})` })
+      .from(visits);
+    return Number(result[0]?.count || 0);
+  }
+
+  async getUniqueVisitsToday(): Promise<number> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    // Count distinct visitors who visited today
+    const result = await this._db
+      .select({ count: sql<number>`count(distinct ${visits.visitorId})` })
+      .from(visits)
+      .where(
+        and(
+          gte(visits.date, today),
+          lt(visits.date, tomorrow)
+        )
+      );
+    return Number(result[0]?.count || 0);
+  }
+
+  async getVisitsByDate(startDate?: Date, endDate?: Date): Promise<number> {
+    let query = this._db.select({ count: sql<number>`count(*)` }).from(visits);
+    
+    const conditions = [];
+    if (startDate) {
+      conditions.push(gte(visits.date, startDate));
+    }
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      conditions.push(lte(visits.date, end));
+    }
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
+    }
+    
+    const result = await query;
+    return Number(result[0]?.count || 0);
   }
 }
 
@@ -248,6 +343,76 @@ class MemoryStorage implements IStorage {
 
     this._payments.push(payment);
     return payment;
+  }
+
+  // Visit operations (MemoryStorage)
+  private _visits: Visit[] = [];
+
+  async recordVisit(path: string, visitorId: string): Promise<Visit> {
+    // Check if this visitor has already visited today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const existingVisit = this._visits.find(
+      (v) => v.visitorId === visitorId && v.date >= today && v.date < tomorrow
+    );
+
+    // If visitor already visited today, return existing visit
+    if (existingVisit) {
+      return existingVisit;
+    }
+
+    // First visit today for this visitor - create a new record
+    const id =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `visit_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
+    const visit: Visit = {
+      id,
+      visitorId,
+      path,
+      date: new Date(),
+      createdAt: new Date(),
+    };
+
+    this._visits.push(visit);
+    return visit;
+  }
+
+  async getTotalUniqueVisitors(): Promise<number> {
+    const uniqueVisitors = new Set(this._visits.map((v) => v.visitorId));
+    return uniqueVisitors.size;
+  }
+
+  async getUniqueVisitsToday(): Promise<number> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const todayVisits = this._visits.filter(
+      (v) => v.date >= today && v.date < tomorrow
+    );
+    const uniqueVisitors = new Set(todayVisits.map((v) => v.visitorId));
+    return uniqueVisitors.size;
+  }
+
+  async getVisitsByDate(startDate?: Date, endDate?: Date): Promise<number> {
+    let filtered = this._visits;
+    
+    if (startDate) {
+      filtered = filtered.filter((v) => v.date >= startDate);
+    }
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      filtered = filtered.filter((v) => v.date <= end);
+    }
+    
+    return filtered.length;
   }
 }
 

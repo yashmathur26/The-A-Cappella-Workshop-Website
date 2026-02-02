@@ -61,11 +61,10 @@ if (stripe) {
             // Get guest info from metadata
             const parentEmail =
               session.customer_details?.email || session.metadata?.parentEmail || '';
-            const parentName = session.metadata?.parentName || '';
             const childName = session.metadata?.childName || '';
 
             console.log(
-              `👤 Processing guest payment for ${parentName} (${parentEmail}), ${items.length} items`,
+              `👤 Processing guest payment for ${childName} (${parentEmail}), ${items.length} items`,
             );
 
             // Split session total across items so each registration has correct amount
@@ -85,7 +84,7 @@ if (stripe) {
 
               // Create guest registration
               await storage.createRegistration({
-                parentName,
+                parentName: '', // No longer collected, using empty string
                 parentEmail,
                 childName,
                 weekId: item.week_id,
@@ -120,7 +119,7 @@ if (stripe) {
             if (week) {
               await sendRegistrationConfirmationEmail(
                 parentEmail,
-                parentName,
+                '', // No parent name collected
                 childName,
                 week.label,
                 `$${(session.amount_total || 0) / 100}`,
@@ -169,6 +168,19 @@ app.use((req, res, next) => {
   res.on("finish", () => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
+      // Skip logging for visit tracking endpoints (too verbose)
+      if (path === "/api/visits" || path === "/api/visits/stats") {
+        // Only log if there's an error
+        if (res.statusCode >= 400) {
+          let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+          if (capturedJsonResponse) {
+            logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+          }
+          log(logLine);
+        }
+        return;
+      }
+
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;

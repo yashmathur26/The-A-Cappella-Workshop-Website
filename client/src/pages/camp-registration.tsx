@@ -21,7 +21,6 @@ export default function Register() {
   const [registrationIds, setRegistrationIds] = useState<string[]>([]);
   const [promoCode, setPromoCode] = useState(CartManager.getPromoCode());
   const [promoError, setPromoError] = useState("");
-  const [parentName, setParentName] = useState("");
   const [parentEmail, setParentEmail] = useState("");
   const [childName, setChildName] = useState("");
   const [paymentStatus, setPaymentStatus] = useState<'none' | 'pending' | 'completed' | 'incomplete'>('none');
@@ -214,10 +213,10 @@ export default function Register() {
     }
     
     // Require contact info for guest checkout
-    if (!parentName.trim() || !parentEmail.trim() || !childName.trim()) {
+    if (!parentEmail.trim() || !childName.trim()) {
       toast({
         title: "Contact information required",
-        description: "Please enter parent name, email, and child name before checkout.",
+        description: "Please enter email and child name before checkout.",
         variant: "destructive",
       });
       return;
@@ -270,7 +269,6 @@ export default function Register() {
       const response = await apiRequest('POST', '/api/create-checkout-session', {
         cartItems: discountedCartItems,
         promoCode: CartManager.getPromoCode(),
-        parentName: parentName.trim(),
         parentEmail: parentEmail.trim(),
         childName: childName.trim(),
         locationName: locationData[currentLocation].name,
@@ -574,9 +572,9 @@ export default function Register() {
                 <h2 className="text-2xl font-bold mb-6 text-white text-center lg:text-left">Step 2 — Complete Registration Form</h2>
                 
                 {/* Form Submission Status */}
-                <GlassCard className={`p-4 mb-2 ${formSubmitted ? 'bg-green-500/10 border-green-500/30' : 'bg-blue-500/10 border-blue-500/30'}`}>
+                <GlassCard className={`p-4 mb-2 ${formSubmitted ? 'bg-green-500/20 border-green-500/50 lg:bg-green-500/10 lg:border-green-500/30' : 'bg-blue-500/10 border-blue-500/30'}`}>
                   <div className="flex items-center space-x-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${formSubmitted ? 'bg-green-500/20' : 'bg-blue-500/20'}`}>
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${formSubmitted ? 'bg-green-500/30 lg:bg-green-500/20' : 'bg-blue-500/20'}`}>
                       {formSubmitted ? (
                         <span className="text-green-400 text-xl">✓</span>
                       ) : (
@@ -586,8 +584,8 @@ export default function Register() {
                     <div className="flex-1">
                       {formSubmitted ? (
                         <>
-                          <p className="text-green-400 font-semibold">Form Submitted Successfully!</p>
-                          <p className="text-green-300/80 text-sm">You can now proceed to checkout</p>
+                          <p className={`font-semibold ${formSubmitted ? 'text-green-400 lg:text-green-400' : 'text-blue-400'}`}>Form Submitted Successfully!</p>
+                          <p className={`text-sm ${formSubmitted ? 'text-green-300 lg:text-green-300/80' : 'text-blue-300/80'}`}>You can now proceed to checkout</p>
                         </>
                       ) : (
                         <>
@@ -682,16 +680,16 @@ export default function Register() {
               {cartItems.length > 0 && showForm && (
                 <div className="mb-6 space-y-4">
                   <div>
-                    <Label className="text-white text-sm mb-2 block">Parent/Guardian Name</Label>
+                    <Label className="text-white text-sm mb-2 block">Child's Name</Label>
                     <Input
-                      value={parentName}
-                      onChange={(e) => setParentName(e.target.value)}
-                      placeholder="Enter parent name"
+                      value={childName}
+                      onChange={(e) => setChildName(e.target.value)}
+                      placeholder="Enter child's name"
                       className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
                     />
                   </div>
                   <div>
-                    <Label className="text-white text-sm mb-2 block">Parent Email</Label>
+                    <Label className="text-white text-sm mb-2 block">Email</Label>
                     <Input
                       type="email"
                       value={parentEmail}
@@ -700,15 +698,6 @@ export default function Register() {
                       className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
                       required
                       data-testid="input-parent-email"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-white text-sm mb-2 block">Child's Name</Label>
-                    <Input
-                      value={childName}
-                      onChange={(e) => setChildName(e.target.value)}
-                      placeholder="Enter child's name"
-                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
                     />
                   </div>
                   
@@ -793,7 +782,7 @@ export default function Register() {
                       }}
                       disabled={cart.length === 0}
                     >
-                      Proceed to Registration Form
+                      Registration Form
                     </Button>
                   ) : (
                     <Button
@@ -803,12 +792,12 @@ export default function Register() {
                           : 'bg-green-600 hover:bg-green-700'
                       } text-white`}
                       onClick={proceedToPayment}
-                      disabled={cart.length === 0 || isLoading || !formSubmitted || !parentName.trim() || !parentEmail.trim() || !childName.trim()}
+                      disabled={cart.length === 0 || isLoading || !formSubmitted || !parentEmail.trim() || !childName.trim()}
                       data-testid="button-checkout"
                     >
                       {isLoading ? 'Processing...' : 
                        !formSubmitted ? '⏳ Complete Form First' :
-                       !parentName.trim() || !parentEmail.trim() || !childName.trim() ? 'Fill in Contact Info First' :
+                       !parentEmail.trim() || !childName.trim() ? 'Fill in Contact Info First' :
                        'Proceed to Checkout'}
                     </Button>
                   )}
@@ -900,16 +889,16 @@ export default function Register() {
                 <div className="border-t border-white/20 pt-4 space-y-4">
                   <h4 className="text-white font-semibold mb-2">Contact Information</h4>
                   <div>
-                    <Label className="text-white text-sm mb-2 block">Parent/Guardian Name</Label>
+                    <Label className="text-white text-sm mb-2 block">Child's Name</Label>
                     <Input
-                      value={parentName}
-                      onChange={(e) => setParentName(e.target.value)}
-                      placeholder="Enter parent name"
+                      value={childName}
+                      onChange={(e) => setChildName(e.target.value)}
+                      placeholder="Enter child's name"
                       className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
                     />
                   </div>
                   <div>
-                    <Label className="text-white text-sm mb-2 block">Parent Email</Label>
+                    <Label className="text-white text-sm mb-2 block">Email</Label>
                     <Input
                       type="email"
                       value={parentEmail}
@@ -917,15 +906,6 @@ export default function Register() {
                       placeholder="parent@example.com"
                       className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
                       required
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-white text-sm mb-2 block">Child's Name</Label>
-                    <Input
-                      value={childName}
-                      onChange={(e) => setChildName(e.target.value)}
-                      placeholder="Enter child's name"
-                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
                     />
                   </div>
                   
@@ -991,12 +971,12 @@ export default function Register() {
                 {showForm && (
                   <Button
                     className={`w-full border-0 rounded-full py-3 font-semibold text-white ${
-                      !formSubmitted || !parentName.trim() || !parentEmail.trim() || !childName.trim()
+                      !formSubmitted || !parentEmail.trim() || !childName.trim()
                         ? 'bg-gray-600 cursor-not-allowed'
                         : 'bg-blue-600 hover:bg-blue-700'
                     }`}
                     onClick={() => {
-                      if (formSubmitted && parentName.trim() && parentEmail.trim() && childName.trim()) {
+                      if (formSubmitted && parentEmail.trim() && childName.trim()) {
                         setShowMobileCart(false);
                         proceedToPayment();
                       } else {
@@ -1007,10 +987,10 @@ export default function Register() {
                         });
                       }
                     }}
-                    disabled={!formSubmitted || !parentName.trim() || !parentEmail.trim() || !childName.trim()}
+                    disabled={!formSubmitted || !parentEmail.trim() || !childName.trim()}
                   >
                     {!formSubmitted ? '⏳ Complete Form First' :
-                     !parentName.trim() || !parentEmail.trim() || !childName.trim() ? 'Fill in Contact Info' :
+                     !parentEmail.trim() || !childName.trim() ? 'Fill in Contact Info' :
                      'Proceed to Checkout'}
                   </Button>
                 )}
@@ -1036,7 +1016,7 @@ export default function Register() {
               }, 100);
             }}
           >
-            Proceed to Step 2 ({cartItems.length} {cartItems.length === 1 ? 'week' : 'weeks'})
+            Registration Form ({cartItems.length} {cartItems.length === 1 ? 'week' : 'weeks'})
           </Button>
         </div>
       )}
@@ -1046,12 +1026,12 @@ export default function Register() {
         <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-gray-900 border-t border-white/10 p-4 shadow-2xl">
           <Button
             className={`w-full border-0 rounded-full py-4 font-semibold text-lg text-white opacity-100 ${
-              !formSubmitted || !parentName.trim() || !parentEmail.trim() || !childName.trim()
+              !formSubmitted || !parentEmail.trim() || !childName.trim()
                 ? 'bg-gray-600 cursor-not-allowed'
                 : 'bg-blue-600 hover:bg-blue-700'
             }`}
             onClick={() => {
-              if (formSubmitted && parentName.trim() && parentEmail.trim() && childName.trim()) {
+              if (formSubmitted && parentEmail.trim() && childName.trim()) {
                 proceedToPayment();
               } else {
                 // Open cart drawer to fill in info
@@ -1067,7 +1047,7 @@ export default function Register() {
           >
             {isLoading ? 'Processing...' : 
              !formSubmitted ? '⏳ Complete Form First' :
-             !parentName.trim() || !parentEmail.trim() || !childName.trim() ? 'Fill in Contact Info' :
+             !parentEmail.trim() || !childName.trim() ? 'Fill in Contact Info' :
              'Proceed to Checkout'}
           </Button>
         </div>
