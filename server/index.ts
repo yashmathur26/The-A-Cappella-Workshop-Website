@@ -19,123 +19,140 @@ if (stripe) {
     '/api/webhook',
     express.raw({ type: 'application/json' }),
     async (req, res) => {
-      const sig = req.headers['stripe-signature'];
-
-      if (!process.env.STRIPE_WEBHOOK_SECRET) {
-        console.error('Missing STRIPE_WEBHOOK_SECRET');
-        return res.status(400).send('Missing webhook secret');
-      }
-
-      let event;
-
       try {
-        event = stripe.webhooks.constructEvent(
-          req.body,
-          sig!,
-          process.env.STRIPE_WEBHOOK_SECRET,
-        );
-      } catch (err: any) {
-        console.error(`Webhook signature verification failed: ${err.message}`);
-        return res.status(400).send(`Webhook Error: ${err.message}`);
-      }
+        const sig = req.headers['stripe-signature'];
 
-      console.log(`✅ Webhook verified: ${event.type}`);
+        if (!process.env.STRIPE_WEBHOOK_SECRET) {
+          console.error('Missing STRIPE_WEBHOOK_SECRET');
+          return res.status(400).send('Missing webhook secret');
+        }
 
-      // Handle the event
-      if (event.type === 'checkout.session.completed') {
-        const session = event.data.object as Stripe.Checkout.Session;
-        console.log(
-          `💰 Payment succeeded: session ${session.id}, status: ${session.payment_status}`,
-        );
+        if (!sig) {
+          console.error('Missing stripe-signature header');
+          return res.status(400).send('Missing stripe-signature header');
+        }
 
-        if (session.payment_status === 'paid') {
-          try {
-            // Import storage and email functions dynamically to avoid circular dependencies
-            const { storage } = await import("./storage");
-            const { sendRegistrationConfirmationEmail } = await import("./brevo");
+        let event;
 
-            // Parse cart items from metadata
-            const itemsJson = session.metadata?.items_json;
-            const items = itemsJson ? JSON.parse(itemsJson) : [];
+        try {
+          event = stripe.webhooks.constructEvent(
+            req.body,
+            sig,
+            process.env.STRIPE_WEBHOOK_SECRET,
+          );
+        } catch (err: any) {
+          console.error(`Webhook signature verification failed: ${err.message}`);
+          return res.status(400).send(`Webhook Error: ${err.message}`);
+        }
 
-            // Get guest info from metadata
-            const parentEmail =
-              session.customer_details?.email || session.metadata?.parentEmail || '';
-            const childName = session.metadata?.childName || '';
+        console.log(`✅ Webhook verified: ${event.type}`);
 
-            console.log(
-              `👤 Processing guest payment for ${childName} (${parentEmail}), ${items.length} items`,
-            );
+        // Handle the event
+        if (event.type === 'checkout.session.completed') {
+          const session = event.data.object as Stripe.Checkout.Session;
+          console.log(
+            `💰 Payment succeeded: session ${session.id}, status: ${session.payment_status}`,
+          );
 
-            // Split session total across items so each registration has correct amount
-            const totalCents = session.amount_total || 0;
-            const numItems = items.length;
-            const perItemCents = numItems > 0 ? Math.round(totalCents / numItems) : 0;
-            const fullPriceCents = 50000; // $500 full camp price
+          if (session.payment_status === 'paid') {
+            try {
+              // Import storage and email functions dynamically to avoid circular dependencies
+              const { storage } = await import("./storage");
+              const { sendRegistrationConfirmationEmail } = await import("./brevo");
 
-            // Create registrations for each cart item
-            for (const item of items) {
-              const paymentType = item.payment_type || 'full';
-              const amountPaidCents = perItemCents;
-              const balanceDueCents =
-                paymentType === 'deposit'
-                  ? Math.max(0, fullPriceCents - perItemCents)
-                  : 0;
+              // Parse cart items from metadata
+              const itemsJson = session.metadata?.items_json;
+              const items = itemsJson ? JSON.parse(itemsJson) : [];
 
-              // Create guest registration
-              await storage.createRegistration({
-                parentName: '', // No longer collected, using empty string
+              // Get guest info from metadata
+              const parentEmail =
+                session.customer_details?.email || session.metadata?.parentEmail || '';
+              const childName = session.metadata?.childName || '';
+
+              console.log(
+                `👤 Processing guest payment for ${childName} (${parentEmail}), ${items.length} items`,
+              );
+
+              // Split session total across items so each registration has correct amount
+              const totalCents = session.amount_total || 0;
+              const numItems = items.length;
+              const perItemCents = numItems > 0 ? Math.round(totalCents / numItems) : 0;
+              const fullPriceCents = 50000; // $500 full camp price
+
+              // Create registrations for each cart item
+              for (const item of items) {
+                const paymentType = item.payment_type || 'full';
+                const amountPaidCents = perItemCents;
+                const balanceDueCents =
+                  paymentType === 'deposit'
+                    ? Math.max(0, fullPriceCents - perItemCents)
+                    : 0;
+
+                // Create guest registration
+                await storage.createRegistration({
+                  parentName: '', // No longer collected, using empty string
+                  parentEmail,
+                  childName,
+                  weekId: item.week_id,
+                  status: 'paid',
+                  stripeCheckoutSessionId: session.id,
+                  stripePaymentIntentId: (session.payment_intent as string) || '',
+                  paymentType,
+                  amountPaidCents,
+                  balanceDueCents,
+                  promoCode: session.metadata?.promoCode || null,
+                });
+                console.log(
+                  `📝 Created registration for week ${item.week_id} (${paymentType}: $${amountPaidCents / 100}, balance: $${balanceDueCents / 100})`,
+                );
+              }
+
+              // Create payment record
+              await storage.createPayment({
                 parentEmail,
-                childName,
-                weekId: item.week_id,
-                status: 'paid',
-                stripeCheckoutSessionId: session.id,
+                amountCents: session.amount_total || 0,
+                currency: session.currency || 'usd',
                 stripePaymentIntentId: (session.payment_intent as string) || '',
-                paymentType,
-                amountPaidCents,
-                balanceDueCents,
-                promoCode: session.metadata?.promoCode || null,
+                stripeCheckoutSessionId: session.id,
+                status: 'succeeded',
               });
               console.log(
-                `📝 Created registration for week ${item.week_id} (${paymentType}: $${amountPaidCents / 100}, balance: $${balanceDueCents / 100})`,
+                `💳 Created payment record for $${(session.amount_total || 0) / 100}`,
               );
-            }
 
-            // Create payment record
-            await storage.createPayment({
-              parentEmail,
-              amountCents: session.amount_total || 0,
-              currency: session.currency || 'usd',
-              stripePaymentIntentId: (session.payment_intent as string) || '',
-              stripeCheckoutSessionId: session.id,
-              status: 'succeeded',
-            });
-            console.log(
-              `💳 Created payment record for $${(session.amount_total || 0) / 100}`,
-            );
-
-            // Send confirmation email
-            const week = await storage.getWeek(items[0]?.week_id);
-            if (week) {
-              await sendRegistrationConfirmationEmail(
-                parentEmail,
-                '', // No parent name collected
-                childName,
-                week.label,
-                `$${(session.amount_total || 0) / 100}`,
-                {
-                  receipt_url: '', // Stripe receipt URL if available
-                },
-              );
-              console.log(`📧 Sent confirmation email to ${parentEmail}`);
+              // Send confirmation email
+              const week = await storage.getWeek(items[0]?.week_id);
+              if (week) {
+                await sendRegistrationConfirmationEmail(
+                  parentEmail,
+                  '', // No parent name collected
+                  childName,
+                  week.label,
+                  `$${(session.amount_total || 0) / 100}`,
+                  {
+                    receipt_url: '', // Stripe receipt URL if available
+                  },
+                );
+                console.log(`📧 Sent confirmation email to ${parentEmail}`);
+              }
+            } catch (error) {
+              // Log error but still return 200 to Stripe
+              // This prevents Stripe from retrying and causing 503 errors
+              console.error('❌ Error processing checkout session:', error);
+              // Continue to return success to Stripe even if processing failed
+              // You may want to implement a retry mechanism or queue for failed events
             }
-          } catch (error) {
-            console.error('❌ Error processing checkout session:', error);
           }
         }
-      }
 
-      res.json({ received: true });
+        // Always return 200 to Stripe, even if event processing had errors
+        // This prevents 503 errors and infinite retries
+        return res.status(200).json({ received: true });
+      } catch (error: any) {
+        // Catch any unexpected errors and still return 200 to prevent 503s
+        console.error('❌ Unexpected error in webhook handler:', error);
+        return res.status(200).json({ received: true, error: 'Event processed with errors' });
+      }
     },
   );
 } else {
