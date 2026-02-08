@@ -32,8 +32,9 @@ interface LocationData {
     full: number;
     deposit: number;
   };
+  /** Google Form or Typeform embed URL (e.g. https://form.typeform.com/to/XXXXX) */
   formUrl?: string;
-  /** Entry ID for the "Registration ID" / session field in the Google Form (for Apps Script webhook). Get from form "Get pre-filled link". */
+  /** Google Form only: entry ID for session field (Get pre-filled link). Not used for Typeform. */
   formSessionIdEntryId?: string;
 }
 

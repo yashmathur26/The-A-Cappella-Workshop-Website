@@ -117,29 +117,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Google Forms webhook (Apps Script can send sessionId OR just parentEmail — we match by email if no sessionId)
+  // Normalize Typeform webhook payload to our shape { parentEmail?, childName?, parentName? }
+  // Match by question title (same as Google form: "Parent/guardian email:", "Student name:", "Parent/guardian name:")
+  function parseTypeformPayload(body: any): FormSubmissionData | null {
+    if (body?.event_type !== "form_response" || !body?.form_response) return null;
+    const fr = body.form_response;
+    const definition = fr?.definition;
+    const answers = fr?.answers;
+    if (!definition?.fields || !Array.isArray(answers)) return null;
+
+    const fieldIdToTitle = new Map<string, string>();
+    for (const f of definition.fields) {
+      if (f.id && f.title) fieldIdToTitle.set(f.id, String(f.title).trim());
+    }
+
+    let parentEmail: string | undefined;
+    let childName: string | undefined;
+    let parentName: string | undefined;
+
+    const parentEmailTitles = ["Parent/guardian email:", "Parent/guardian email"];
+    const childNameTitles = ["Student name:", "Student name"];
+    const parentNameTitles = ["Parent/guardian name:", "Parent/guardian name"];
+
+    for (const a of answers) {
+      const fieldId = a?.field?.id;
+      const title = fieldId ? fieldIdToTitle.get(fieldId) : "";
+      if (!title) continue;
+
+      const match = (list: string[]) => list.some((t) => title === t || title.startsWith(t));
+      const text = (a.text ?? a.email ?? (a.choice && a.choice.label) ?? "").trim();
+      if (match(parentEmailTitles)) parentEmail = (a.email || a.text || "").trim();
+      else if (match(childNameTitles)) childName = text || (a.choice && a.choice.label) || "";
+      else if (match(parentNameTitles)) parentName = text || (a.choice && a.choice.label) || "";
+    }
+
+    if (!parentEmail) return null;
+    return {
+      timestamp: Date.now(),
+      parentEmail: parentEmail.trim(),
+      ...(childName && { childName: childName.trim() }),
+      ...(parentName && { parentName: parentName.trim() }),
+    };
+  }
+
+  // Typeform webhook (same storage as form submission; point Typeform at this URL)
+  app.post("/api/typeform-webhook", express.json(), async (req, res) => {
+    try {
+      const parsed = parseTypeformPayload(req.body);
+      if (!parsed) {
+        return res.status(400).json({ message: "Invalid Typeform payload or missing parent email" });
+      }
+      const email = (parsed.parentEmail ?? "").toLowerCase();
+      const targetSessionId = sessionIdByEmail.get(email);
+      if (targetSessionId) {
+        formSubmissions.set(targetSessionId, parsed);
+        sessionIdByEmail.delete(email);
+        console.log(`✅ Typeform submitted for session: ${targetSessionId} (${email})`);
+      } else {
+        pendingByEmail.set(email, parsed);
+        console.log(`✅ Typeform submission stored for email (waiting for site): ${email}`);
+      }
+      res.status(200).send();
+    } catch (error) {
+      console.error("Error recording Typeform submission:", error);
+      res.status(500).json({ message: "Failed to record form submission" });
+    }
+  });
+
+  // Form submission webhook: Google (Apps Script) or Typeform
+  // Google sends { parentEmail, childName, parentName }. Typeform sends event_type + form_response; we normalize above.
   app.post("/api/google-form-submitted", express.json(), async (req, res) => {
     try {
-      const { sessionId, parentEmail, childName, parentName } = req.body;
-      const email = parentEmail != null ? String(parentEmail).trim().toLowerCase() : "";
+      const body = req.body;
+      let data: FormSubmissionData;
+      let parentEmailRaw: string | undefined;
 
-      const data: FormSubmissionData = {
-        timestamp: Date.now(),
-        ...(parentEmail != null && parentEmail !== "" && { parentEmail: String(parentEmail).trim() }),
-        ...(childName != null && childName !== "" && { childName: String(childName).trim() }),
-        ...(parentName != null && parentName !== "" && { parentName: String(parentName).trim() }),
-      };
+      if (body?.event_type === "form_response") {
+        const parsed = parseTypeformPayload(body);
+        if (!parsed) {
+          return res.status(400).json({ message: "Invalid Typeform payload or missing parent email" });
+        }
+        data = parsed;
+        parentEmailRaw = parsed.parentEmail;
+      } else {
+        const { sessionId, parentEmail, childName, parentName } = body;
+        parentEmailRaw = parentEmail != null ? String(parentEmail).trim() : undefined;
+        data = {
+          timestamp: Date.now(),
+          ...(parentEmail != null && parentEmail !== "" && { parentEmail: String(parentEmail).trim() }),
+          ...(childName != null && childName !== "" && { childName: String(childName).trim() }),
+          ...(parentName != null && parentName !== "" && { parentName: String(parentName).trim() }),
+        };
+      }
 
-      const targetSessionId = sessionId || (email ? sessionIdByEmail.get(email) : null);
+      const email = (parentEmailRaw ?? "").toLowerCase();
+      if (!email) {
+        return res.status(400).json({ message: "Provide sessionId or parentEmail so we can match your submission" });
+      }
+
+      const targetSessionId = body.sessionId || sessionIdByEmail.get(email);
       if (targetSessionId) {
         formSubmissions.set(targetSessionId, data);
-        if (email) sessionIdByEmail.delete(email);
-        console.log(`✅ Form submitted for session: ${targetSessionId}`, email ? `(${email})` : "");
-      } else if (email) {
+        sessionIdByEmail.delete(email);
+        console.log(`✅ Form submitted for session: ${targetSessionId} (${email})`);
+      } else {
         pendingByEmail.set(email, data);
         console.log(`✅ Form submission stored for email (waiting for site): ${email}`);
-      } else {
-        return res.status(400).json({ message: "Provide sessionId or parentEmail so we can match your submission" });
       }
 
       res.json({ success: true, message: "Form submission recorded" });

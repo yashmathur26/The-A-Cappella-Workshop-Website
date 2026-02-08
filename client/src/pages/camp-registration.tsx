@@ -31,33 +31,8 @@ export default function Register() {
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [showMobileCart, setShowMobileCart] = useState(false);
   const [showManualEntry, setShowManualEntry] = useState(false);
+  const [bypassMaintenance, setBypassMaintenance] = useState(false);
   
-  // Show maintenance page if enabled
-  if (MAINTENANCE_MODE) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center p-4">
-        <GlassCard className="max-w-lg w-full p-8 text-center">
-          <div className="mb-6">
-            <AlertTriangle className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-white mb-2">Under Maintenance</h1>
-            <p className="text-white/70">
-              We're currently updating our registration system to serve you better. 
-              Please check back in a few minutes.
-            </p>
-          </div>
-          <div className="bg-white/5 rounded-lg p-4 mb-6">
-            <p className="text-white/60 text-sm">
-              If you need immediate assistance, please email us at{' '}
-              <a href="mailto:theacappellaworkshop@gmail.com" className="text-blue-400 hover:text-blue-300">
-                theacappellaworkshop@gmail.com
-              </a>
-            </p>
-          </div>
-          <p className="text-white/50 text-xs">We apologize for any inconvenience.</p>
-        </GlassCard>
-      </div>
-    );
-  }
   const [sessionId] = useState(() => {
     // Generate or retrieve session ID
     const stored = localStorage.getItem('registration-session-id');
@@ -503,6 +478,40 @@ export default function Register() {
     return () => observer.disconnect();
   }, []);
 
+  // Show maintenance page if enabled (unless bypassed)
+  if (MAINTENANCE_MODE && !bypassMaintenance) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center p-4">
+        <GlassCard className="max-w-lg w-full p-8 text-center">
+          <div className="mb-6">
+            <AlertTriangle className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-white mb-2">Under Maintenance</h1>
+            <p className="text-white/70">
+              We're currently updating our registration system to serve you better. 
+              Please check back in a few minutes.
+            </p>
+          </div>
+          <div className="bg-white/5 rounded-lg p-4 mb-4">
+            <p className="text-white/60 text-sm">
+              If you need immediate assistance, please email us at{' '}
+              <a href="mailto:theacappellaworkshop@gmail.com" className="text-blue-400 hover:text-blue-300">
+                theacappellaworkshop@gmail.com
+              </a>
+            </p>
+          </div>
+          <p className="text-white/50 text-xs mb-3">Admin only:</p>
+          <Button
+            onClick={() => setBypassMaintenance(true)}
+            className="w-full py-6 text-lg font-semibold bg-blue-600 hover:bg-blue-700 text-white border-0 shadow-lg"
+          >
+            Admin access — View registration
+          </Button>
+          <p className="text-white/50 text-xs mt-6">We apologize for any inconvenience.</p>
+        </GlassCard>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen pb-24 lg:pb-0">
       <div className="max-w-7xl mx-auto px-6 py-20 flex flex-col items-center lg:items-stretch">
@@ -711,6 +720,9 @@ export default function Register() {
                     <iframe 
                       src={(() => {
                         const base = locationData[currentLocation].formUrl || "https://docs.google.com/forms/d/e/1FAIpQLSdHXYEXmGe39_L3Uq8f-T0653oFF2DEGLQMBDgN0vDC4ox1hA/viewform?embedded=true";
+                        // Only add Google Form entry param for session ID; Typeform uses webhook + email matching
+                        const isTypeform = base.includes('typeform.com');
+                        if (isTypeform) return base;
                         const entryId = locationData[currentLocation].formSessionIdEntryId;
                         if (!entryId) return base;
                         const sep = base.includes('?') ? '&' : '?';
