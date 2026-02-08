@@ -13,6 +13,9 @@ import { Tag, X, AlertTriangle, MapPin, ShoppingCart } from "lucide-react";
 import { useLocation } from '@/contexts/LocationContext';
 
 
+// Set to true to show maintenance message, false to show normal registration
+const MAINTENANCE_MODE = true;
+
 export default function Register() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -28,6 +31,33 @@ export default function Register() {
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [showMobileCart, setShowMobileCart] = useState(false);
   const [showManualEntry, setShowManualEntry] = useState(false);
+  
+  // Show maintenance page if enabled
+  if (MAINTENANCE_MODE) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center p-4">
+        <GlassCard className="max-w-lg w-full p-8 text-center">
+          <div className="mb-6">
+            <AlertTriangle className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-white mb-2">Under Maintenance</h1>
+            <p className="text-white/70">
+              We're currently updating our registration system to serve you better. 
+              Please check back in a few minutes.
+            </p>
+          </div>
+          <div className="bg-white/5 rounded-lg p-4 mb-6">
+            <p className="text-white/60 text-sm">
+              If you need immediate assistance, please email us at{' '}
+              <a href="mailto:theacappellaworkshop@gmail.com" className="text-blue-400 hover:text-blue-300">
+                theacappellaworkshop@gmail.com
+              </a>
+            </p>
+          </div>
+          <p className="text-white/50 text-xs">We apologize for any inconvenience.</p>
+        </GlassCard>
+      </div>
+    );
+  }
   const [sessionId] = useState(() => {
     // Generate or retrieve session ID
     const stored = localStorage.getItem('registration-session-id');
