@@ -772,45 +772,37 @@ export default function Register() {
                       <p className="text-white/90 text-sm">Student: {childName}</p>
                     </div>
                   ) : (
-                    <div className="space-y-2">
-                      <p className="text-white/70 text-sm">We'll use the info from your form. If it didn't appear, enter the email you used on the form:</p>
-                      <Input
-                        type="email"
-                        value={parentEmail}
-                        onChange={(e) => setParentEmail(e.target.value)}
-                        placeholder="parent@example.com"
-                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
-                        data-testid="input-parent-email"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowManualEntry(!showManualEntry)}
-                        className="text-sky-400 hover:text-sky-300 text-xs underline"
-                      >
-                        {showManualEntry ? 'Hide manual entry' : 'Or enter details manually'}
-                      </button>
-                      {showManualEntry && (
-                        <div className="space-y-2 pt-2 border-t border-white/10">
-                          <div>
-                            <Label className="text-white text-sm mb-1 block">Child's name</Label>
-                            <Input
-                              value={childName}
-                              onChange={(e) => setChildName(e.target.value)}
-                              placeholder="Student name"
-                              className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-white text-sm mb-1 block">Parent name</Label>
-                            <Input
-                              value={parentName}
-                              onChange={(e) => setParentName(e.target.value)}
-                              placeholder="Parent/guardian name"
-                              className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
-                            />
-                          </div>
-                        </div>
-                      )}
+                    <div className="space-y-3">
+                      <p className="text-white/70 text-sm">Enter your contact information to proceed to payment:</p>
+                      <div>
+                        <Label className="text-white text-sm mb-1 block">Child's name</Label>
+                        <Input
+                          value={childName}
+                          onChange={(e) => setChildName(e.target.value)}
+                          placeholder="Student name"
+                          className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-white text-sm mb-1 block">Email</Label>
+                        <Input
+                          type="email"
+                          value={parentEmail}
+                          onChange={(e) => setParentEmail(e.target.value)}
+                          placeholder="parent@example.com"
+                          className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                          data-testid="input-parent-email"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-white text-sm mb-1 block">Parent name</Label>
+                        <Input
+                          value={parentName}
+                          onChange={(e) => setParentName(e.target.value)}
+                          placeholder="Parent/guardian name"
+                          className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                        />
+                      </div>
                     </div>
                   )}
 
@@ -912,7 +904,7 @@ export default function Register() {
                     >
                       {isLoading ? 'Processing...' : 
                        !formSubmitted ? '⏳ Complete Form First' :
-                       !parentEmail.trim() || !childName.trim() ? 'Waiting for form info...' :
+                       !parentEmail.trim() || !childName.trim() ? 'Fill in contact info above' :
                        'Proceed to Checkout'}
                     </Button>
                   )}
@@ -1115,8 +1107,8 @@ export default function Register() {
                         proceedToPayment();
                       } else {
                         toast({
-                          title: "Waiting for form info",
-                          description: "Submit the form above, or enter your email / details manually in this cart.",
+                          title: "Contact info needed",
+                          description: "Fill in the contact info fields in the cart to continue.",
                           variant: "destructive",
                         });
                       }
@@ -1124,7 +1116,7 @@ export default function Register() {
                     disabled={!formSubmitted || !parentEmail.trim() || !childName.trim()}
                   >
                     {!formSubmitted ? '⏳ Complete Form First' :
-                     !parentEmail.trim() || !childName.trim() ? 'Waiting for form info...' :
+                     !parentEmail.trim() || !childName.trim() ? 'Fill in contact info' :
                      'Proceed to Checkout'}
                   </Button>
                 )}
@@ -1170,8 +1162,8 @@ export default function Register() {
               } else {
                 setShowMobileCart(true);
                 toast({
-                  title: "Waiting for form info",
-                  description: "Submit the form above, or enter email/details in the cart.",
+                  title: "Contact info needed",
+                  description: "Fill in the contact info fields in the cart to continue.",
                   variant: "destructive",
                 });
               }
@@ -1180,7 +1172,7 @@ export default function Register() {
           >
             {isLoading ? 'Processing...' : 
              !formSubmitted ? '⏳ Complete Form First' :
-             !parentEmail.trim() || !childName.trim() ? 'Waiting for form info...' :
+             !parentEmail.trim() || !childName.trim() ? 'Fill in contact info' :
              'Proceed to Checkout'}
           </Button>
         </div>
