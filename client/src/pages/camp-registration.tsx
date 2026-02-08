@@ -14,7 +14,7 @@ import { useLocation } from '@/contexts/LocationContext';
 
 
 // Set to true to show maintenance message, false to show normal registration
-const MAINTENANCE_MODE = true;
+const MAINTENANCE_MODE = false;
 
 export default function Register() {
   const [cart, setCart] = useState<CartItem[]>([]);
