@@ -65,8 +65,19 @@ async function initializeDatabase() {
   }
 }
 
-// In-memory store for form submissions (session ID -> timestamp)
-const formSubmissions = new Map<string, number>();
+// Form submissions: session ID -> contact info (from Google Form webhook)
+interface FormSubmissionData {
+  timestamp: number;
+  parentEmail?: string;
+  childName?: string;
+  parentName?: string;
+}
+const formSubmissions = new Map<string, FormSubmissionData>();
+
+// Match by email: when user enters email on site we link sessionId <-> email.
+// When webhook arrives with that email we attach the form data to that session.
+const sessionIdByEmail = new Map<string, string>();
+const pendingByEmail = new Map<string, FormSubmissionData>();
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize database
@@ -83,19 +94,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Google Forms webhook endpoint
+  // Register email for this session (so we can match form submission by email — no "Registration ID" field needed)
+  app.post("/api/register-form-email", express.json(), async (req, res) => {
+    try {
+      const { sessionId, email } = req.body;
+      if (!sessionId || !email || typeof email !== "string") {
+        return res.status(400).json({ message: "Session ID and email required" });
+      }
+      const normalized = email.trim().toLowerCase();
+      if (!normalized) return res.status(400).json({ message: "Email required" });
+      sessionIdByEmail.set(normalized, sessionId);
+      const pending = pendingByEmail.get(normalized);
+      if (pending) {
+        formSubmissions.set(sessionId, pending);
+        pendingByEmail.delete(normalized);
+        console.log(`✅ Matched pending form submission for ${normalized} to session ${sessionId}`);
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error registering form email:", error);
+      res.status(500).json({ message: "Failed to register" });
+    }
+  });
+
+  // Google Forms webhook (Apps Script can send sessionId OR just parentEmail — we match by email if no sessionId)
   app.post("/api/google-form-submitted", express.json(), async (req, res) => {
     try {
-      const { sessionId } = req.body;
-      
-      if (!sessionId) {
-        return res.status(400).json({ message: "Session ID required" });
+      const { sessionId, parentEmail, childName, parentName } = req.body;
+      const email = parentEmail != null ? String(parentEmail).trim().toLowerCase() : "";
+
+      const data: FormSubmissionData = {
+        timestamp: Date.now(),
+        ...(parentEmail != null && parentEmail !== "" && { parentEmail: String(parentEmail).trim() }),
+        ...(childName != null && childName !== "" && { childName: String(childName).trim() }),
+        ...(parentName != null && parentName !== "" && { parentName: String(parentName).trim() }),
+      };
+
+      const targetSessionId = sessionId || (email ? sessionIdByEmail.get(email) : null);
+      if (targetSessionId) {
+        formSubmissions.set(targetSessionId, data);
+        if (email) sessionIdByEmail.delete(email);
+        console.log(`✅ Form submitted for session: ${targetSessionId}`, email ? `(${email})` : "");
+      } else if (email) {
+        pendingByEmail.set(email, data);
+        console.log(`✅ Form submission stored for email (waiting for site): ${email}`);
+      } else {
+        return res.status(400).json({ message: "Provide sessionId or parentEmail so we can match your submission" });
       }
 
-      // Mark this session as having submitted the form
-      formSubmissions.set(sessionId, Date.now());
-      console.log(`✅ Form submitted for session: ${sessionId}`);
-      
       res.json({ success: true, message: "Form submission recorded" });
     } catch (error) {
       console.error("Error recording form submission:", error);
@@ -103,16 +149,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Check if form has been submitted for a session
+  // Check if form has been submitted for a session (returns contact info when from webhook)
   app.get("/api/check-form-status/:sessionId", async (req, res) => {
     try {
       const { sessionId } = req.params;
-      const submitted = formSubmissions.has(sessionId);
-      const timestamp = formSubmissions.get(sessionId);
-      
-      res.json({ 
+      const data = formSubmissions.get(sessionId);
+      const submitted = !!data;
+      res.json({
         submitted,
-        timestamp: timestamp || null
+        timestamp: data?.timestamp ?? null,
+        parentEmail: data?.parentEmail ?? null,
+        childName: data?.childName ?? null,
+        parentName: data?.parentName ?? null,
       });
     } catch (error) {
       console.error("Error checking form status:", error);
@@ -130,7 +178,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const { cartItems, promoCode, parentEmail, childName, locationName } = req.body;
+      const { cartItems, promoCode, parentEmail, childName, parentName, locationName } = req.body;
       
       if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
         return res.status(400).json({ message: "Cart items are required" });
@@ -213,6 +261,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         metadata: {
           parentEmail,
           childName,
+          parentName: parentName || '',
           locationName: locationName || '',
           items_json: JSON.stringify(cartItems.map((item: any) => ({
             week_id: item.weekId,

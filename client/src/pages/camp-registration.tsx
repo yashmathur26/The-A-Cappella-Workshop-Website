@@ -23,9 +23,11 @@ export default function Register() {
   const [promoError, setPromoError] = useState("");
   const [parentEmail, setParentEmail] = useState("");
   const [childName, setChildName] = useState("");
+  const [parentName, setParentName] = useState("");
   const [paymentStatus, setPaymentStatus] = useState<'none' | 'pending' | 'completed' | 'incomplete'>('none');
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [showMobileCart, setShowMobileCart] = useState(false);
+  const [showManualEntry, setShowManualEntry] = useState(false);
   const [sessionId] = useState(() => {
     // Generate or retrieve session ID
     const stored = localStorage.getItem('registration-session-id');
@@ -37,6 +39,8 @@ export default function Register() {
   const paymentWindowRef = useRef<Window | null>(null);
   const statusCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const formCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const initialLoadRef = useRef(false);
+  const formReadyRef = useRef(false);
   const { toast } = useToast();
   const [, setWouterLocation] = useWouterLocation();
   const { currentLocation, locationData } = useLocation();
@@ -73,7 +77,22 @@ export default function Register() {
     };
   }, []);
 
-  // Poll for form submission status
+  // Register email with server when user types it (so we can match form submission by email — no "Registration ID" field in form needed)
+  useEffect(() => {
+    if (!showForm || !parentEmail.trim()) return;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(parentEmail.trim())) return;
+    const t = setTimeout(() => {
+      fetch('/api/register-form-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, email: parentEmail.trim() }),
+      }).catch(() => {});
+    }, 800);
+    return () => clearTimeout(t);
+  }, [showForm, parentEmail, sessionId]);
+
+  // Poll for form submission status (and contact info from Google Apps Script webhook)
   useEffect(() => {
     if (showForm && !formSubmitted) {
       const checkFormStatus = async () => {
@@ -82,9 +101,14 @@ export default function Register() {
           const data = await response.json();
           if (data.submitted) {
             setFormSubmitted(true);
+            if (data.parentEmail) setParentEmail(data.parentEmail);
+            if (data.childName) setChildName(data.childName);
+            if (data.parentName) setParentName(data.parentName);
             toast({
               title: "Form Received! ✅",
-              description: "Your registration form has been submitted. You can now proceed to checkout.",
+              description: data.parentEmail && data.childName
+                ? "Your info is filled in. You can proceed to checkout."
+                : "Your registration form has been submitted. You can now proceed to checkout.",
             });
             if (formCheckIntervalRef.current) {
               clearInterval(formCheckIntervalRef.current);
@@ -95,10 +119,7 @@ export default function Register() {
         }
       };
 
-      // Check immediately
       checkFormStatus();
-      
-      // Then check every 3 seconds
       formCheckIntervalRef.current = setInterval(checkFormStatus, 3000);
     }
 
@@ -199,6 +220,53 @@ export default function Register() {
     });
   };
 
+  // Reset iframe detection refs when form section is shown/hidden
+  useEffect(() => {
+    if (showForm) {
+      initialLoadRef.current = false;
+      formReadyRef.current = false;
+    }
+  }, [showForm]);
+
+  // Detect Google Form submission via iframe load events
+  // When the form is submitted, Google redirects the iframe to a confirmation page,
+  // which triggers a new 'load' event we can detect.
+  const handleIframeLoad = () => {
+    if (!initialLoadRef.current) {
+      initialLoadRef.current = true;
+      // Wait for any redirects (e.g. forms.gle short URLs) to settle
+      // before we start tracking submission loads
+      setTimeout(() => {
+        formReadyRef.current = true;
+      }, 3000);
+      return;
+    }
+
+    if (!formReadyRef.current) {
+      // Intermediate load from redirect — ignore
+      return;
+    }
+
+    // A load event after the form was ready = the user submitted the form
+    if (!formSubmitted) {
+      setFormSubmitted(true);
+      toast({
+        title: "Form Submitted! ✅",
+        description: "We detected your form submission. You can now proceed to checkout.",
+      });
+      // On mobile, open the cart drawer so they can fill in contact info
+      if (window.innerWidth < 1024) {
+        setShowMobileCart(true);
+      }
+      // Notify the server for record-keeping
+      fetch('/api/google-form-submitted', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId }),
+      }).catch(() => {});
+    }
+  };
+
   const proceedToPayment = async () => {
     if (cart.length === 0) return;
     
@@ -212,11 +280,11 @@ export default function Register() {
       return;
     }
     
-    // Require contact info for guest checkout
+    // Require contact info (from form or manual fallback)
     if (!parentEmail.trim() || !childName.trim()) {
       toast({
-        title: "Contact information required",
-        description: "Please enter email and child name before checkout.",
+        title: "Contact info needed",
+        description: "Submit the form above so your info appears here, or use the fallback in the cart.",
         variant: "destructive",
       });
       return;
@@ -271,6 +339,7 @@ export default function Register() {
         promoCode: CartManager.getPromoCode(),
         parentEmail: parentEmail.trim(),
         childName: childName.trim(),
+        parentName: parentName.trim() || undefined,
         locationName: locationData[currentLocation].name,
       });
       
@@ -598,39 +667,47 @@ export default function Register() {
                 </GlassCard>
 
                 <GlassCard className="p-6">
-                  <p className="text-white/80 mb-2">Please fill out your student information below.</p>
-                  
+                  <p className="text-white/80 mb-2">Fill out the form below. When you submit, your parent email, name, and student name will go straight to checkout — no need to type them again.</p>
                   <div className="bg-white/5 rounded-lg p-2 border border-white/10 mb-2">
                     <iframe 
-                      src={locationData[currentLocation].formUrl || "https://docs.google.com/forms/d/e/1FAIpQLSdHXYEXmGe39_L3Uq8f-T0653oFF2DEGLQMBDgN0vDC4ox1hA/viewform?embedded=true"}
+                      src={(() => {
+                        const base = locationData[currentLocation].formUrl || "https://docs.google.com/forms/d/e/1FAIpQLSdHXYEXmGe39_L3Uq8f-T0653oFF2DEGLQMBDgN0vDC4ox1hA/viewform?embedded=true";
+                        const entryId = locationData[currentLocation].formSessionIdEntryId;
+                        if (!entryId) return base;
+                        const sep = base.includes('?') ? '&' : '?';
+                        return `${base}${sep}entry.${entryId}=${encodeURIComponent(sessionId)}`;
+                      })()}
                       width="100%" 
                       height="800" 
                       frameBorder="0" 
                       marginHeight={0}
                       marginWidth={0}
                       className="rounded"
+                      onLoad={handleIframeLoad}
                     >
                       Loading…
                     </iframe>
                   </div>
 
                   {!formSubmitted && (
-                    <Button
-                      onClick={() => {
-                        setFormSubmitted(true);
-                        // On mobile, automatically open the cart drawer to fill in contact info
-                        if (window.innerWidth < 1024) {
-                          setShowMobileCart(true);
-                        }
-                        toast({
-                          title: "Form Confirmed! ✅",
-                          description: "You can now proceed to checkout.",
-                        });
-                      }}
-                      className="w-full bg-green-600 hover:bg-green-700 text-white mt-2"
-                    >
-                      I have submitted the form.
-                    </Button>
+                    <p className="text-center text-white/50 text-xs mt-3">
+                      Already submitted the form but it wasn't detected?{' '}
+                      <button
+                        onClick={() => {
+                          setFormSubmitted(true);
+                          if (window.innerWidth < 1024) {
+                            setShowMobileCart(true);
+                          }
+                          toast({
+                            title: "Form Confirmed! ✅",
+                            description: "You can now proceed to checkout.",
+                          });
+                        }}
+                        className="text-blue-400 hover:text-blue-300 underline"
+                      >
+                        Click here to confirm manually
+                      </button>
+                    </p>
                   )}
                 </GlassCard>
               </section>
@@ -680,31 +757,63 @@ export default function Register() {
                 )}
               </div>
               
-              {/* Contact Information */}
+              {/* Contact info: from form only (no typing unless fallback) */}
               {cartItems.length > 0 && showForm && (
                 <div className="mb-6 space-y-4">
-                  <div>
-                    <Label className="text-white text-sm mb-2 block">Child's Name</Label>
-                    <Input
-                      value={childName}
-                      onChange={(e) => setChildName(e.target.value)}
-                      placeholder="Enter child's name"
-                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-white text-sm mb-2 block">Email</Label>
-                    <Input
-                      type="email"
-                      value={parentEmail}
-                      onChange={(e) => setParentEmail(e.target.value)}
-                      placeholder="parent@example.com"
-                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
-                      required
-                      data-testid="input-parent-email"
-                    />
-                  </div>
-                  
+                  {!formSubmitted ? (
+                    <p className="text-white/70 text-sm">
+                      Complete the registration form above. Your contact info will be filled automatically from the form, then you can proceed to checkout.
+                    </p>
+                  ) : parentEmail.trim() && childName.trim() ? (
+                    <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 space-y-1">
+                      <p className="text-green-400 font-medium text-sm">Contact info (from form) — will be sent to Stripe</p>
+                      {parentName && <p className="text-white/90 text-sm">Parent: {parentName}</p>}
+                      <p className="text-white/90 text-sm">Email: {parentEmail}</p>
+                      <p className="text-white/90 text-sm">Student: {childName}</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-white/70 text-sm">We'll use the info from your form. If it didn't appear, enter the email you used on the form:</p>
+                      <Input
+                        type="email"
+                        value={parentEmail}
+                        onChange={(e) => setParentEmail(e.target.value)}
+                        placeholder="parent@example.com"
+                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                        data-testid="input-parent-email"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowManualEntry(!showManualEntry)}
+                        className="text-sky-400 hover:text-sky-300 text-xs underline"
+                      >
+                        {showManualEntry ? 'Hide manual entry' : 'Or enter details manually'}
+                      </button>
+                      {showManualEntry && (
+                        <div className="space-y-2 pt-2 border-t border-white/10">
+                          <div>
+                            <Label className="text-white text-sm mb-1 block">Child's name</Label>
+                            <Input
+                              value={childName}
+                              onChange={(e) => setChildName(e.target.value)}
+                              placeholder="Student name"
+                              className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-white text-sm mb-1 block">Parent name</Label>
+                            <Input
+                              value={parentName}
+                              onChange={(e) => setParentName(e.target.value)}
+                              placeholder="Parent/guardian name"
+                              className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Promo Code Section */}
                   <div>
                     <Label className="text-white text-sm mb-2 block">Promo Code (Optional)</Label>
@@ -793,7 +902,9 @@ export default function Register() {
                       className={`w-full border-0 rounded-full py-3 font-semibold ${
                         !formSubmitted 
                           ? 'bg-gray-600 cursor-not-allowed' 
-                          : 'bg-green-600 hover:bg-green-700'
+                          : (parentEmail.trim() && childName.trim())
+                            ? 'bg-green-600 hover:bg-green-700'
+                            : 'bg-gray-600 cursor-not-allowed'
                       } text-white`}
                       onClick={proceedToPayment}
                       disabled={cart.length === 0 || isLoading || !formSubmitted || !parentEmail.trim() || !childName.trim()}
@@ -801,7 +912,7 @@ export default function Register() {
                     >
                       {isLoading ? 'Processing...' : 
                        !formSubmitted ? '⏳ Complete Form First' :
-                       !parentEmail.trim() || !childName.trim() ? 'Fill in Contact Info First' :
+                       !parentEmail.trim() || !childName.trim() ? 'Waiting for form info...' :
                        'Proceed to Checkout'}
                     </Button>
                   )}
@@ -888,32 +999,55 @@ export default function Register() {
                 ))}
               </div>
 
-              {/* Contact Information - Mobile Only */}
+              {/* Contact from form - Mobile */}
               {showForm && (
                 <div className="border-t border-white/20 pt-4 space-y-4">
-                  <h4 className="text-white font-semibold mb-2">Contact Information</h4>
-                  <div>
-                    <Label className="text-white text-sm mb-2 block">Child's Name</Label>
-                    <Input
-                      value={childName}
-                      onChange={(e) => setChildName(e.target.value)}
-                      placeholder="Enter child's name"
-                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-white text-sm mb-2 block">Email</Label>
-                    <Input
-                      type="email"
-                      value={parentEmail}
-                      onChange={(e) => setParentEmail(e.target.value)}
-                      placeholder="parent@example.com"
-                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
-                      required
-                    />
-                  </div>
-                  
-                  {/* Promo Code Section - Mobile */}
+                  {!formSubmitted ? (
+                    <p className="text-white/70 text-sm">Complete the form above; your contact info will be filled from the form.</p>
+                  ) : parentEmail.trim() && childName.trim() ? (
+                    <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 space-y-1">
+                      <p className="text-green-400 font-medium text-sm">Contact (from form)</p>
+                      {parentName && <p className="text-white/90 text-sm">Parent: {parentName}</p>}
+                      <p className="text-white/90 text-sm">Email: {parentEmail}</p>
+                      <p className="text-white/90 text-sm">Student: {childName}</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-white/70 text-sm">If your info didn't appear, enter the email you used on the form:</p>
+                      <Input
+                        type="email"
+                        value={parentEmail}
+                        onChange={(e) => setParentEmail(e.target.value)}
+                        placeholder="parent@example.com"
+                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowManualEntry(!showManualEntry)}
+                        className="text-sky-400 hover:text-sky-300 text-xs underline"
+                      >
+                        {showManualEntry ? 'Hide' : 'Or enter details manually'}
+                      </button>
+                      {showManualEntry && (
+                        <div className="space-y-2 pt-2 border-t border-white/10">
+                          <Input
+                            value={childName}
+                            onChange={(e) => setChildName(e.target.value)}
+                            placeholder="Child's name"
+                            className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                          />
+                          <Input
+                            value={parentName}
+                            onChange={(e) => setParentName(e.target.value)}
+                            placeholder="Parent name"
+                            className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Promo Code - Mobile */}
                   <div>
                     <Label className="text-white text-sm mb-2 block">Promo Code (Optional)</Label>
                     <div className="flex space-x-2">
@@ -940,13 +1074,9 @@ export default function Register() {
                         </button>
                       )}
                     </div>
-                    {promoError && (
-                      <p className="text-red-400 text-xs mt-1">{promoError}</p>
-                    )}
+                    {promoError && <p className="text-red-400 text-xs mt-1">{promoError}</p>}
                     {CartManager.getPromoCode() && (
-                      <p className="text-green-400 text-xs mt-1">
-                        Code "{CartManager.getPromoCode()}" applied!
-                      </p>
+                      <p className="text-green-400 text-xs mt-1">Code "{CartManager.getPromoCode()}" applied!</p>
                     )}
                   </div>
                 </div>
@@ -977,7 +1107,7 @@ export default function Register() {
                     className={`w-full border-0 rounded-full py-3 font-semibold text-white ${
                       !formSubmitted || !parentEmail.trim() || !childName.trim()
                         ? 'bg-gray-600 cursor-not-allowed'
-                        : 'bg-blue-600 hover:bg-blue-700'
+                        : 'bg-green-600 hover:bg-green-700'
                     }`}
                     onClick={() => {
                       if (formSubmitted && parentEmail.trim() && childName.trim()) {
@@ -985,8 +1115,8 @@ export default function Register() {
                         proceedToPayment();
                       } else {
                         toast({
-                          title: "Complete Required Fields",
-                          description: "Please fill in all contact information and submit the form first.",
+                          title: "Waiting for form info",
+                          description: "Submit the form above, or enter your email / details manually in this cart.",
                           variant: "destructive",
                         });
                       }
@@ -994,7 +1124,7 @@ export default function Register() {
                     disabled={!formSubmitted || !parentEmail.trim() || !childName.trim()}
                   >
                     {!formSubmitted ? '⏳ Complete Form First' :
-                     !parentEmail.trim() || !childName.trim() ? 'Fill in Contact Info' :
+                     !parentEmail.trim() || !childName.trim() ? 'Waiting for form info...' :
                      'Proceed to Checkout'}
                   </Button>
                 )}
@@ -1025,24 +1155,23 @@ export default function Register() {
         </div>
       )}
 
-      {/* Mobile Checkout Button - Shows when form is shown (always visible when form is shown) */}
+      {/* Mobile Checkout Button - Shows when form is shown */}
       {cartItems.length > 0 && showForm && (
         <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-gray-900 border-t border-white/10 p-4 shadow-2xl">
           <Button
             className={`w-full border-0 rounded-full py-4 font-semibold text-lg text-white opacity-100 ${
               !formSubmitted || !parentEmail.trim() || !childName.trim()
                 ? 'bg-gray-600 cursor-not-allowed'
-                : 'bg-blue-600 hover:bg-blue-700'
+                : 'bg-green-600 hover:bg-green-700'
             }`}
             onClick={() => {
               if (formSubmitted && parentEmail.trim() && childName.trim()) {
                 proceedToPayment();
               } else {
-                // Open cart drawer to fill in info
                 setShowMobileCart(true);
                 toast({
-                  title: "Complete Required Fields",
-                  description: "Please fill in all contact information in the cart.",
+                  title: "Waiting for form info",
+                  description: "Submit the form above, or enter email/details in the cart.",
                   variant: "destructive",
                 });
               }
@@ -1051,7 +1180,7 @@ export default function Register() {
           >
             {isLoading ? 'Processing...' : 
              !formSubmitted ? '⏳ Complete Form First' :
-             !parentEmail.trim() || !childName.trim() ? 'Fill in Contact Info' :
+             !parentEmail.trim() || !childName.trim() ? 'Waiting for form info...' :
              'Proceed to Checkout'}
           </Button>
         </div>

@@ -33,6 +33,8 @@ interface LocationData {
     deposit: number;
   };
   formUrl?: string;
+  /** Entry ID for the "Registration ID" / session field in the Google Form (for Apps Script webhook). Get from form "Get pre-filled link". */
+  formSessionIdEntryId?: string;
 }
 
 interface LocationContextType {
