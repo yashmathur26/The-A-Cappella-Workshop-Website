@@ -264,20 +264,32 @@ export default function Register() {
     // A load event after the form was ready = the user submitted the form
     if (!formSubmitted) {
       setFormSubmitted(true);
-      toast({
-        title: "Form Submitted! ✅",
-        description: "We detected your form submission. You can now proceed to checkout.",
-      });
-      // On mobile, open the cart drawer so they can fill in contact info
       if (window.innerWidth < 1024) {
         setShowMobileCart(true);
       }
-      // Notify the server for record-keeping
-      fetch('/api/google-form-submitted', {
+      // Fetch contact info from Google Sheet (latest row) and attach to this session
+      fetch('/api/fetch-form-from-sheet', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId }),
-      }).catch(() => {});
+      })
+        .then((res) => res.ok ? res.json() : Promise.reject(res))
+        .then((data: { parentEmail?: string; childName?: string | null; parentName?: string | null }) => {
+          if (data.parentEmail) setParentEmail(data.parentEmail);
+          if (data.childName) setChildName(data.childName);
+          if (data.parentName) setParentName(data.parentName);
+          toast({
+            title: "Contact info loaded ✅",
+            description: "Your info from the form is filled in. You can proceed to checkout.",
+          });
+        })
+        .catch(() => {
+          toast({
+            title: "Form submitted",
+            description: "Couldn't load from sheet — enter your details below or proceed.",
+            variant: "destructive",
+          });
+        });
     }
   };
 

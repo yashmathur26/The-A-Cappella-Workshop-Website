@@ -6,6 +6,7 @@ import Stripe from "stripe";
 import { z } from "zod";
 import fs from "fs";
 import path from "path";
+import { parse } from "csv-parse/sync";
 import { storage } from "./storage";
 import { sendRegistrationConfirmationEmail } from "./brevo";
 import { insertRegistrationSchema, type Week, visits } from "@shared/schema";
@@ -118,6 +119,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error registering form email:", error);
       res.status(500).json({ message: "Failed to register" });
+    }
+  });
+
+  // Fetch latest form response from Google Sheet (published CSV) and attach to session
+  app.post("/api/fetch-form-from-sheet", express.json(), async (req, res) => {
+    try {
+      const { sessionId } = req.body;
+      if (!sessionId || typeof sessionId !== "string") {
+        return res.status(400).json({ message: "Session ID required" });
+      }
+
+      const sheetUrl = process.env.GOOGLE_SHEET_CSV_URL;
+      if (!sheetUrl || !sheetUrl.trim()) {
+        console.error("GOOGLE_SHEET_CSV_URL is not set");
+        return res.status(503).json({ message: "Form sheet not configured" });
+      }
+
+      const response = await fetch(sheetUrl.trim(), { headers: { "User-Agent": "A-Cappella-Workshop/1" } });
+      if (!response.ok) {
+        console.error("Google Sheet fetch failed:", response.status, response.statusText);
+        return res.status(502).json({ message: "Could not load form responses" });
+      }
+
+      let text = await response.text();
+      if (text.charCodeAt(0) === 0xfeff) text = text.slice(1); // strip BOM if present
+      const rows = parse(text, { skip_empty_lines: true, relax_column_count: true, trim: true }) as string[][];
+      if (!rows.length || rows.length < 2) {
+        return res.status(404).json({ message: "No form responses in sheet" });
+      }
+
+      const headerRow = rows[0].map((c) => String(c).trim());
+      const col = (...names: string[]) => {
+        for (const name of names) {
+          const i = headerRow.findIndex((h) => h === name || h.trim() === name);
+          if (i >= 0) return i;
+        }
+        return -1;
+      };
+      const parentEmailCol = col("Parent/guardian email:", "Parent/guardian email");
+      const childNameCol = col("Student name:", "Student name");
+      const parentNameCol = col("Parent/guardian name:", "Parent/guardian name");
+
+      if (parentEmailCol < 0) {
+        console.error("Sheet missing Parent/guardian email column. Headers:", headerRow);
+        return res.status(502).json({ message: "Sheet format unexpected" });
+      }
+
+      // Last row is the most recent submission
+      const lastRow = rows[rows.length - 1];
+      const parentEmail = (lastRow[parentEmailCol] ?? "").trim();
+      if (!parentEmail) {
+        return res.status(404).json({ message: "No parent email in latest response" });
+      }
+
+      const childName = (childNameCol >= 0 ? lastRow[childNameCol] ?? "" : "").trim();
+      const parentName = (parentNameCol >= 0 ? lastRow[parentNameCol] ?? "" : "").trim();
+
+      const data: FormSubmissionData = {
+        timestamp: Date.now(),
+        parentEmail,
+        ...(childName && { childName }),
+        ...(parentName && { parentName }),
+      };
+      formSubmissions.set(sessionId, data);
+      sessionsAwaitingWebhook.delete(sessionId);
+      console.log(`✅ Fetched form from sheet for session: ${sessionId} (${parentEmail})`);
+
+      res.json({ parentEmail, childName: childName || null, parentName: parentName || null });
+    } catch (error) {
+      console.error("Error fetching form from sheet:", error);
+      res.status(500).json({ message: "Failed to load form response" });
     }
   });
 
