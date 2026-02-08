@@ -79,6 +79,10 @@ const formSubmissions = new Map<string, FormSubmissionData>();
 const sessionIdByEmail = new Map<string, string>();
 const pendingByEmail = new Map<string, FormSubmissionData>();
 
+// Sessions that detected form submission (iframe) but haven't received contact data yet.
+// When the webhook arrives we match it to the most recent pending session.
+const sessionsAwaitingWebhook = new Map<string, number>(); // sessionId -> timestamp
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize database
   await initializeDatabase();
@@ -168,12 +172,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid Typeform payload or missing parent email" });
       }
       const email = (parsed.parentEmail ?? "").toLowerCase();
-      const targetSessionId = sessionIdByEmail.get(email);
+      const targetSessionId = email ? sessionIdByEmail.get(email) : null;
       if (targetSessionId) {
         formSubmissions.set(targetSessionId, parsed);
         sessionIdByEmail.delete(email);
+        sessionsAwaitingWebhook.delete(targetSessionId);
         console.log(`✅ Typeform submitted for session: ${targetSessionId} (${email})`);
-      } else {
+      } else if (matchWebhookToWaitingSession(parsed)) {
+        // Matched to a waiting session
+      } else if (email) {
         pendingByEmail.set(email, parsed);
         console.log(`✅ Typeform submission stored for email (waiting for site): ${email}`);
       }
@@ -184,11 +191,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Form submission webhook: Google (Apps Script) or Typeform
-  // Google sends { parentEmail, childName, parentName }. Typeform sends event_type + form_response; we normalize above.
+  // Helper: attach webhook data to a pending session (if any session is waiting)
+  function matchWebhookToWaitingSession(data: FormSubmissionData): boolean {
+    // Find the most recent session that's awaiting webhook data (within last 2 minutes)
+    let bestSession: string | null = null;
+    let bestTime = 0;
+    const cutoff = Date.now() - 120_000; // 2 minute window
+    const toDelete: string[] = [];
+    sessionsAwaitingWebhook.forEach((ts, sid) => {
+      if (ts > cutoff && ts > bestTime) {
+        bestSession = sid;
+        bestTime = ts;
+      }
+      if (ts <= cutoff) toDelete.push(sid);
+    });
+    // Clean up old entries
+    toDelete.forEach((sid) => sessionsAwaitingWebhook.delete(sid));
+    if (bestSession) {
+      formSubmissions.set(bestSession, data);
+      sessionsAwaitingWebhook.delete(bestSession);
+      console.log(`✅ Matched webhook to waiting session: ${bestSession} (${data.parentEmail})`);
+      return true;
+    }
+    return false;
+  }
+
+  // Form submission webhook: Google (Apps Script) or Typeform or iframe detection (sessionId only)
   app.post("/api/google-form-submitted", express.json(), async (req, res) => {
     try {
       const body = req.body;
+
+      // Case 1: Iframe detection — client sends { sessionId } with no contact data.
+      // Mark this session as "waiting for webhook data" so when the webhook arrives we can match.
+      if (body.sessionId && !body.parentEmail && !body.event_type) {
+        sessionsAwaitingWebhook.set(body.sessionId, Date.now());
+        // Also store a bare entry so check-form-status returns submitted=true
+        if (!formSubmissions.has(body.sessionId)) {
+          formSubmissions.set(body.sessionId, { timestamp: Date.now() });
+        }
+        // Check if there's already pending webhook data we can attach
+        // (webhook might have arrived before the iframe detection)
+        let matchedEmail: string | null = null;
+        pendingByEmail.forEach((pending, email) => {
+          if (!matchedEmail && Date.now() - pending.timestamp < 120_000) {
+            formSubmissions.set(body.sessionId, pending);
+            sessionsAwaitingWebhook.delete(body.sessionId);
+            matchedEmail = email;
+            console.log(`✅ Matched existing pending webhook to session: ${body.sessionId} (${email})`);
+          }
+        });
+        if (matchedEmail) pendingByEmail.delete(matchedEmail);
+        return res.json({ success: true, message: "Session registered for webhook matching" });
+      }
+
+      // Case 2: Typeform payload
       let data: FormSubmissionData;
       let parentEmailRaw: string | undefined;
 
@@ -200,7 +256,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         data = parsed;
         parentEmailRaw = parsed.parentEmail;
       } else {
-        const { sessionId, parentEmail, childName, parentName } = body;
+        // Case 3: Google Apps Script payload { parentEmail, childName, parentName }
+        const { parentEmail, childName, parentName } = body;
         parentEmailRaw = parentEmail != null ? String(parentEmail).trim() : undefined;
         data = {
           timestamp: Date.now(),
@@ -211,18 +268,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const email = (parentEmailRaw ?? "").toLowerCase();
-      if (!email) {
-        return res.status(400).json({ message: "Provide sessionId or parentEmail so we can match your submission" });
-      }
 
-      const targetSessionId = body.sessionId || sessionIdByEmail.get(email);
+      // Try to match: by sessionId, by email registration, by waiting session, or store pending
+      const targetSessionId = body.sessionId || (email ? sessionIdByEmail.get(email) : null);
       if (targetSessionId) {
         formSubmissions.set(targetSessionId, data);
-        sessionIdByEmail.delete(email);
+        if (email) sessionIdByEmail.delete(email);
+        sessionsAwaitingWebhook.delete(targetSessionId);
         console.log(`✅ Form submitted for session: ${targetSessionId} (${email})`);
-      } else {
+      } else if (matchWebhookToWaitingSession(data)) {
+        // Matched to a session that was waiting (iframe detected submission recently)
+      } else if (email) {
         pendingByEmail.set(email, data);
         console.log(`✅ Form submission stored for email (waiting for site): ${email}`);
+      } else {
+        return res.status(400).json({ message: "Provide sessionId or parentEmail so we can match your submission" });
       }
 
       res.json({ success: true, message: "Form submission recorded" });
@@ -236,7 +296,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/check-form-status/:sessionId", async (req, res) => {
     try {
       const { sessionId } = req.params;
-      const data = formSubmissions.get(sessionId);
+      let data = formSubmissions.get(sessionId);
+
+      // If session exists but has no contact data, try to match a pending webhook entry
+      if (data && !data.parentEmail && sessionsAwaitingWebhook.has(sessionId)) {
+        let matchedEmail: string | null = null;
+        pendingByEmail.forEach((pending, email) => {
+          if (!matchedEmail && Date.now() - pending.timestamp < 120_000) {
+            formSubmissions.set(sessionId, pending);
+            sessionsAwaitingWebhook.delete(sessionId);
+            data = pending;
+            matchedEmail = email;
+            console.log(`✅ Late-matched pending webhook to session: ${sessionId} (${email})`);
+          }
+        });
+        if (matchedEmail) pendingByEmail.delete(matchedEmail);
+      }
+
       const submitted = !!data;
       res.json({
         submitted,
