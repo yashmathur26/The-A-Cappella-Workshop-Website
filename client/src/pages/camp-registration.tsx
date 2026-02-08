@@ -93,25 +93,34 @@ export default function Register() {
   }, [showForm, parentEmail, sessionId]);
 
   // Poll for form submission status (and contact info from Google Apps Script webhook)
+  // Keep polling even after formSubmitted=true until we get contact data
   useEffect(() => {
-    if (showForm && !formSubmitted) {
+    const hasContactData = parentEmail.trim() && childName.trim();
+    
+    // Poll if: form is shown AND (form not submitted yet OR submitted but no contact data yet)
+    if (showForm && (!formSubmitted || !hasContactData)) {
       const checkFormStatus = async () => {
         try {
           const response = await fetch(`/api/check-form-status/${sessionId}`);
           const data = await response.json();
           if (data.submitted) {
-            setFormSubmitted(true);
-            if (data.parentEmail) setParentEmail(data.parentEmail);
-            if (data.childName) setChildName(data.childName);
-            if (data.parentName) setParentName(data.parentName);
-            toast({
-              title: "Form Received! ✅",
-              description: data.parentEmail && data.childName
-                ? "Your info is filled in. You can proceed to checkout."
-                : "Your registration form has been submitted. You can now proceed to checkout.",
-            });
-            if (formCheckIntervalRef.current) {
-              clearInterval(formCheckIntervalRef.current);
+            // Only set formSubmitted if not already set
+            if (!formSubmitted) {
+              setFormSubmitted(true);
+            }
+            // Auto-fill contact info if received from webhook
+            if (data.parentEmail && data.childName) {
+              setParentEmail(data.parentEmail);
+              if (data.childName) setChildName(data.childName);
+              if (data.parentName) setParentName(data.parentName);
+              toast({
+                title: "Contact Info Received! ✅",
+                description: "Your info from the form has been filled in. You can proceed to checkout.",
+              });
+              // Stop polling - we have what we need
+              if (formCheckIntervalRef.current) {
+                clearInterval(formCheckIntervalRef.current);
+              }
             }
           }
         } catch (error) {
@@ -120,7 +129,7 @@ export default function Register() {
       };
 
       checkFormStatus();
-      formCheckIntervalRef.current = setInterval(checkFormStatus, 3000);
+      formCheckIntervalRef.current = setInterval(checkFormStatus, 2000); // Poll every 2s for faster response
     }
 
     return () => {
@@ -128,7 +137,7 @@ export default function Register() {
         clearInterval(formCheckIntervalRef.current);
       }
     };
-  }, [showForm, formSubmitted, sessionId, toast]);
+  }, [showForm, formSubmitted, sessionId, toast, parentEmail, childName]);
 
   const addWeekToCart = (weekId: string, paymentType: 'full' | 'deposit') => {
     const week = WEEKS.find(w => w.id === weekId);
@@ -771,6 +780,23 @@ export default function Register() {
                       <p className="text-white/90 text-sm">Email: {parentEmail}</p>
                       <p className="text-white/90 text-sm">Student: {childName}</p>
                     </div>
+                  ) : !showManualEntry ? (
+                    <div className="space-y-3">
+                      <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+                        <div className="flex items-center space-x-2">
+                          <div className="animate-spin h-4 w-4 border-2 border-blue-400 border-t-transparent rounded-full"></div>
+                          <p className="text-blue-300 text-sm">Waiting for your info from the form...</p>
+                        </div>
+                        <p className="text-white/50 text-xs mt-2">This should happen automatically in a few seconds.</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowManualEntry(true)}
+                        className="w-full py-2 px-4 border border-white/20 rounded text-white/70 hover:bg-white/5 text-sm transition-colors"
+                      >
+                        Or enter details manually
+                      </button>
+                    </div>
                   ) : (
                     <div className="space-y-3">
                       <p className="text-white/70 text-sm">Enter your contact information to proceed to payment:</p>
@@ -904,7 +930,7 @@ export default function Register() {
                     >
                       {isLoading ? 'Processing...' : 
                        !formSubmitted ? '⏳ Complete Form First' :
-                       !parentEmail.trim() || !childName.trim() ? 'Fill in contact info above' :
+                       !parentEmail.trim() || !childName.trim() ? '⏳ Waiting for form info...' :
                        'Proceed to Checkout'}
                     </Button>
                   )}
@@ -1003,9 +1029,31 @@ export default function Register() {
                       <p className="text-white/90 text-sm">Email: {parentEmail}</p>
                       <p className="text-white/90 text-sm">Student: {childName}</p>
                     </div>
+                  ) : !showManualEntry ? (
+                    <div className="space-y-3">
+                      <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+                        <div className="flex items-center space-x-2">
+                          <div className="animate-spin h-4 w-4 border-2 border-blue-400 border-t-transparent rounded-full"></div>
+                          <p className="text-blue-300 text-sm">Waiting for your info from the form...</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowManualEntry(true)}
+                        className="w-full py-2 px-4 border border-white/20 rounded text-white/70 hover:bg-white/5 text-sm transition-colors"
+                      >
+                        Or enter details manually
+                      </button>
+                    </div>
                   ) : (
                     <div className="space-y-2">
-                      <p className="text-white/70 text-sm">If your info didn't appear, enter the email you used on the form:</p>
+                      <p className="text-white/70 text-sm">Enter your contact info:</p>
+                      <Input
+                        value={childName}
+                        onChange={(e) => setChildName(e.target.value)}
+                        placeholder="Child's name"
+                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                      />
                       <Input
                         type="email"
                         value={parentEmail}
@@ -1013,29 +1061,12 @@ export default function Register() {
                         placeholder="parent@example.com"
                         className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
                       />
-                      <button
-                        type="button"
-                        onClick={() => setShowManualEntry(!showManualEntry)}
-                        className="text-sky-400 hover:text-sky-300 text-xs underline"
-                      >
-                        {showManualEntry ? 'Hide' : 'Or enter details manually'}
-                      </button>
-                      {showManualEntry && (
-                        <div className="space-y-2 pt-2 border-t border-white/10">
-                          <Input
-                            value={childName}
-                            onChange={(e) => setChildName(e.target.value)}
-                            placeholder="Child's name"
-                            className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
-                          />
-                          <Input
-                            value={parentName}
-                            onChange={(e) => setParentName(e.target.value)}
-                            placeholder="Parent name"
-                            className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
-                          />
-                        </div>
-                      )}
+                      <Input
+                        value={parentName}
+                        onChange={(e) => setParentName(e.target.value)}
+                        placeholder="Parent name"
+                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                      />
                     </div>
                   )}
 
@@ -1116,7 +1147,7 @@ export default function Register() {
                     disabled={!formSubmitted || !parentEmail.trim() || !childName.trim()}
                   >
                     {!formSubmitted ? '⏳ Complete Form First' :
-                     !parentEmail.trim() || !childName.trim() ? 'Fill in contact info' :
+                     !parentEmail.trim() || !childName.trim() ? '⏳ Waiting for form info...' :
                      'Proceed to Checkout'}
                   </Button>
                 )}
@@ -1172,7 +1203,7 @@ export default function Register() {
           >
             {isLoading ? 'Processing...' : 
              !formSubmitted ? '⏳ Complete Form First' :
-             !parentEmail.trim() || !childName.trim() ? 'Fill in contact info' :
+             !parentEmail.trim() || !childName.trim() ? '⏳ Waiting for form info...' :
              'Proceed to Checkout'}
           </Button>
         </div>
