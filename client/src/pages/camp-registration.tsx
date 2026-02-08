@@ -827,12 +827,21 @@ export default function Register() {
                     <p className="text-white/70 text-sm">
                       Complete the registration form above. Your contact info will be filled automatically from the form, then you can proceed to checkout.
                     </p>
-                  ) : parentEmail.trim() && childName.trim() ? (
-                    <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 space-y-1">
-                      <p className="text-green-400 font-medium text-sm">Contact info (from form) — will be sent to Stripe</p>
-                      {parentName && <p className="text-white/90 text-sm">Parent: {parentName}</p>}
-                      <p className="text-white/90 text-sm">Email: {parentEmail}</p>
-                      <p className="text-white/90 text-sm">Student: {childName}</p>
+                  ) : parentEmail.trim() && childName.trim() && !showManualEntry ? (
+                    <div className="space-y-3">
+                      <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 space-y-1">
+                        <p className="text-green-400 font-medium text-sm">Contact info (from form) — will be sent to Stripe</p>
+                        {parentName && <p className="text-white/90 text-sm">Parent: {parentName}</p>}
+                        <p className="text-white/90 text-sm">Email: {parentEmail}</p>
+                        <p className="text-white/90 text-sm">Student: {childName}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowManualEntry(true)}
+                        className="w-full py-2 px-4 border border-white/20 rounded text-white/70 hover:bg-white/5 text-sm transition-colors"
+                      >
+                        Edit manually
+                      </button>
                     </div>
                   ) : !showManualEntry ? (
                     <div className="space-y-3">
@@ -1076,12 +1085,21 @@ export default function Register() {
                 <div className="border-t border-white/20 pt-4 space-y-4">
                   {!formSubmitted ? (
                     <p className="text-white/70 text-sm">Complete the form above; your contact info will be filled from the form.</p>
-                  ) : parentEmail.trim() && childName.trim() ? (
-                    <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 space-y-1">
-                      <p className="text-green-400 font-medium text-sm">Contact (from form)</p>
-                      {parentName && <p className="text-white/90 text-sm">Parent: {parentName}</p>}
-                      <p className="text-white/90 text-sm">Email: {parentEmail}</p>
-                      <p className="text-white/90 text-sm">Student: {childName}</p>
+                  ) : parentEmail.trim() && childName.trim() && !showManualEntry ? (
+                    <div className="space-y-3">
+                      <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 space-y-1">
+                        <p className="text-green-400 font-medium text-sm">Contact (from form)</p>
+                        {parentName && <p className="text-white/90 text-sm">Parent: {parentName}</p>}
+                        <p className="text-white/90 text-sm">Email: {parentEmail}</p>
+                        <p className="text-white/90 text-sm">Student: {childName}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowManualEntry(true)}
+                        className="w-full py-2 px-4 border border-white/20 rounded text-white/70 hover:bg-white/5 text-sm transition-colors"
+                      >
+                        Edit manually
+                      </button>
                     </div>
                   ) : !showManualEntry ? (
                     <div className="space-y-3">
