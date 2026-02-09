@@ -728,7 +728,7 @@ export default function Register() {
 
                 <GlassCard className="p-6">
                   <p className="text-white/80 mb-2">Fill out the form below. When you submit, your parent email, name, and student name will go straight to checkout — no need to type them again.</p>
-                  <div className="bg-white/5 rounded-lg p-2 border border-white/10 mb-2">
+                  <div className="bg-white/5 rounded-lg p-2 border border-white/10 mb-0 overflow-hidden">
                     <iframe 
                       src={(() => {
                         const base = locationData[currentLocation].formUrl || "https://docs.google.com/forms/d/e/1FAIpQLSdHXYEXmGe39_L3Uq8f-T0653oFF2DEGLQMBDgN0vDC4ox1hA/viewform?embedded=true";
@@ -741,7 +741,7 @@ export default function Register() {
                         return `${base}${sep}entry.${entryId}=${encodeURIComponent(sessionId)}`;
                       })()}
                       width="100%" 
-                      height="520" 
+                      height={formSubmitted ? "320" : "520"}
                       frameBorder="0" 
                       marginHeight={0}
                       marginWidth={0}
@@ -774,7 +774,7 @@ export default function Register() {
                   )}
 
                   {formSubmitted && parentEmail.trim() && childName.trim() && cartItems.length > 0 && (
-                    <div className="mt-6 pt-4 border-t border-white/10">
+                    <div className="mt-2 pt-2">
                       <Button
                         className="w-full border-0 rounded-full py-4 text-lg font-semibold text-white bg-green-600 hover:bg-green-700"
                         onClick={() => proceedToPayment()}
