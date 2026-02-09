@@ -97,7 +97,7 @@ export default function Register() {
     return () => clearTimeout(t);
   }, [showForm, parentEmail, sessionId]);
 
-  // Poll for form submission status (and contact info from Google Apps Script webhook)
+  // Poll for form submission status (and contact info from Google Sheet or webhook)
   // Keep polling even after formSubmitted=true until we get contact data
   useEffect(() => {
     const hasContactData = parentEmail.trim() && childName.trim();
@@ -771,6 +771,19 @@ export default function Register() {
                         Click here to confirm manually
                       </button>
                     </p>
+                  )}
+
+                  {formSubmitted && parentEmail.trim() && childName.trim() && cartItems.length > 0 && (
+                    <div className="mt-6 pt-4 border-t border-white/10">
+                      <Button
+                        className="w-full border-0 rounded-full py-4 text-lg font-semibold text-white bg-green-600 hover:bg-green-700"
+                        onClick={() => proceedToPayment()}
+                        disabled={isLoading}
+                        data-testid="button-checkout-form"
+                      >
+                        {isLoading ? 'Processing...' : `Proceed to Checkout — $${cartTotal.toFixed(2)}`}
+                      </Button>
+                    </div>
                   )}
                 </GlassCard>
               </section>
