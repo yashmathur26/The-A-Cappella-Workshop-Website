@@ -741,7 +741,7 @@ export default function Register() {
                         return `${base}${sep}entry.${entryId}=${encodeURIComponent(sessionId)}`;
                       })()}
                       width="100%" 
-                      height="800" 
+                      height="520" 
                       frameBorder="0" 
                       marginHeight={0}
                       marginWidth={0}
