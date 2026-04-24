@@ -30,18 +30,14 @@ function verifySheet(name: string, url: string, testEmail?: string) {
     if (cols.parentEmailCol < 0) {
       throw new Error(`Missing parent email column. Headers: ${headerRow.join(" | ")}`);
     }
-    console.log(`OK: parent email column index ${cols.parentEmailCol}, child name ${cols.childNameCol}`);
+    console.log(`OK: parent email col ${cols.parentEmailCol}, child name col ${cols.childNameCol}, timestamp col ${cols.timestampCol}`);
 
     if (rows.length < 2) {
       console.log("Note: no data rows yet (header only). Row picking will work after first submission.");
       return;
     }
 
-    const last = pickResponseRow(rows, undefined, cols.sessionIdCol, undefined, cols.parentEmailCol);
-    if (!last) throw new Error("pickResponseRow returned null with fallback");
-    const pe = (last[cols.parentEmailCol] ?? "").trim();
-    console.log(`OK: last-row parent email sample: ${pe.slice(0, 40)}${pe.length > 40 ? "…" : ""}`);
-
+    // Test email-based matching (this should always work if test email exists)
     if (testEmail) {
       const byEmail = pickResponseRow(
         rows,
@@ -49,11 +45,19 @@ function verifySheet(name: string, url: string, testEmail?: string) {
         cols.sessionIdCol,
         testEmail,
         cols.parentEmailCol,
+        cols.timestampCol,
+        999999999, // Allow any age for email match test
       );
       if (!byEmail) throw new Error(`No row for test email ${testEmail}`);
       const child = cols.childNameCol >= 0 ? (byEmail[cols.childNameCol] ?? "").trim() : "";
       console.log(`OK: email match row — student: ${child || "(n/a)"}`);
     }
+
+    // Show last row info for debugging
+    const lastRow = rows[rows.length - 1];
+    const lastTs = cols.timestampCol >= 0 ? (lastRow[cols.timestampCol] ?? "") : "(no timestamp col)";
+    const lastEmail = (lastRow[cols.parentEmailCol] ?? "").trim();
+    console.log(`Info: last row timestamp: ${lastTs}, email: ${lastEmail.slice(0, 30)}${lastEmail.length > 30 ? "…" : ""}`);
   });
 }
 

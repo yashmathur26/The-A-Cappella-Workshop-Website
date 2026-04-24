@@ -22,6 +22,12 @@ export function resolveSheetColumns(headerRow: string[]) {
     return -1;
   };
 
+  // Timestamp column (Google Forms default is "Timestamp")
+  let timestampCol = findExact("Timestamp", "timestamp");
+  if (timestampCol < 0) {
+    timestampCol = norm.findIndex((h) => h === "timestamp" || h.includes("submitted"));
+  }
+
   let parentEmailCol = findExact(
     "Parent/guardian email:",
     "Parent/guardian email",
@@ -76,17 +82,46 @@ export function resolveSheetColumns(headerRow: string[]) {
     );
   }
 
-  return { parentEmailCol, childNameCol, parentNameCol, sessionIdCol };
+  return { parentEmailCol, childNameCol, parentNameCol, sessionIdCol, timestampCol };
 }
 
+/** Parse Google Sheets timestamp like "4/24/2026 19:05:30" or "2026-04-24T19:05:30" */
+function parseSheetTimestamp(ts: string): Date | null {
+  if (!ts?.trim()) return null;
+  const s = ts.trim();
+  // Try ISO format first
+  const isoDate = new Date(s);
+  if (!isNaN(isoDate.getTime())) return isoDate;
+  // Try US format: M/D/YYYY H:M:S
+  const match = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):?(\d{2})?$/);
+  if (match) {
+    const [, month, day, year, hour, min, sec] = match;
+    return new Date(+year, +month - 1, +day, +hour, +min, +(sec || 0));
+  }
+  return null;
+}
+
+/**
+ * Pick the correct response row from the sheet.
+ * Priority:
+ * 1. Match by session ID (if form has that field)
+ * 2. Match by parent email (if user pre-entered it)
+ * 3. Fall back to last row ONLY if it was submitted within the last 60 seconds
+ * 
+ * This prevents showing the wrong family's data when multiple people register.
+ */
 export function pickResponseRow(
   rows: string[][],
   sessionId: string | undefined,
   sessionIdCol: number,
   registeredParentEmail: string | undefined,
   parentEmailCol: number,
+  timestampCol: number = -1,
+  maxAgeSec: number = 60,
 ): string[] | null {
   if (rows.length < 2) return null;
+  
+  // Priority 1: Match by session ID
   if (sessionIdCol >= 0 && sessionId?.trim()) {
     const sid = sessionId.trim();
     for (let r = rows.length - 1; r >= 1; r--) {
@@ -94,13 +129,32 @@ export function pickResponseRow(
       if (cell === sid) return rows[r];
     }
   }
+  
+  // Priority 2: Match by parent email
   if (parentEmailCol >= 0 && registeredParentEmail?.trim()) {
     const want = registeredParentEmail.trim().toLowerCase();
     for (let r = rows.length - 1; r >= 1; r--) {
       const cell = (rows[r][parentEmailCol] ?? "").trim().toLowerCase();
       if (cell === want) return rows[r];
     }
+    // Email was provided but not found - don't fall back to wrong row
     return null;
   }
-  return rows[rows.length - 1];
+  
+  // Priority 3: Fall back to last row ONLY if recent (within maxAgeSec)
+  const lastRow = rows[rows.length - 1];
+  if (timestampCol >= 0 && lastRow) {
+    const ts = parseSheetTimestamp(lastRow[timestampCol] ?? "");
+    if (ts) {
+      const ageMs = Date.now() - ts.getTime();
+      if (ageMs <= maxAgeSec * 1000) {
+        return lastRow;
+      }
+      // Row is too old - don't return wrong data
+      return null;
+    }
+  }
+  
+  // No timestamp column or couldn't parse - don't risk returning wrong data
+  return null;
 }

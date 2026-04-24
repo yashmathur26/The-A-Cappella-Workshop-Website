@@ -179,7 +179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const headerRow = rows[0].map((c) => String(c).trim());
-      const { parentEmailCol, childNameCol, parentNameCol, sessionIdCol } =
+      const { parentEmailCol, childNameCol, parentNameCol, sessionIdCol, timestampCol } =
         resolveSheetColumns(headerRow);
 
       if (parentEmailCol < 0) {
@@ -195,9 +195,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sessionIdCol,
         registeredEmail,
         parentEmailCol,
+        timestampCol,
+        60, // Only accept rows submitted within the last 60 seconds if no email/session match
       );
       if (!dataRow) {
-        return res.status(404).json({ message: "No form responses in sheet" });
+        return res.status(404).json({ message: "No matching form response found" });
       }
       const parentEmail = (dataRow[parentEmailCol] ?? "").trim();
       if (!parentEmail) {
