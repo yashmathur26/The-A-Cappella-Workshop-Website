@@ -12,6 +12,8 @@ run = ["npm", "run", "start"]
 
 [env]
 PORT = "5000"
+# Newton camp — published CSV for the Google Form responses sheet (File → Share → Publish to web).
+GOOGLE_SHEET_CSV_URL_NEWTON = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQFOEXBYhsbWN7bpiQmUiQ2SYhekEEHQGWBGSPjen4_8ZVXLc91isoY6eLpevoNAtxQBafyJCuxtJTl/pub?output=csv"
 
 [workflows]
 runButton = "Project"

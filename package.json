@@ -9,6 +9,7 @@
     "build:frontend": "vite build",
     "start": "NODE_ENV=production node dist/index.js",
     "check": "tsc",
+    "verify:sheets": "tsx scripts/verify-registration-sheets.ts",
     "db:push": "drizzle-kit push",
     "share": "cloudflared tunnel --url http://localhost:5000"
   },

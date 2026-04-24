@@ -11,6 +11,7 @@ import { storage } from "./storage";
 import { sendRegistrationConfirmationEmail } from "./brevo";
 import { insertRegistrationSchema, type Week, visits } from "@shared/schema";
 import { pool, db } from "./db";
+import { pickResponseRow, resolveSheetColumns } from "./sheet-csv";
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, {
@@ -75,6 +76,23 @@ interface FormSubmissionData {
 }
 const formSubmissions = new Map<string, FormSubmissionData>();
 
+/** Published CSV URL for the form linked to each location (falls back to GOOGLE_SHEET_CSV_URL). */
+function getSheetCsvUrlForLocation(location: string | undefined): string | undefined {
+  const loc = (location ?? "").trim();
+  const fromEnv: Record<string, string | undefined> = {
+    lexington: process.env.GOOGLE_SHEET_CSV_URL_LEXINGTON,
+    "newton-wellesley":
+      process.env.GOOGLE_SHEET_CSV_URL_NEWTON ??
+      process.env.GOOGLE_SHEET_CSV_URL_NEWTON_WAYLAND,
+    wayland:
+      process.env.GOOGLE_SHEET_CSV_URL_WAYLAND ??
+      process.env.GOOGLE_SHEET_CSV_URL_NEWTON_WAYLAND,
+  };
+  const specific = loc ? fromEnv[loc]?.trim() : undefined;
+  if (specific) return specific;
+  return process.env.GOOGLE_SHEET_CSV_URL?.trim();
+}
+
 // Match by email: when user enters email on site we link sessionId <-> email.
 // When webhook arrives with that email we attach the form data to that session.
 const sessionIdByEmail = new Map<string, string>();
@@ -125,18 +143,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Fetch latest form response from Google Sheet (published CSV) and attach to session
   app.post("/api/fetch-form-from-sheet", express.json(), async (req, res) => {
     try {
-      const { sessionId } = req.body;
+      const { sessionId, location, parentEmail: registeredEmailBody } = req.body as {
+        sessionId?: string;
+        location?: string;
+        /** If the user entered parent email on the site, match that row in the sheet (recommended for Newton/Wayland). */
+        parentEmail?: string;
+      };
       if (!sessionId || typeof sessionId !== "string") {
         return res.status(400).json({ message: "Session ID required" });
       }
 
-      const sheetUrl = process.env.GOOGLE_SHEET_CSV_URL;
-      if (!sheetUrl || !sheetUrl.trim()) {
-        console.error("GOOGLE_SHEET_CSV_URL is not set");
+      const sheetUrl = getSheetCsvUrlForLocation(
+        typeof location === "string" ? location : undefined,
+      );
+      if (!sheetUrl) {
+        console.error(
+          "No sheet URL for location:",
+          location ?? "(none)",
+          "— set GOOGLE_SHEET_CSV_URL or GOOGLE_SHEET_CSV_URL_<LOCATION>",
+        );
         return res.status(503).json({ message: "Form sheet not configured" });
       }
 
-      const response = await fetch(sheetUrl.trim(), { headers: { "User-Agent": "A-Cappella-Workshop/1" } });
+      const response = await fetch(sheetUrl, { headers: { "User-Agent": "A-Cappella-Workshop/1" } });
       if (!response.ok) {
         console.error("Google Sheet fetch failed:", response.status, response.statusText);
         return res.status(502).json({ message: "Could not load form responses" });
@@ -150,31 +179,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const headerRow = rows[0].map((c) => String(c).trim());
-      const col = (...names: string[]) => {
-        for (const name of names) {
-          const i = headerRow.findIndex((h) => h === name || h.trim() === name);
-          if (i >= 0) return i;
-        }
-        return -1;
-      };
-      const parentEmailCol = col("Parent/guardian email:", "Parent/guardian email");
-      const childNameCol = col("Student name:", "Student name");
-      const parentNameCol = col("Parent/guardian name:", "Parent/guardian name");
+      const { parentEmailCol, childNameCol, parentNameCol, sessionIdCol } =
+        resolveSheetColumns(headerRow);
 
       if (parentEmailCol < 0) {
-        console.error("Sheet missing Parent/guardian email column. Headers:", headerRow);
+        console.error("Sheet missing parent/guardian email column. Headers:", headerRow);
         return res.status(502).json({ message: "Sheet format unexpected" });
       }
 
-      // Last row is the most recent submission
-      const lastRow = rows[rows.length - 1];
-      const parentEmail = (lastRow[parentEmailCol] ?? "").trim();
+      const registeredEmail =
+        typeof registeredEmailBody === "string" ? registeredEmailBody : undefined;
+      const dataRow = pickResponseRow(
+        rows,
+        sessionId,
+        sessionIdCol,
+        registeredEmail,
+        parentEmailCol,
+      );
+      if (!dataRow) {
+        return res.status(404).json({ message: "No form responses in sheet" });
+      }
+      const parentEmail = (dataRow[parentEmailCol] ?? "").trim();
       if (!parentEmail) {
         return res.status(404).json({ message: "No parent email in latest response" });
       }
 
-      const childName = (childNameCol >= 0 ? lastRow[childNameCol] ?? "" : "").trim();
-      const parentName = (parentNameCol >= 0 ? lastRow[parentNameCol] ?? "" : "").trim();
+      const childName = (childNameCol >= 0 ? dataRow[childNameCol] ?? "" : "").trim();
+      const parentName = (parentNameCol >= 0 ? dataRow[parentNameCol] ?? "" : "").trim();
 
       const data: FormSubmissionData = {
         timestamp: Date.now(),

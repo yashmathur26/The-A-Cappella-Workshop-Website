@@ -32,6 +32,9 @@ export default function Register() {
   const [showMobileCart, setShowMobileCart] = useState(false);
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [bypassMaintenance, setBypassMaintenance] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [autoFillFailed, setAutoFillFailed] = useState(false);
+  const [isLoadingContact, setIsLoadingContact] = useState(false);
   
   const [sessionId] = useState(() => {
     // Generate or retrieve session ID
@@ -49,6 +52,8 @@ export default function Register() {
   const { toast } = useToast();
   const [, setWouterLocation] = useWouterLocation();
   const { currentLocation, locationData } = useLocation();
+  const parentEmailRef = useRef(parentEmail);
+  const currentLocationRef = useRef(currentLocation);
 
   // Get location-specific weeks and pricing
   const WEEKS = locationData[currentLocation].weeks;
@@ -81,6 +86,11 @@ export default function Register() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    parentEmailRef.current = parentEmail;
+    currentLocationRef.current = currentLocation;
+  });
 
   // Register email with server when user types it (so we can match form submission by email — no "Registration ID" field in form needed)
   useEffect(() => {
@@ -264,32 +274,62 @@ export default function Register() {
     // A load event after the form was ready = the user submitted the form
     if (!formSubmitted) {
       setFormSubmitted(true);
-      if (window.innerWidth < 1024) {
-        setShowMobileCart(true);
-      }
-      // Fetch contact info from Google Sheet (latest row) and attach to this session
-      fetch('/api/fetch-form-from-sheet', {
+      setShowContactModal(true);
+      setIsLoadingContact(true);
+      setAutoFillFailed(false);
+      
+      // Mark session as awaiting contact data (matches Apps Script / Typeform webhooks if configured)
+      fetch('/api/google-form-submitted', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId }),
-      })
-        .then((res) => res.ok ? res.json() : Promise.reject(res))
-        .then((data: { parentEmail?: string; childName?: string | null; parentName?: string | null }) => {
-          if (data.parentEmail) setParentEmail(data.parentEmail);
+      }).catch(() => {});
+
+      // Google Sheets often lags a few seconds behind the form — retry with backoff (Newton/Wayland + Lexington)
+      const loadContactFromSheet = async () => {
+        const maxAttempts = 4;
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+          if (attempt > 0) {
+            await new Promise((r) => setTimeout(r, 1000));
+          }
+          try {
+            const pe = parentEmailRef.current.trim();
+            const res = await fetch('/api/fetch-form-from-sheet', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                sessionId,
+                location: currentLocationRef.current,
+                ...(pe ? { parentEmail: pe } : {}),
+              }),
+            });
+            if (!res.ok) continue;
+            const data = (await res.json()) as {
+              parentEmail?: string;
+              childName?: string | null;
+              parentName?: string | null;
+            };
+            if (data.parentEmail?.trim()) {
+              return data;
+            }
+          } catch {
+            /* retry */
+          }
+        }
+        return null;
+      };
+
+      void loadContactFromSheet().then((data) => {
+        setIsLoadingContact(false);
+        if (data?.parentEmail) {
+          setParentEmail(data.parentEmail);
           if (data.childName) setChildName(data.childName);
           if (data.parentName) setParentName(data.parentName);
-          toast({
-            title: "Contact info loaded ✅",
-            description: "Your info from the form is filled in. You can proceed to checkout.",
-          });
-        })
-        .catch(() => {
-          toast({
-            title: "Form submitted",
-            description: "Couldn't load from sheet — enter your details below or proceed.",
-            variant: "destructive",
-          });
-        });
+          setAutoFillFailed(false);
+        } else {
+          setAutoFillFailed(true);
+        }
+      });
     }
   };
 
@@ -470,6 +510,23 @@ export default function Register() {
   const discountAmount = CartManager.getDiscountAmount();
   const cartTotal = CartManager.getCartTotal();
   const hasDiscount = discountAmount > 0;
+
+  const registrationFormBaseUrl = locationData[currentLocation].formUrl;
+  const lexingtonFormFallback =
+    "https://docs.google.com/forms/d/e/1FAIpQLSdHXYEXmGe39_L3Uq8f-T0653oFF2DEGLQMBDgN0vDC4ox1hA/viewform?embedded=true";
+  const formEmbedBase =
+    registrationFormBaseUrl ??
+    (currentLocation === "lexington" ? lexingtonFormFallback : undefined);
+  const registrationIframeSrc =
+    formEmbedBase &&
+    (() => {
+      const base = formEmbedBase;
+      if (base.includes("typeform.com")) return base;
+      const entryId = locationData[currentLocation].formSessionIdEntryId;
+      if (!entryId) return base;
+      const sep = base.includes("?") ? "&" : "?";
+      return `${base}${sep}entry.${entryId}=${encodeURIComponent(sessionId)}`;
+    })();
 
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
@@ -727,29 +784,49 @@ export default function Register() {
                 </GlassCard>
 
                 <GlassCard className="p-6">
-                  <p className="text-white/80 mb-2">Fill out the form below. When you submit, your parent email, name, and student name will go straight to checkout — no need to type them again.</p>
+                  <p className="text-white/80 mb-4">Fill out the form below. After you submit, a popup will appear to confirm your details before checkout.</p>
                   <div className="bg-white/5 rounded-lg p-2 border border-white/10 mb-0 overflow-hidden">
-                    <iframe 
-                      src={(() => {
-                        const base = locationData[currentLocation].formUrl || "https://docs.google.com/forms/d/e/1FAIpQLSdHXYEXmGe39_L3Uq8f-T0653oFF2DEGLQMBDgN0vDC4ox1hA/viewform?embedded=true";
-                        // Only add Google Form entry param for session ID; Typeform uses webhook + email matching
-                        const isTypeform = base.includes('typeform.com');
-                        if (isTypeform) return base;
-                        const entryId = locationData[currentLocation].formSessionIdEntryId;
-                        if (!entryId) return base;
-                        const sep = base.includes('?') ? '&' : '?';
-                        return `${base}${sep}entry.${entryId}=${encodeURIComponent(sessionId)}`;
-                      })()}
-                      width="100%" 
-                      height={formSubmitted ? "320" : "520"}
-                      frameBorder="0" 
-                      marginHeight={0}
-                      marginWidth={0}
-                      className="rounded"
-                      onLoad={handleIframeLoad}
-                    >
-                      Loading…
-                    </iframe>
+                    {registrationIframeSrc ? (
+                      <iframe
+                        src={registrationIframeSrc}
+                        width="100%"
+                        height={formSubmitted ? "320" : "520"}
+                        frameBorder="0"
+                        marginHeight={0}
+                        marginWidth={0}
+                        className="rounded"
+                        onLoad={handleIframeLoad}
+                      >
+                        Loading…
+                      </iframe>
+                    ) : (
+                      <div className="rounded bg-amber-500/10 border border-amber-500/30 p-4 text-sm text-amber-100/90">
+                        <p className="font-semibold text-amber-200 mb-2">
+                          {currentLocation === "wayland"
+                            ? "Wayland form URL not set"
+                            : "Registration form URL not set"}
+                        </p>
+                        {currentLocation === "wayland" ? (
+                          <>
+                            <p className="mb-2">
+                              Add your Wayland Google Form embed link to{' '}
+                              <code className="text-white/90 bg-black/30 px-1 rounded">client/src/lib/registration-form-urls.ts</code>{' '}
+                              (<code className="text-white/90 bg-black/30 px-1 rounded">WAYLAND_FORM_EMBED_HARDCODE</code>) or set{' '}
+                              <code className="text-white/90 bg-black/30 px-1 rounded">VITE_WAYLAND_FORM_EMBED_URL</code> in the environment, then redeploy.
+                            </p>
+                            <p className="text-white/70">
+                              Use the form’s <code className="text-white/80">/e/…/viewform?embedded=true</code> URL. On the server, publish that form’s response sheet and set{' '}
+                              <code className="text-white/80">GOOGLE_SHEET_CSV_URL_WAYLAND</code>.
+                            </p>
+                          </>
+                        ) : (
+                          <p className="text-white/70">
+                            Set <code className="text-white/80">formUrl</code> for this location in{' '}
+                            <code className="text-white/80">LocationContext.tsx</code> / registration config.
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {!formSubmitted && (
@@ -758,13 +835,8 @@ export default function Register() {
                       <button
                         onClick={() => {
                           setFormSubmitted(true);
-                          if (window.innerWidth < 1024) {
-                            setShowMobileCart(true);
-                          }
-                          toast({
-                            title: "Form Confirmed! ✅",
-                            description: "You can now proceed to checkout.",
-                          });
+                          setShowContactModal(true);
+                          setAutoFillFailed(true);
                         }}
                         className="text-blue-400 hover:text-blue-300 underline"
                       >
@@ -773,16 +845,43 @@ export default function Register() {
                     </p>
                   )}
 
-                  {formSubmitted && parentEmail.trim() && childName.trim() && cartItems.length > 0 && (
-                    <div className="mt-2 pt-2">
-                      <Button
-                        className="w-full border-0 rounded-full py-4 text-lg font-semibold text-white bg-green-600 hover:bg-green-700"
-                        onClick={() => proceedToPayment()}
-                        disabled={isLoading}
-                        data-testid="button-checkout-form"
-                      >
-                        {isLoading ? 'Processing...' : `Proceed to Checkout — $${cartTotal.toFixed(2)}`}
-                      </Button>
+                  {formSubmitted && cartItems.length > 0 && (
+                    <div className="mt-4 pt-2">
+                      {parentEmail.trim() && childName.trim() ? (
+                        <>
+                          <div className="mb-3 p-3 rounded-lg bg-green-500/10 border border-green-500/30">
+                            <p className="text-green-400 font-medium text-sm mb-1">Ready to checkout</p>
+                            <p className="text-white/80 text-sm">{childName} ({parentEmail})</p>
+                            <button
+                              onClick={() => setShowContactModal(true)}
+                              className="text-xs text-blue-400 hover:text-blue-300 underline mt-1"
+                            >
+                              Edit info
+                            </button>
+                          </div>
+                          <Button
+                            className="w-full border-0 rounded-full py-4 text-lg font-semibold text-white bg-green-600 hover:bg-green-700"
+                            onClick={() => proceedToPayment()}
+                            disabled={isLoading}
+                            data-testid="button-checkout-form"
+                          >
+                            {isLoading ? 'Processing...' : `Proceed to Checkout — $${cartTotal.toFixed(2)}`}
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          className={`w-full border-0 rounded-full py-4 text-lg font-semibold text-white ${
+                            currentLocation === 'wayland' 
+                              ? 'bg-purple-600 hover:bg-purple-700' 
+                              : currentLocation === 'newton-wellesley' 
+                                ? 'bg-emerald-600 hover:bg-emerald-700' 
+                                : 'bg-blue-600 hover:bg-blue-700'
+                          }`}
+                          onClick={() => setShowContactModal(true)}
+                        >
+                          Enter Contact Info to Checkout
+                        </Button>
+                      )}
                     </div>
                   )}
                 </GlassCard>
@@ -833,78 +932,48 @@ export default function Register() {
                 )}
               </div>
               
-              {/* Contact info: from form only (no typing unless fallback) */}
+              {/* Contact info status */}
               {cartItems.length > 0 && showForm && (
                 <div className="mb-6 space-y-4">
                   {!formSubmitted ? (
                     <p className="text-white/70 text-sm">
-                      Complete the registration form above. Your contact info will be filled automatically from the form, then you can proceed to checkout.
+                      Complete the registration form above. A popup will appear to confirm your info.
                     </p>
-                  ) : parentEmail.trim() && childName.trim() && !showManualEntry ? (
+                  ) : parentEmail.trim() && childName.trim() ? (
                     <div className="space-y-3">
                       <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 space-y-1">
-                        <p className="text-green-400 font-medium text-sm">Contact info (from form) — will be sent to Stripe</p>
+                        <p className="text-green-400 font-medium text-sm">Ready to checkout</p>
                         {parentName && <p className="text-white/90 text-sm">Parent: {parentName}</p>}
                         <p className="text-white/90 text-sm">Email: {parentEmail}</p>
                         <p className="text-white/90 text-sm">Student: {childName}</p>
                       </div>
                       <button
                         type="button"
-                        onClick={() => setShowManualEntry(true)}
+                        onClick={() => setShowContactModal(true)}
                         className="w-full py-2 px-4 border border-white/20 rounded text-white/70 hover:bg-white/5 text-sm transition-colors"
                       >
-                        Edit manually
-                      </button>
-                    </div>
-                  ) : !showManualEntry ? (
-                    <div className="space-y-3">
-                      <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
-                        <div className="flex items-center space-x-2">
-                          <div className="animate-spin h-4 w-4 border-2 border-blue-400 border-t-transparent rounded-full"></div>
-                          <p className="text-blue-300 text-sm">Waiting for your info from the form...</p>
-                        </div>
-                        <p className="text-white/50 text-xs mt-2">This should happen automatically in a few seconds.</p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setShowManualEntry(true)}
-                        className="w-full py-2 px-4 border border-white/20 rounded text-white/70 hover:bg-white/5 text-sm transition-colors"
-                      >
-                        Or enter details manually
+                        Edit info
                       </button>
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      <p className="text-white/70 text-sm">Enter your contact information to proceed to payment:</p>
-                      <div>
-                        <Label className="text-white text-sm mb-1 block">Child's name</Label>
-                        <Input
-                          value={childName}
-                          onChange={(e) => setChildName(e.target.value)}
-                          placeholder="Student name"
-                          className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
-                        />
+                      <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
+                        <p className="text-amber-300 text-sm font-medium">Contact info needed</p>
+                        <p className="text-white/50 text-xs mt-1">Click below to enter your details</p>
                       </div>
-                      <div>
-                        <Label className="text-white text-sm mb-1 block">Email</Label>
-                        <Input
-                          type="email"
-                          value={parentEmail}
-                          onChange={(e) => setParentEmail(e.target.value)}
-                          placeholder="parent@example.com"
-                          className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
-                          data-testid="input-parent-email"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-white text-sm mb-1 block">Parent name</Label>
-                        <Input
-                          value={parentName}
-                          onChange={(e) => setParentName(e.target.value)}
-                          placeholder="Parent/guardian name"
-                          className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
-                        />
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowContactModal(true)}
+                        className={`w-full py-2 px-4 rounded text-white font-medium transition-colors ${
+                          currentLocation === 'wayland' 
+                            ? 'bg-purple-600 hover:bg-purple-700' 
+                            : currentLocation === 'newton-wellesley' 
+                              ? 'bg-emerald-600 hover:bg-emerald-700' 
+                              : 'bg-blue-600 hover:bg-blue-700'
+                        }`}
+                      >
+                        Enter Contact Info
+                      </button>
                     </div>
                   )}
 
@@ -998,15 +1067,25 @@ export default function Register() {
                           ? 'bg-gray-600 cursor-not-allowed' 
                           : (parentEmail.trim() && childName.trim())
                             ? 'bg-green-600 hover:bg-green-700'
-                            : 'bg-gray-600 cursor-not-allowed'
+                            : currentLocation === 'wayland' 
+                              ? 'bg-purple-600 hover:bg-purple-700' 
+                              : currentLocation === 'newton-wellesley' 
+                                ? 'bg-emerald-600 hover:bg-emerald-700' 
+                                : 'bg-blue-600 hover:bg-blue-700'
                       } text-white`}
-                      onClick={proceedToPayment}
-                      disabled={cart.length === 0 || isLoading || !formSubmitted || !parentEmail.trim() || !childName.trim()}
+                      onClick={() => {
+                        if (parentEmail.trim() && childName.trim()) {
+                          proceedToPayment();
+                        } else if (formSubmitted) {
+                          setShowContactModal(true);
+                        }
+                      }}
+                      disabled={cart.length === 0 || isLoading || !formSubmitted}
                       data-testid="button-checkout"
                     >
                       {isLoading ? 'Processing...' : 
                        !formSubmitted ? '⏳ Complete Form First' :
-                       !parentEmail.trim() || !childName.trim() ? '⏳ Waiting for form info...' :
+                       !parentEmail.trim() || !childName.trim() ? 'Enter Contact Info' :
                        'Proceed to Checkout'}
                     </Button>
                   )}
@@ -1275,11 +1354,12 @@ export default function Register() {
             onClick={() => {
               if (formSubmitted && parentEmail.trim() && childName.trim()) {
                 proceedToPayment();
+              } else if (formSubmitted) {
+                setShowContactModal(true);
               } else {
-                setShowMobileCart(true);
                 toast({
-                  title: "Contact info needed",
-                  description: "Fill in the contact info fields in the cart to continue.",
+                  title: "Complete Form First",
+                  description: "Please fill out and submit the registration form above.",
                   variant: "destructive",
                 });
               }
@@ -1288,9 +1368,146 @@ export default function Register() {
           >
             {isLoading ? 'Processing...' : 
              !formSubmitted ? '⏳ Complete Form First' :
-             !parentEmail.trim() || !childName.trim() ? '⏳ Waiting for form info...' :
+             !parentEmail.trim() || !childName.trim() ? 'Enter Contact Info' :
              'Proceed to Checkout'}
           </Button>
+        </div>
+      )}
+
+      {/* Contact Info Modal - appears after form submission */}
+      {showContactModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className={`w-full max-w-md rounded-2xl border shadow-2xl ${
+            currentLocation === 'wayland' 
+              ? 'bg-gradient-to-br from-purple-900/95 to-violet-900/95 border-purple-500/30' 
+              : currentLocation === 'newton-wellesley' 
+                ? 'bg-gradient-to-br from-emerald-900/95 to-green-900/95 border-emerald-500/30' 
+                : 'bg-gradient-to-br from-blue-900/95 to-indigo-900/95 border-blue-500/30'
+          }`}>
+            <div className="p-6">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-white">
+                  {isLoadingContact ? 'Loading Your Info...' : autoFillFailed ? 'Enter Your Details' : 'Confirm Your Info'}
+                </h2>
+                <button
+                  onClick={() => setShowContactModal(false)}
+                  className="p-2 rounded-full hover:bg-white/10 transition-colors"
+                >
+                  <X className="w-5 h-5 text-white/70" />
+                </button>
+              </div>
+
+              {/* Loading State */}
+              {isLoadingContact && (
+                <div className="py-8 text-center">
+                  <div className="w-12 h-12 mx-auto mb-4 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+                  <p className="text-white/80">Fetching your info from the registration form...</p>
+                  <p className="text-white/50 text-sm mt-2">This usually takes 2-3 seconds</p>
+                </div>
+              )}
+
+              {/* Auto-fill Failed Warning */}
+              {!isLoadingContact && autoFillFailed && (
+                <div className="mb-4 p-3 rounded-lg bg-amber-500/20 border border-amber-500/30">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-amber-200 font-medium text-sm">Couldn't auto-fill your info</p>
+                      <p className="text-amber-200/70 text-xs mt-1">
+                        Please enter the same email and student name you used in the Google Form.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Form Fields */}
+              {!isLoadingContact && (
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="modal-parent-email" className="text-white/90 text-sm font-medium">
+                      Parent/Guardian Email <span className="text-red-400">*</span>
+                    </Label>
+                    <Input
+                      id="modal-parent-email"
+                      type="email"
+                      value={parentEmail}
+                      onChange={(e) => setParentEmail(e.target.value)}
+                      placeholder="parent@example.com"
+                      className="mt-1.5 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-white/40"
+                      autoComplete="email"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="modal-child-name" className="text-white/90 text-sm font-medium">
+                      Student Name <span className="text-red-400">*</span>
+                    </Label>
+                    <Input
+                      id="modal-child-name"
+                      type="text"
+                      value={childName}
+                      onChange={(e) => setChildName(e.target.value)}
+                      placeholder="Student's full name"
+                      className="mt-1.5 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-white/40"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="modal-parent-name" className="text-white/90 text-sm font-medium">
+                      Parent/Guardian Name
+                    </Label>
+                    <Input
+                      id="modal-parent-name"
+                      type="text"
+                      value={parentName}
+                      onChange={(e) => setParentName(e.target.value)}
+                      placeholder="Your full name"
+                      className="mt-1.5 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-white/40"
+                    />
+                  </div>
+
+                  {/* Cart Summary */}
+                  <div className="mt-4 p-3 rounded-lg bg-white/5 border border-white/10">
+                    <p className="text-white/70 text-sm mb-2">Your selection:</p>
+                    {cartItems.map(item => (
+                      <div key={item.weekId} className="flex justify-between text-sm">
+                        <span className="text-white/90">{item.label}</span>
+                        <span className="text-white font-medium">${item.price}</span>
+                      </div>
+                    ))}
+                    <div className="mt-2 pt-2 border-t border-white/10 flex justify-between">
+                      <span className="text-white font-semibold">Total</span>
+                      <span className="text-white font-bold">${cartTotal.toFixed(2)}</span>
+                    </div>
+                  </div>
+
+                  {/* Proceed Button */}
+                  <Button
+                    className={`w-full py-4 text-lg font-semibold rounded-full transition-all ${
+                      !parentEmail.trim() || !childName.trim()
+                        ? 'bg-gray-600 cursor-not-allowed text-white/60'
+                        : 'bg-green-600 hover:bg-green-700 text-white'
+                    }`}
+                    onClick={() => {
+                      if (parentEmail.trim() && childName.trim()) {
+                        setShowContactModal(false);
+                        proceedToPayment();
+                      }
+                    }}
+                    disabled={!parentEmail.trim() || !childName.trim() || isLoading}
+                  >
+                    {isLoading ? 'Processing...' : `Proceed to Checkout — $${cartTotal.toFixed(2)}`}
+                  </Button>
+
+                  <p className="text-center text-white/40 text-xs">
+                    * Use the same email and student name from your Google Form submission
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

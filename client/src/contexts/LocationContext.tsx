@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { NEWTON_FORM_EMBED_URL, getWaylandFormEmbedUrl } from '@/lib/registration-form-urls';
 
 export type Location = 'lexington' | 'newton-wellesley' | 'wayland';
 
@@ -167,7 +168,8 @@ export function LocationProvider({ children }: { children: ReactNode }) {
         full: 600,
         deposit: 150,
       },
-      formUrl: 'https://forms.gle/DvejUQb3TXEaobkSA?embedded=true',
+      // Newton-only form. Server: `GOOGLE_SHEET_CSV_URL_NEWTON` = published CSV for this form’s responses.
+      formUrl: NEWTON_FORM_EMBED_URL,
     },
     wayland: {
       name: 'Wayland',
@@ -190,7 +192,9 @@ export function LocationProvider({ children }: { children: ReactNode }) {
         full: 600,
         deposit: 150,
       },
-      formUrl: 'https://forms.gle/DvejUQb3TXEaobkSA?embedded=true',
+      // Wayland-only form (separate from Newton). Configure URL in `registration-form-urls.ts` or `VITE_WAYLAND_FORM_EMBED_URL`.
+      // Server: `GOOGLE_SHEET_CSV_URL_WAYLAND` = published CSV for Wayland’s responses.
+      formUrl: getWaylandFormEmbedUrl(),
     },
   };
 
