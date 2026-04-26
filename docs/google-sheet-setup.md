@@ -1,51 +1,106 @@
-# Google Sheet — contact info for registration
+# Google Form auto-fill — how it actually works
 
-The registration page can fill in contact info (parent email, student name, parent name) from your **Google Sheet** that’s linked to the form. No webhook or Apps Script required.
+The site fills the cart with parent/student info from your Google Form **after the parent submits it**. There are two paths the data can take, and they have very different reliability:
 
-## 1. Publish the sheet as CSV
+| Path | When data arrives | Reliable? |
+| --- | --- | --- |
+| **A. Apps Script webhook** | Instantly on submit | ✅ Yes — recommended |
+| **B. Published CSV fetch** | Up to **5 minutes later** (Google caches it) | ⚠️ Best-effort fallback only |
 
-1. Open the Google Sheet that receives form responses.
-2. **File → Share → Publish to web**.
-3. Under **Link**, choose the correct sheet tab (the one with form responses).
-4. Under **Format**, choose **Comma-separated values (.csv)**.
-5. Click **Publish** and copy the URL (e.g. `https://docs.google.com/spreadsheets/d/e/2PACX-.../pub?output=csv&gid=914273778`).
+> **Important:** The "Publish to web → CSV" URL is cached by Google for **up to 5 minutes** (`cache-control: private, max-age=300`). New form submissions don't appear in the CSV until that cache expires. **Do not rely on the CSV alone.** Set up the Apps Script webhook on each form.
 
-## 2. Set the URL on the server
+---
 
-Set environment variables where the app runs (e.g. Railway, Replit, or local `.env`).
+## Recommended setup (Apps Script webhook)
 
-**One sheet for everything (simplest):** use the legacy variable — it applies to every location if you do not set overrides:
+**Do this once for each form** (Lexington, Newton, Wayland):
+
+1. Open the Google Form → **Extensions → Apps Script**.
+2. Replace the contents with `docs/google-form-webhook.gs`.
+3. Update the top:
+   ```js
+   var WEBHOOK_URL = 'https://theacappellaworkshop.com/api/google-form-submitted';
+   var FIELD_MAP = {
+     parentEmail: 'Parent/guardian email:',  // your form's exact question title
+     childName:   'Student name:',
+     parentName:  'Parent/guardian name:'
+   };
+   ```
+4. Save (Cmd/Ctrl+S).
+5. Click **Triggers** (clock icon, left sidebar) → **+ Add Trigger**:
+   - Function: `onFormSubmit`
+   - Event source: **From form**
+   - Event type: **On form submit**
+6. Approve the Google permissions prompt.
+7. Submit a test response and check **Executions** in Apps Script — you should see `onFormSubmit` ran successfully.
+
+That's it. The webhook fires instantly on every submission and POSTs the email/name to `/api/google-form-submitted`. The site picks it up within ~2 seconds.
+
+See [`docs/google-form-webhook-setup.md`](./google-form-webhook-setup.md) for screenshots / troubleshooting.
+
+---
+
+## Fallback: published CSV
+
+This is only used when the webhook isn't set up (or hasn't fired yet). Set the env vars below so the server has a CSV to fetch from.
+
+### 1. Publish each sheet as CSV
+
+For each form's response spreadsheet:
+
+1. **File → Share → Publish to web**.
+2. Pick the **Form Responses 1** tab and **Comma-separated values (.csv)**.
+3. Copy the URL — it looks like
+   `https://docs.google.com/spreadsheets/d/e/2PACX-…/pub?output=csv` (with optional `&gid=…`).
+
+### 2. Set environment variables (Railway / Replit / `.env`)
 
 ```bash
-GOOGLE_SHEET_CSV_URL=https://docs.google.com/spreadsheets/d/e/2PACX-.../pub?output=csv&gid=914273778
+# Per-camp URLs (recommended — each camp has its own form/sheet):
+GOOGLE_SHEET_CSV_URL_LEXINGTON=https://docs.google.com/spreadsheets/d/e/.../pub?output=csv
+GOOGLE_SHEET_CSV_URL_NEWTON=https://docs.google.com/spreadsheets/d/e/.../pub?output=csv
+GOOGLE_SHEET_CSV_URL_WAYLAND=https://docs.google.com/spreadsheets/d/e/.../pub?output=csv
+
+# (optional) global fallback if a per-camp var isn't set:
+# GOOGLE_SHEET_CSV_URL=https://docs.google.com/spreadsheets/d/e/.../pub?output=csv
 ```
 
-**Separate forms per camp (recommended):** Each location has its own Google Form → its own response spreadsheet. Set the published CSV URL for each so registration pulls the **correct** sheet after submit:
+### 3. Sheet columns
+
+The server matches by column header, so order doesn't matter:
+
+- **Parent/guardian email:** — required
+- **Student name:** — recommended
+- **Parent/guardian name:** — optional
+- **Timestamp** — automatic in any Google Form sheet
+
+The server picks the row by, in priority order: (1) hidden session-ID column if present, (2) the parent email the user typed on the site, (3) most-recent row within the last 10 minutes.
+
+---
+
+## Diagnose problems
+
+The server exposes a diagnostic endpoint that fetches your CSV and reports what it sees:
 
 ```bash
-# Optional overrides (if unset, falls back to GOOGLE_SHEET_CSV_URL)
-GOOGLE_SHEET_CSV_URL_LEXINGTON=https://docs.google.com/spreadsheets/d/e/.../pub?output=csv&gid=...
-GOOGLE_SHEET_CSV_URL_NEWTON=https://docs.google.com/spreadsheets/d/e/.../pub?output=csv&gid=...
-GOOGLE_SHEET_CSV_URL_WAYLAND=https://docs.google.com/spreadsheets/d/e/.../pub?output=csv&gid=...
-# Legacy: if only one CSV exists for both Newton + Wayland, you can still use:
-# GOOGLE_SHEET_CSV_URL_NEWTON_WAYLAND=...
+curl 'https://your-site.com/api/sheet-diagnostic?location=lexington'
+curl 'https://your-site.com/api/sheet-diagnostic?location=newton-wellesley'
+curl 'https://your-site.com/api/sheet-diagnostic?location=wayland'
 ```
 
-Use the **exact** URL from “Publish to web” for each spreadsheet that receives responses for that camp.
+It returns the URL it's hitting, the resolved column indices, and the last 3 rows of the sheet. If a recent submission isn't in `lastRows`, **that's the cache**, not a bug — set up the webhook (above).
 
-## 3. Sheet columns
+You can also run locally:
 
-The server looks for these column headers (order doesn’t matter):
+```bash
+GOOGLE_SHEET_CSV_URL_LEXINGTON='…' npm run verify:sheets
+```
 
-- **Parent/guardian email:** (or `Parent/guardian email`) — required
-- **Student name:** (or `Student name`)
-- **Parent/guardian name:** (or `Parent/guardian name`)
+## Common errors
 
-These match the Lexington form. When the user submits the form, the site fetches the **last row** of the published CSV and uses it to fill the cart.
-
-## If something doesn’t work
-
-- **503 Form sheet not configured** — No CSV URL is set for that location (set `GOOGLE_SHEET_CSV_URL` and/or the per-location vars above).
-- **502 Could not load form responses** — The published URL is wrong, or the sheet isn’t published. Re-publish and update the env var.
-- **404 No form responses** — The sheet has no data rows (only a header). Submit a test response first.
-- If contact info still doesn’t load, the user can use **“Or enter details manually”** and type their info in the cart.
+| Symptom | Likely cause |
+| --- | --- |
+| **503 "Form sheet not configured"** | No `GOOGLE_SHEET_CSV_URL[_<LOCATION>]` set for that camp. |
+| **502 "Sheet format unexpected"** | Header row missing the `Parent/guardian email` column (or it's spelled differently — see column list above). |
+| **404 "No matching form response found"** | CSV is stale (Google's 5 min cache). The webhook is the cure. |
+| Modal shows "Couldn't auto-fill your info" | Same as 404 — webhook didn't fire and CSV doesn't have the row yet. User can type info manually and proceed. |

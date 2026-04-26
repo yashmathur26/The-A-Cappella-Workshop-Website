@@ -128,8 +128,11 @@ export default function Register() {
               setParentEmail(data.parentEmail);
               if (data.childName) setChildName(data.childName);
               if (data.parentName) setParentName(data.parentName);
+              // Webhook arrived — close the loading state in the contact modal.
+              setIsLoadingContact(false);
+              setAutoFillFailed(false);
               toast({
-                title: "Contact Info Received! ✅",
+                title: "Contact Info Received!",
                 description: "Your info from the form has been filled in. You can proceed to checkout.",
               });
               // Stop polling - we have what we need
@@ -277,7 +280,7 @@ export default function Register() {
       setShowContactModal(true);
       setIsLoadingContact(true);
       setAutoFillFailed(false);
-      
+
       // Mark session as awaiting contact data (matches Apps Script / Typeform webhooks if configured)
       fetch('/api/google-form-submitted', {
         method: 'POST',
@@ -285,12 +288,31 @@ export default function Register() {
         body: JSON.stringify({ sessionId }),
       }).catch(() => {});
 
-      // Google Sheets often lags a few seconds behind the form — retry with backoff (Newton/Wayland + Lexington)
-      const loadContactFromSheet = async () => {
-        const maxAttempts = 4;
-        for (let attempt = 0; attempt < maxAttempts; attempt++) {
-          if (attempt > 0) {
-            await new Promise((r) => setTimeout(r, 1000));
+      // Auto-fill races two paths:
+      //   A) The Apps Script webhook (instant, cache-free) — handled by the
+      //      `/api/check-form-status/:sessionId` poller in another effect.
+      //   B) Google's published CSV — which is cached up to ~5 min by Google,
+      //      so a "just submitted" row may not appear immediately.
+      //
+      // We retry the CSV fetch for ~25 seconds with backoff. If neither path
+      // yields data by then, we show the modal in "manual entry" mode so the
+      // user can type their info and proceed to checkout.
+      type ContactInfo = {
+        parentEmail?: string;
+        childName?: string | null;
+        parentName?: string | null;
+      };
+      const loadContactFromSheet = async (): Promise<ContactInfo | null> => {
+        // Backoff schedule (ms): ~25 sec total of retries.
+        const delays = [0, 1500, 2500, 3500, 4500, 5500, 7000];
+        for (let attempt = 0; attempt < delays.length; attempt++) {
+          if (delays[attempt] > 0) {
+            await new Promise((r) => setTimeout(r, delays[attempt]));
+          }
+          // If a webhook already populated the cart fields (via the polling
+          // effect), bail out — no need to keep hammering the CSV endpoint.
+          if (parentEmailRef.current.trim()) {
+            return { parentEmail: parentEmailRef.current.trim() };
           }
           try {
             const pe = parentEmailRef.current.trim();
@@ -304,11 +326,7 @@ export default function Register() {
               }),
             });
             if (!res.ok) continue;
-            const data = (await res.json()) as {
-              parentEmail?: string;
-              childName?: string | null;
-              parentName?: string | null;
-            };
+            const data = (await res.json()) as ContactInfo;
             if (data.parentEmail?.trim()) {
               return data;
             }
@@ -321,12 +339,14 @@ export default function Register() {
 
       void loadContactFromSheet().then((data) => {
         setIsLoadingContact(false);
+        // The webhook poller may have already filled fields; only overwrite
+        // empty ones to avoid clobbering anything the user typed manually.
         if (data?.parentEmail) {
-          setParentEmail(data.parentEmail);
-          if (data.childName) setChildName(data.childName);
-          if (data.parentName) setParentName(data.parentName);
+          setParentEmail((prev) => prev.trim() || data.parentEmail!);
+          if (data.childName) setChildName((prev) => prev.trim() || data.childName!);
+          if (data.parentName) setParentName((prev) => prev.trim() || data.parentName!);
           setAutoFillFailed(false);
-        } else {
+        } else if (!parentEmailRef.current.trim()) {
           setAutoFillFailed(true);
         }
       });
@@ -1403,7 +1423,19 @@ export default function Register() {
                 <div className="py-8 text-center">
                   <div className="w-12 h-12 mx-auto mb-4 border-4 border-white/20 border-t-white rounded-full animate-spin" />
                   <p className="text-white/80">Fetching your info from the registration form...</p>
-                  <p className="text-white/50 text-sm mt-2">This usually takes 2-3 seconds</p>
+                  <p className="text-white/50 text-sm mt-2">
+                    This can take up to 25 seconds. You can also enter your info manually below.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setIsLoadingContact(false);
+                      setAutoFillFailed(true);
+                    }}
+                    className="mt-3 text-white/60 text-xs underline hover:text-white/90"
+                    type="button"
+                  >
+                    Skip and enter manually
+                  </button>
                 </div>
               )}
 

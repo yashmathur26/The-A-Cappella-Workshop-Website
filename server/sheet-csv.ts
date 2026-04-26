@@ -103,12 +103,16 @@ function parseSheetTimestamp(ts: string): Date | null {
 
 /**
  * Pick the correct response row from the sheet.
+ *
  * Priority:
  * 1. Match by session ID (if form has that field)
- * 2. Match by parent email (if user pre-entered it)
- * 3. Find the most recent row with a valid timestamp within maxAgeSec (default 5 min)
- * 
- * This prevents showing the wrong family's data when multiple people register.
+ * 2. Match by parent email (if user pre-entered it) — exact match anywhere in the sheet
+ * 3. Most recent row with a valid timestamp within maxAgeSec
+ *
+ * About Google's CSV cache: the published CSV (`pub?output=csv`) is cached up to ~5 min,
+ * so a "just submitted" row may not be visible yet. We do NOT silently fall back to the
+ * wrong family's data — if no confident match is found we return null and the client
+ * shows the manual entry modal.
  */
 export function pickResponseRow(
   rows: string[][],
@@ -117,11 +121,11 @@ export function pickResponseRow(
   registeredParentEmail: string | undefined,
   parentEmailCol: number,
   timestampCol: number = -1,
-  maxAgeSec: number = 60,
+  maxAgeSec: number = 600,
 ): string[] | null {
   if (rows.length < 2) return null;
-  
-  // Priority 1: Match by session ID
+
+  // Priority 1: Match by session ID (most reliable when the form has this hidden field).
   if (sessionIdCol >= 0 && sessionId?.trim()) {
     const sid = sessionId.trim();
     for (let r = rows.length - 1; r >= 1; r--) {
@@ -129,38 +133,35 @@ export function pickResponseRow(
       if (cell === sid) return rows[r];
     }
   }
-  
-  // Priority 2: Match by parent email
+
+  // Priority 2: Match by registered parent email.
+  // If the user entered email on the site and that email exists in the sheet,
+  // we trust that match (even if older). Otherwise we DON'T fall back to the
+  // most-recent row, because that could be a different family's data.
   if (parentEmailCol >= 0 && registeredParentEmail?.trim()) {
     const want = registeredParentEmail.trim().toLowerCase();
     for (let r = rows.length - 1; r >= 1; r--) {
       const cell = (rows[r][parentEmailCol] ?? "").trim().toLowerCase();
       if (cell === want) return rows[r];
     }
-    // Email was provided but not found - don't fall back to wrong row
     return null;
   }
-  
-  // Priority 3: Find the most recent row with a valid timestamp within maxAgeSec
-  // Scan backwards to handle sheets with incomplete/empty rows at the bottom
+
+  // Priority 3: Most recent row with a valid timestamp within maxAgeSec.
+  // Scan backwards and skip rows with empty/invalid timestamps (handles
+  // sheets with manually-added incomplete rows at the bottom).
   if (timestampCol >= 0) {
     const now = Date.now();
     for (let r = rows.length - 1; r >= 1; r--) {
       const row = rows[r];
       const ts = parseSheetTimestamp(row[timestampCol] ?? "");
-      if (ts) {
-        const ageMs = now - ts.getTime();
-        if (ageMs <= maxAgeSec * 1000) {
-          return row;
-        }
-        // Found a valid timestamp but it's too old - stop searching
-        // (older rows will be even older)
-        return null;
-      }
-      // Row has no valid timestamp, keep searching upward
+      if (!ts) continue;
+      const ageMs = now - ts.getTime();
+      if (ageMs <= maxAgeSec * 1000) return row;
+      // First valid timestamp we hit is too old — stop (older rows will be older still).
+      return null;
     }
   }
-  
-  // No timestamp column or no recent rows found
+
   return null;
 }

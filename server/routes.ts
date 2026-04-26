@@ -140,7 +140,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Fetch latest form response from Google Sheet (published CSV) and attach to session
+  // Fetch latest form response from Google Sheet (published CSV) and attach to session.
+  //
+  // IMPORTANT: Google's published CSV (`pub?output=csv`) is cached server-side for up to
+  // 5 minutes (`cache-control: private, max-age=300`). New form submissions may NOT appear
+  // in the CSV for several minutes. The Apps Script webhook (docs/google-form-webhook.gs)
+  // is the recommended path because it fires instantly on submit and is cache-free; this
+  // endpoint exists as a best-effort fallback when the webhook isn't set up.
   app.post("/api/fetch-form-from-sheet", express.json(), async (req, res) => {
     try {
       const { sessionId, location, parentEmail: registeredEmailBody } = req.body as {
@@ -153,21 +159,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Session ID required" });
       }
 
+      const locTag = typeof location === "string" && location ? location : "(none)";
       const sheetUrl = getSheetCsvUrlForLocation(
         typeof location === "string" ? location : undefined,
       );
       if (!sheetUrl) {
         console.error(
-          "No sheet URL for location:",
-          location ?? "(none)",
-          "— set GOOGLE_SHEET_CSV_URL or GOOGLE_SHEET_CSV_URL_<LOCATION>",
+          `[sheet ${locTag}] No CSV URL configured. Set GOOGLE_SHEET_CSV_URL or GOOGLE_SHEET_CSV_URL_${(location ?? "").toUpperCase()} in env.`,
         );
         return res.status(503).json({ message: "Form sheet not configured" });
       }
 
-      const response = await fetch(sheetUrl, { headers: { "User-Agent": "A-Cappella-Workshop/1" } });
+      // Cache-bust attempt + explicit no-cache headers. Google's CDN often ignores arbitrary
+      // query params, but combining timestamp + cookie reset + Pragma headers can occasionally
+      // squeeze a fresh response out, especially right after a publish edit.
+      const bustedUrl =
+        sheetUrl + (sheetUrl.includes("?") ? "&" : "?") + `_=${Date.now()}`;
+      const response = await fetch(bustedUrl, {
+        headers: {
+          "User-Agent": "A-Cappella-Workshop/1",
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+        },
+        // @ts-ignore — node fetch supports `cache` in newer versions and ignores it otherwise
+        cache: "no-store",
+      });
       if (!response.ok) {
-        console.error("Google Sheet fetch failed:", response.status, response.statusText);
+        console.error(
+          `[sheet ${locTag}] CSV fetch failed: ${response.status} ${response.statusText} (url: ${sheetUrl})`,
+        );
         return res.status(502).json({ message: "Could not load form responses" });
       }
 
@@ -175,6 +195,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (text.charCodeAt(0) === 0xfeff) text = text.slice(1); // strip BOM if present
       const rows = parse(text, { skip_empty_lines: true, relax_column_count: true, trim: true }) as string[][];
       if (!rows.length || rows.length < 2) {
+        console.warn(`[sheet ${locTag}] CSV parsed but has <2 rows (rows=${rows.length}).`);
         return res.status(404).json({ message: "No form responses in sheet" });
       }
 
@@ -183,12 +204,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         resolveSheetColumns(headerRow);
 
       if (parentEmailCol < 0) {
-        console.error("Sheet missing parent/guardian email column. Headers:", headerRow);
+        console.error(
+          `[sheet ${locTag}] Missing parent/guardian email column. Headers: ${JSON.stringify(headerRow)}`,
+        );
         return res.status(502).json({ message: "Sheet format unexpected" });
       }
 
       const registeredEmail =
         typeof registeredEmailBody === "string" ? registeredEmailBody : undefined;
+
+      // Useful debug log per-attempt (visible in Replit/Railway logs):
+      const lastRow = rows[rows.length - 1] ?? [];
+      const lastTs = timestampCol >= 0 ? lastRow[timestampCol] ?? "" : "";
+      const lastEmail = parentEmailCol >= 0 ? lastRow[parentEmailCol] ?? "" : "";
+      console.log(
+        `[sheet ${locTag}] fetch session=${sessionId.slice(0, 8)} email=${registeredEmail || "(none)"} rows=${rows.length} cols={ts:${timestampCol},email:${parentEmailCol},child:${childNameCol},parent:${parentNameCol},sid:${sessionIdCol}} lastRow={ts:"${lastTs}",email:"${lastEmail}"}`,
+      );
+
       const dataRow = pickResponseRow(
         rows,
         sessionId,
@@ -196,13 +228,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         registeredEmail,
         parentEmailCol,
         timestampCol,
-        300, // Only accept rows submitted within the last 5 minutes if no email/session match
+        // Allow rows up to 10 minutes old when matching the recent-submission case.
+        // Reason: Google's CSV cache (max-age=300) means even "just submitted" rows can
+        // appear with timestamps that look ~5 min stale by the time we read them. A
+        // tighter window causes false-negatives.
+        600,
       );
       if (!dataRow) {
+        console.warn(
+          `[sheet ${locTag}] No matching row picked (session=${sessionId.slice(0, 8)}, email=${registeredEmail || "(none)"}). This is normal if the form was just submitted — Google's CSV cache is up to 5 min behind.`,
+        );
         return res.status(404).json({ message: "No matching form response found" });
       }
       const parentEmail = (dataRow[parentEmailCol] ?? "").trim();
       if (!parentEmail) {
+        console.warn(`[sheet ${locTag}] Picked row has empty parent email cell.`);
         return res.status(404).json({ message: "No parent email in latest response" });
       }
 
@@ -217,12 +257,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       formSubmissions.set(sessionId, data);
       sessionsAwaitingWebhook.delete(sessionId);
-      console.log(`✅ Fetched form from sheet for session: ${sessionId} (${parentEmail})`);
+      console.log(
+        `[sheet ${locTag}] ✅ Matched row for session=${sessionId.slice(0, 8)} email=${parentEmail}${childName ? " child=" + childName : ""}`,
+      );
 
       res.json({ parentEmail, childName: childName || null, parentName: parentName || null });
     } catch (error) {
       console.error("Error fetching form from sheet:", error);
       res.status(500).json({ message: "Failed to load form response" });
+    }
+  });
+
+  // Diagnostic endpoint: fetch the configured CSV for a location and return parsed
+  // metadata (URL, status, headers, last 3 rows). Use this when auto-fill seems
+  // broken to verify the sheet/column mapping. Hit:
+  //   GET /api/sheet-diagnostic?location=lexington
+  app.get("/api/sheet-diagnostic", async (req, res) => {
+    try {
+      const location = typeof req.query.location === "string" ? req.query.location : undefined;
+      const sheetUrl = getSheetCsvUrlForLocation(location);
+      if (!sheetUrl) {
+        return res.status(503).json({
+          ok: false,
+          location: location ?? "(none)",
+          error: `No CSV URL configured. Set GOOGLE_SHEET_CSV_URL or GOOGLE_SHEET_CSV_URL_${(location ?? "").toUpperCase()} in env.`,
+        });
+      }
+      const bustedUrl =
+        sheetUrl + (sheetUrl.includes("?") ? "&" : "?") + `_=${Date.now()}`;
+      const r = await fetch(bustedUrl, {
+        headers: {
+          "User-Agent": "A-Cappella-Workshop/1",
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+        },
+        // @ts-ignore
+        cache: "no-store",
+      });
+      if (!r.ok) {
+        return res.status(502).json({
+          ok: false,
+          location,
+          sheetUrl,
+          status: r.status,
+          statusText: r.statusText,
+        });
+      }
+      let text = await r.text();
+      if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
+      const rows = parse(text, {
+        skip_empty_lines: true,
+        relax_column_count: true,
+        trim: true,
+      }) as string[][];
+      const headerRow = (rows[0] ?? []).map((c) => String(c).trim());
+      const cols = resolveSheetColumns(headerRow);
+      const lastN = rows.slice(Math.max(1, rows.length - 3));
+      return res.json({
+        ok: true,
+        location,
+        sheetUrl,
+        cacheControl: r.headers.get("cache-control"),
+        date: r.headers.get("date"),
+        rowCount: rows.length,
+        headers: headerRow,
+        resolvedColumns: cols,
+        lastRows: lastN.map((row) => ({
+          timestamp: cols.timestampCol >= 0 ? row[cols.timestampCol] ?? "" : "",
+          parentEmail: cols.parentEmailCol >= 0 ? row[cols.parentEmailCol] ?? "" : "",
+          childName: cols.childNameCol >= 0 ? row[cols.childNameCol] ?? "" : "",
+          parentName: cols.parentNameCol >= 0 ? row[cols.parentNameCol] ?? "" : "",
+        })),
+        note: "Google's published CSV is cached up to ~5 min. If a recent submission isn't in lastRows, that's the cache; webhook is the cure.",
+      });
+    } catch (error) {
+      console.error("sheet-diagnostic error:", error);
+      return res.status(500).json({ ok: false, error: String((error as Error)?.message ?? error) });
     }
   });
 
