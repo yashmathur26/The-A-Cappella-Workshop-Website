@@ -85,34 +85,19 @@ export function resolveSheetColumns(headerRow: string[]) {
   return { parentEmailCol, childNameCol, parentNameCol, sessionIdCol, timestampCol };
 }
 
-/** Parse Google Sheets timestamp like "4/24/2026 19:05:30" or "2026-04-24T19:05:30" */
-function parseSheetTimestamp(ts: string): Date | null {
-  if (!ts?.trim()) return null;
-  const s = ts.trim();
-  // Try ISO format first
-  const isoDate = new Date(s);
-  if (!isNaN(isoDate.getTime())) return isoDate;
-  // Try US format: M/D/YYYY H:M:S
-  const match = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):?(\d{2})?$/);
-  if (match) {
-    const [, month, day, year, hour, min, sec] = match;
-    return new Date(+year, +month - 1, +day, +hour, +min, +(sec || 0));
-  }
-  return null;
-}
-
 /**
  * Pick the correct response row from the sheet.
  *
- * Priority:
- * 1. Match by session ID (if form has that field)
- * 2. Match by parent email (if user pre-entered it) — exact match anywhere in the sheet
- * 3. Most recent row with a valid timestamp within maxAgeSec
+ * Behavior matches the original "it just works for Lexington" implementation:
+ * scan backwards to find the most recent row that has a non-empty parent email.
+ * This handles sheets with empty/incomplete trailing rows.
  *
- * About Google's CSV cache: the published CSV (`pub?output=csv`) is cached up to ~5 min,
- * so a "just submitted" row may not be visible yet. We do NOT silently fall back to the
- * wrong family's data — if no confident match is found we return null and the client
- * shows the manual entry modal.
+ * If a `registeredParentEmail` is provided AND we find that exact email, we
+ * prefer that row. If it's provided but not found, we still fall back to the
+ * most recent valid row (matches the pre-2026-04 behavior).
+ *
+ * If a `sessionIdCol` is found and we have an exact session-id match, we use
+ * that — most reliable when the form has the hidden session-id field prefilled.
  */
 export function pickResponseRow(
   rows: string[][],
@@ -120,12 +105,14 @@ export function pickResponseRow(
   sessionIdCol: number,
   registeredParentEmail: string | undefined,
   parentEmailCol: number,
-  timestampCol: number = -1,
-  maxAgeSec: number = 600,
+  // Kept for backwards-compat with callers; no longer used (timestamp filter
+  // caused false-negatives once Google's CSV cache started lagging).
+  _timestampCol: number = -1,
+  _maxAgeSec: number = 600,
 ): string[] | null {
   if (rows.length < 2) return null;
 
-  // Priority 1: Match by session ID (most reliable when the form has this hidden field).
+  // Best: exact session-id match (only works if the form has the hidden field).
   if (sessionIdCol >= 0 && sessionId?.trim()) {
     const sid = sessionId.trim();
     for (let r = rows.length - 1; r >= 1; r--) {
@@ -134,32 +121,23 @@ export function pickResponseRow(
     }
   }
 
-  // Priority 2: Match by registered parent email.
-  // If the user entered email on the site and that email exists in the sheet,
-  // we trust that match (even if older). Otherwise we DON'T fall back to the
-  // most-recent row, because that could be a different family's data.
+  // Next best: exact email match if the user entered an email on the site.
   if (parentEmailCol >= 0 && registeredParentEmail?.trim()) {
     const want = registeredParentEmail.trim().toLowerCase();
     for (let r = rows.length - 1; r >= 1; r--) {
       const cell = (rows[r][parentEmailCol] ?? "").trim().toLowerCase();
       if (cell === want) return rows[r];
     }
-    return null;
+    // Email not found — fall through to "most recent row" (this is the
+    // pre-2026-04 behavior the user is reverting to).
   }
 
-  // Priority 3: Most recent row with a valid timestamp within maxAgeSec.
-  // Scan backwards and skip rows with empty/invalid timestamps (handles
-  // sheets with manually-added incomplete rows at the bottom).
-  if (timestampCol >= 0) {
-    const now = Date.now();
+  // Fallback: most recent row that has a non-empty parent email cell.
+  // Scanning backwards skips manually-added incomplete trailing rows.
+  if (parentEmailCol >= 0) {
     for (let r = rows.length - 1; r >= 1; r--) {
-      const row = rows[r];
-      const ts = parseSheetTimestamp(row[timestampCol] ?? "");
-      if (!ts) continue;
-      const ageMs = now - ts.getTime();
-      if (ageMs <= maxAgeSec * 1000) return row;
-      // First valid timestamp we hit is too old — stop (older rows will be older still).
-      return null;
+      const cell = (rows[r][parentEmailCol] ?? "").trim();
+      if (cell) return rows[r];
     }
   }
 
