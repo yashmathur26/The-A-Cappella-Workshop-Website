@@ -196,7 +196,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         registeredEmail,
         parentEmailCol,
         timestampCol,
-        60, // Only accept rows submitted within the last 60 seconds if no email/session match
+        300, // Only accept rows submitted within the last 5 minutes if no email/session match
       );
       if (!dataRow) {
         return res.status(404).json({ message: "No matching form response found" });

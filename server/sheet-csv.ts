@@ -106,7 +106,7 @@ function parseSheetTimestamp(ts: string): Date | null {
  * Priority:
  * 1. Match by session ID (if form has that field)
  * 2. Match by parent email (if user pre-entered it)
- * 3. Fall back to last row ONLY if it was submitted within the last 60 seconds
+ * 3. Find the most recent row with a valid timestamp within maxAgeSec (default 5 min)
  * 
  * This prevents showing the wrong family's data when multiple people register.
  */
@@ -141,20 +141,26 @@ export function pickResponseRow(
     return null;
   }
   
-  // Priority 3: Fall back to last row ONLY if recent (within maxAgeSec)
-  const lastRow = rows[rows.length - 1];
-  if (timestampCol >= 0 && lastRow) {
-    const ts = parseSheetTimestamp(lastRow[timestampCol] ?? "");
-    if (ts) {
-      const ageMs = Date.now() - ts.getTime();
-      if (ageMs <= maxAgeSec * 1000) {
-        return lastRow;
+  // Priority 3: Find the most recent row with a valid timestamp within maxAgeSec
+  // Scan backwards to handle sheets with incomplete/empty rows at the bottom
+  if (timestampCol >= 0) {
+    const now = Date.now();
+    for (let r = rows.length - 1; r >= 1; r--) {
+      const row = rows[r];
+      const ts = parseSheetTimestamp(row[timestampCol] ?? "");
+      if (ts) {
+        const ageMs = now - ts.getTime();
+        if (ageMs <= maxAgeSec * 1000) {
+          return row;
+        }
+        // Found a valid timestamp but it's too old - stop searching
+        // (older rows will be even older)
+        return null;
       }
-      // Row is too old - don't return wrong data
-      return null;
+      // Row has no valid timestamp, keep searching upward
     }
   }
   
-  // No timestamp column or couldn't parse - don't risk returning wrong data
+  // No timestamp column or no recent rows found
   return null;
 }
