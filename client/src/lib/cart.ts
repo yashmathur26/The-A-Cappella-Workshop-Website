@@ -1,3 +1,5 @@
+import { normalizeReferralName } from '@shared/referrals';
+
 // Dynamic weeks will be passed to cart methods
 
 export interface CartItem {
@@ -246,6 +248,45 @@ export class CartManager {
     if (typeof window === 'undefined') return;
     localStorage.removeItem(this.PROMO_KEY);
     this.triggerCartUpdate();
+  }
+
+  static hasAppliedCode(): boolean {
+    return !!(this.getPromoCode() || this.getReferralName());
+  }
+
+  static getAppliedCodeDisplay(): string {
+    return this.getPromoCode() || this.getReferralName();
+  }
+
+  static applyPromoOrReferral(
+    code: string,
+    location?: string,
+  ): 'promo' | 'referral' | 'cleared' | 'invalid' {
+    const trimmed = code.trim();
+    if (!trimmed) {
+      this.removePromoCode();
+      this.removeReferralName();
+      return 'cleared';
+    }
+
+    if (this.setPromoCode(trimmed, location)) {
+      this.removeReferralName();
+      return 'promo';
+    }
+
+    const referral = normalizeReferralName(trimmed);
+    if (referral) {
+      this.removePromoCode();
+      this.setReferralName(referral);
+      return 'referral';
+    }
+
+    return 'invalid';
+  }
+
+  static clearAppliedCode(): void {
+    this.removePromoCode();
+    this.removeReferralName();
   }
 
   static getReferralName(): string {

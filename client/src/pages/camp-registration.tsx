@@ -11,8 +11,6 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tag, X, AlertTriangle, MapPin, ShoppingCart } from "lucide-react";
 import { useLocation } from '@/contexts/LocationContext';
-import { ReferralNameField } from '@/components/ReferralNameField';
-import { normalizeReferralName } from '@shared/referrals';
 
 
 // Set to true to show maintenance message, false to show normal registration
@@ -24,9 +22,8 @@ export default function Register() {
   const [showForm, setShowForm] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [registrationIds, setRegistrationIds] = useState<string[]>([]);
-  const [promoCode, setPromoCode] = useState(CartManager.getPromoCode());
+  const [promoCode, setPromoCode] = useState(CartManager.getAppliedCodeDisplay());
   const [promoError, setPromoError] = useState("");
-  const [referralError, setReferralError] = useState("");
   const [parentEmail, setParentEmail] = useState("");
   const [childName, setChildName] = useState("");
   const [parentName, setParentName] = useState("");
@@ -65,11 +62,11 @@ export default function Register() {
 
   useEffect(() => {
     setCart(CartManager.getCart());
-    setPromoCode(CartManager.getPromoCode());
+    setPromoCode(CartManager.getAppliedCodeDisplay());
     
     const handleStorageChange = () => {
       setCart(CartManager.getCart());
-      setPromoCode(CartManager.getPromoCode());
+      setPromoCode(CartManager.getAppliedCodeDisplay());
     };
 
     window.addEventListener('storage', handleStorageChange);
@@ -195,20 +192,34 @@ export default function Register() {
   const handlePromoCodeSubmit = () => {
     if (!promoCode.trim()) {
       setPromoError("");
-      CartManager.removePromoCode();
+      CartManager.clearAppliedCode();
       return;
     }
     
-    const isValid = CartManager.setPromoCode(promoCode.trim(), currentLocation);
-    if (isValid) {
+    const result = CartManager.applyPromoOrReferral(promoCode.trim(), currentLocation);
+    if (result === 'cleared') {
+      setPromoError("");
+      return;
+    }
+
+    if (result === 'referral') {
+      setPromoError("");
+      setPromoCode(CartManager.getReferralName());
+      toast({
+        title: "Referral recorded!",
+        description: `Referred by ${CartManager.getReferralName()}`,
+      });
+      return;
+    }
+
+    if (result === 'promo') {
       // Check if EARLYBIRD can be applied (only for full payments)
       if (promoCode.toUpperCase() === 'EARLYBIRD') {
-        // Check if EARLYBIRD has expired
         const today = new Date();
         const expiryDate = new Date('2026-02-15T23:59:59');
         if (today > expiryDate) {
           setPromoError("EARLYBIRD promo code has expired. It was only valid until February 15, 2026.");
-          CartManager.removePromoCode();
+          CartManager.clearAppliedCode();
           return;
         }
         
@@ -216,37 +227,39 @@ export default function Register() {
         const hasDepositItems = cart.some(item => item.paymentType === 'deposit');
         if (hasDepositItems) {
           setPromoError("EARLYBIRD discount only applies to full payments. Remove deposit items to use this code.");
-          CartManager.removePromoCode();
+          CartManager.clearAppliedCode();
           return;
         }
       }
       setPromoError("");
+      setPromoCode(CartManager.getPromoCode());
       toast({
         title: "Promo code applied!",
         description: `You saved $${CartManager.getDiscountAmount()} with code ${promoCode.toUpperCase()}`,
       });
-    } else {
-      // Check if it's an expired EARLYBIRD code
-      if (promoCode.toUpperCase() === 'EARLYBIRD') {
-        const today = new Date();
-        const expiryDate = new Date('2026-02-15T23:59:59');
-        if (today > expiryDate) {
-          setPromoError("EARLYBIRD promo code has expired. It was only valid until February 15, 2026.");
-        } else {
-          setPromoError("Invalid promo code");
-        }
+      return;
+    }
+
+    // Invalid
+    if (promoCode.toUpperCase() === 'EARLYBIRD') {
+      const today = new Date();
+      const expiryDate = new Date('2026-02-15T23:59:59');
+      if (today > expiryDate) {
+        setPromoError("EARLYBIRD promo code has expired. It was only valid until February 15, 2026.");
       } else {
-        setPromoError("Invalid promo code");
+        setPromoError("Invalid promo/referral code");
       }
+    } else {
+      setPromoError("Invalid promo/referral code");
     }
   };
 
   const handleRemovePromo = () => {
-    CartManager.removePromoCode();
+    CartManager.clearAppliedCode();
     setPromoCode("");
     setPromoError("");
     toast({
-      title: "Promo code removed",
+      title: "Code removed",
     });
   };
 
@@ -390,18 +403,7 @@ export default function Register() {
       return;
     }
 
-    const rawReferral = CartManager.getReferralName();
-    const referralName = rawReferral ? normalizeReferralName(rawReferral) : null;
-    if (rawReferral.trim() && !referralName) {
-      setReferralError("Please select a valid teacher or TA from the list.");
-      toast({
-        title: "Invalid referral",
-        description: "Choose a teacher or TA from the referral dropdown, or leave it blank.",
-        variant: "destructive",
-      });
-      return;
-    }
-    setReferralError("");
+    const referralName = CartManager.getReferralName() || undefined;
     
     // Go directly to Stripe checkout
     setIsLoading(true);
@@ -443,7 +445,7 @@ export default function Register() {
         childName: childName.trim(),
         parentName: parentName.trim() || undefined,
         locationName: locationData[currentLocation].name,
-        referralName: referralName || undefined,
+        referralName,
       });
       
       const data = await response.json();
@@ -1014,18 +1016,18 @@ export default function Register() {
                     </div>
                   )}
 
-                  {/* Promo Code Section */}
+                  {/* Promo/Referral Code Section */}
                   <div>
-                    <Label className="text-white text-sm mb-2 block">Promo Code (Optional)</Label>
+                    <Label className="text-white text-sm mb-2 block">Promo/Referral Code (Optional)</Label>
                     <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
                       <Input
                         value={promoCode}
                         onChange={(e) => setPromoCode(e.target.value)}
-                        placeholder="Enter promo code"
+                        placeholder="Enter promo or referral code"
                         className="bg-white/10 border-white/20 text-white placeholder:text-white/50 flex-1"
                         onKeyPress={(e) => e.key === 'Enter' && handlePromoCodeSubmit()}
                       />
-                      {CartManager.getPromoCode() ? (
+                      {CartManager.hasAppliedCode() ? (
                         <button
                           onClick={handleRemovePromo}
                           className="px-3 py-2 bg-red-500/20 border border-red-400/30 text-red-200 rounded hover:bg-red-500/30 transition-colors"
@@ -1049,12 +1051,12 @@ export default function Register() {
                         Code "{CartManager.getPromoCode()}" applied!
                       </p>
                     )}
+                    {!CartManager.getPromoCode() && CartManager.getReferralName() && (
+                      <p className="text-green-400 text-xs mt-1">
+                        Referral from {CartManager.getReferralName()} recorded!
+                      </p>
+                    )}
                   </div>
-
-                  <ReferralNameField
-                    error={referralError}
-                    onErrorChange={setReferralError}
-                  />
                 </div>
               )}
               
@@ -1273,25 +1275,21 @@ export default function Register() {
                         placeholder="Parent name"
                         className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
                       />
-                      <ReferralNameField
-                        error={referralError}
-                        onErrorChange={setReferralError}
-                      />
                     </div>
                   )}
 
-                  {/* Promo Code - Mobile */}
+                  {/* Promo/Referral Code - Mobile */}
                   <div>
-                    <Label className="text-white text-sm mb-2 block">Promo Code (Optional)</Label>
+                    <Label className="text-white text-sm mb-2 block">Promo/Referral Code (Optional)</Label>
                     <div className="flex space-x-2">
                       <Input
                         value={promoCode}
                         onChange={(e) => setPromoCode(e.target.value)}
-                        placeholder="Enter promo code"
+                        placeholder="Enter promo or referral code"
                         className="bg-white/10 border-white/20 text-white placeholder:text-white/50 flex-1"
                         onKeyPress={(e) => e.key === 'Enter' && handlePromoCodeSubmit()}
                       />
-                      {CartManager.getPromoCode() ? (
+                      {CartManager.hasAppliedCode() ? (
                         <button
                           onClick={handleRemovePromo}
                           className="px-3 py-2 bg-red-500/20 border border-red-400/30 text-red-200 rounded hover:bg-red-500/30 transition-colors"
@@ -1311,12 +1309,12 @@ export default function Register() {
                     {CartManager.getPromoCode() && (
                       <p className="text-green-400 text-xs mt-1">Code "{CartManager.getPromoCode()}" applied!</p>
                     )}
+                    {!CartManager.getPromoCode() && CartManager.getReferralName() && (
+                      <p className="text-green-400 text-xs mt-1">
+                        Referral from {CartManager.getReferralName()} recorded!
+                      </p>
+                    )}
                   </div>
-
-                  <ReferralNameField
-                    error={referralError}
-                    onErrorChange={setReferralError}
-                  />
                 </div>
               )}
 
@@ -1530,11 +1528,6 @@ export default function Register() {
                       className="mt-1.5 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-white/40"
                     />
                   </div>
-
-                  <ReferralNameField
-                    error={referralError}
-                    onErrorChange={setReferralError}
-                  />
 
                   {/* Cart Summary */}
                   <div className="mt-4 p-3 rounded-lg bg-white/5 border border-white/10">

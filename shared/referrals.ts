@@ -1,6 +1,6 @@
 /**
- * Teacher & TA referral names — add every staff member parents can select.
- * Matching is case-insensitive; parents pick from the dropdown on registration.
+ * Teacher & TA referral names — add every staff member parents can enter
+ * in the promo/referral code field. Matching is case-insensitive.
  */
 export const REFERRAL_NAMES = [
   "Arjun Kumar",
