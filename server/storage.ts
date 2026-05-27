@@ -3,6 +3,7 @@ import {
   registrations,
   payments,
   visits,
+  referralCodeRedemptions,
   type Week,
   type InsertWeek,
   type Registration,
@@ -11,9 +12,10 @@ import {
   type InsertPayment,
   type Visit,
   type InsertVisit,
+  type ReferralCodeRedemption,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, sql, gte, lt, lte } from "drizzle-orm";
+import { eq, and, sql, gte, lt, lte, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // Week operations
@@ -38,6 +40,16 @@ export interface IStorage {
   getTotalUniqueVisitors(): Promise<number>;
   getUniqueVisitsToday(): Promise<number>;
   getVisitsByDate(startDate?: Date, endDate?: Date): Promise<number>;
+
+  // Referral code redemption operations
+  countReferralCodeUses(code: string): Promise<number>;
+  createReferralRedemption(data: {
+    code: string;
+    stripeCheckoutSessionId: string;
+    parentEmail?: string;
+  }): Promise<ReferralCodeRedemption>;
+  completeReferralRedemption(stripeCheckoutSessionId: string): Promise<void>;
+  cancelReferralRedemption(stripeCheckoutSessionId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -231,12 +243,68 @@ export class DatabaseStorage implements IStorage {
     const result = await query;
     return Number(result[0]?.count || 0);
   }
+
+  async countReferralCodeUses(code: string): Promise<number> {
+    const normalized = code.trim().toUpperCase();
+    const result = await this._db
+      .select({ count: sql<number>`count(*)` })
+      .from(referralCodeRedemptions)
+      .where(
+        and(
+          eq(referralCodeRedemptions.code, normalized),
+          inArray(referralCodeRedemptions.status, ["pending", "completed"]),
+        ),
+      );
+    return Number(result[0]?.count || 0);
+  }
+
+  async createReferralRedemption(data: {
+    code: string;
+    stripeCheckoutSessionId: string;
+    parentEmail?: string;
+  }): Promise<ReferralCodeRedemption> {
+    const [redemption] = await this._db
+      .insert(referralCodeRedemptions)
+      .values({
+        code: data.code.trim().toUpperCase(),
+        stripeCheckoutSessionId: data.stripeCheckoutSessionId,
+        status: "pending",
+        parentEmail: data.parentEmail?.toLowerCase() ?? null,
+      })
+      .returning();
+    return redemption;
+  }
+
+  async completeReferralRedemption(stripeCheckoutSessionId: string): Promise<void> {
+    await this._db
+      .update(referralCodeRedemptions)
+      .set({ status: "completed", completedAt: new Date() })
+      .where(
+        and(
+          eq(referralCodeRedemptions.stripeCheckoutSessionId, stripeCheckoutSessionId),
+          eq(referralCodeRedemptions.status, "pending"),
+        ),
+      );
+  }
+
+  async cancelReferralRedemption(stripeCheckoutSessionId: string): Promise<void> {
+    await this._db
+      .update(referralCodeRedemptions)
+      .set({ status: "cancelled" })
+      .where(
+        and(
+          eq(referralCodeRedemptions.stripeCheckoutSessionId, stripeCheckoutSessionId),
+          eq(referralCodeRedemptions.status, "pending"),
+        ),
+      );
+  }
 }
 
 class MemoryStorage implements IStorage {
   private _weeks: Week[] = [];
   private _registrations: Registration[] = [];
   private _payments: Payment[] = [];
+  private _referralRedemptions: ReferralCodeRedemption[] = [];
 
   async getWeeks(): Promise<Week[]> {
     return this._weeks;
@@ -413,6 +481,60 @@ class MemoryStorage implements IStorage {
     }
     
     return filtered.length;
+  }
+
+  async countReferralCodeUses(code: string): Promise<number> {
+    const normalized = code.trim().toUpperCase();
+    return this._referralRedemptions.filter(
+      (r) =>
+        r.code === normalized &&
+        (r.status === "pending" || r.status === "completed"),
+    ).length;
+  }
+
+  async createReferralRedemption(data: {
+    code: string;
+    stripeCheckoutSessionId: string;
+    parentEmail?: string;
+  }): Promise<ReferralCodeRedemption> {
+    const id =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `ref_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
+    const redemption: ReferralCodeRedemption = {
+      id,
+      code: data.code.trim().toUpperCase(),
+      stripeCheckoutSessionId: data.stripeCheckoutSessionId,
+      status: "pending",
+      parentEmail: data.parentEmail?.toLowerCase() ?? null,
+      createdAt: new Date(),
+      completedAt: null,
+    };
+
+    this._referralRedemptions.push(redemption);
+    return redemption;
+  }
+
+  async completeReferralRedemption(stripeCheckoutSessionId: string): Promise<void> {
+    const r = this._referralRedemptions.find(
+      (x) =>
+        x.stripeCheckoutSessionId === stripeCheckoutSessionId &&
+        x.status === "pending",
+    );
+    if (!r) return;
+    r.status = "completed";
+    r.completedAt = new Date();
+  }
+
+  async cancelReferralRedemption(stripeCheckoutSessionId: string): Promise<void> {
+    const r = this._referralRedemptions.find(
+      (x) =>
+        x.stripeCheckoutSessionId === stripeCheckoutSessionId &&
+        x.status === "pending",
+    );
+    if (!r) return;
+    r.status = "cancelled";
   }
 }
 

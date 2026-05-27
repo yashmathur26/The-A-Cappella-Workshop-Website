@@ -22,6 +22,8 @@ export class CartManager {
   private static readonly STORAGE_KEY = 'acappella-cart';
   private static readonly PROMO_KEY = 'acappella-promo';
   private static readonly REFERRAL_KEY = 'acappella-referral';
+  private static readonly REFERRAL_CODE_KEY = 'acappella-parent-referral-code';
+  private static readonly REFERRAL_DISCOUNT_CENTS_KEY = 'acappella-parent-referral-discount-cents';
   
   // Promo codes and their discounts (percentage off)
   private static readonly PROMO_CODES = {
@@ -130,6 +132,7 @@ export class CartManager {
     this.setCart([]);
     this.removePromoCode();
     this.removeReferralName();
+    this.removeParentReferralCode();
     this.triggerCartUpdate();
   }
 
@@ -139,6 +142,13 @@ export class CartManager {
 
   static getCartTotal(): number {
     const cart = this.getCartItems();
+
+    if (this.getParentReferralCode()) {
+      const subtotal = cart.reduce((total, item) => total + item.price, 0);
+      const discount = this.getReferralDiscountCents() / 100;
+      return Math.max(0, Math.round((subtotal - discount) * 100) / 100);
+    }
+
     const promoCode = this.getPromoCode();
     
     // DOLLAR: $1 per week
@@ -193,6 +203,12 @@ export class CartManager {
   }
 
   static getDiscountAmount(): number {
+    if (this.getParentReferralCode()) {
+      const subtotal = this.getCartSubtotal();
+      const total = this.getCartTotal();
+      return Math.round((subtotal - total) * 100) / 100;
+    }
+
     const promoCode = this.getPromoCode();
     
     // DOLLAR: discount = subtotal - ($1 × items)
@@ -238,6 +254,7 @@ export class CartManager {
     const isFixedPriceCode = upperCode in this.FIXED_PRICE_PROMOS;
     if (upperCode === '' || isPercentCode || isFixedPriceCode) {
       localStorage.setItem(this.PROMO_KEY, upperCode);
+      this.removeParentReferralCode();
       this.triggerCartUpdate();
       return true;
     }
@@ -251,11 +268,11 @@ export class CartManager {
   }
 
   static hasAppliedCode(): boolean {
-    return !!(this.getPromoCode() || this.getReferralName());
+    return !!(this.getPromoCode() || this.getReferralName() || this.getParentReferralCode());
   }
 
   static getAppliedCodeDisplay(): string {
-    return this.getPromoCode() || this.getReferralName();
+    return this.getPromoCode() || this.getParentReferralCode() || this.getReferralName();
   }
 
   static applyPromoOrReferral(
@@ -266,17 +283,20 @@ export class CartManager {
     if (!trimmed) {
       this.removePromoCode();
       this.removeReferralName();
+      this.removeParentReferralCode();
       return 'cleared';
     }
 
     if (this.setPromoCode(trimmed, location)) {
       this.removeReferralName();
+      this.removeParentReferralCode();
       return 'promo';
     }
 
     const referral = normalizeReferralName(trimmed);
     if (referral) {
       this.removePromoCode();
+      this.removeParentReferralCode();
       this.setReferralName(referral);
       return 'referral';
     }
@@ -287,6 +307,34 @@ export class CartManager {
   static clearAppliedCode(): void {
     this.removePromoCode();
     this.removeReferralName();
+    this.removeParentReferralCode();
+  }
+
+  static getParentReferralCode(): string {
+    if (typeof window === 'undefined') return '';
+    return localStorage.getItem(this.REFERRAL_CODE_KEY) || '';
+  }
+
+  static getReferralDiscountCents(): number {
+    if (typeof window === 'undefined') return 0;
+    const stored = localStorage.getItem(this.REFERRAL_DISCOUNT_CENTS_KEY);
+    return stored ? parseInt(stored, 10) : 0;
+  }
+
+  static setParentReferralCode(code: string, discountCents: number): void {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(this.REFERRAL_CODE_KEY, code.trim().toUpperCase());
+    localStorage.setItem(this.REFERRAL_DISCOUNT_CENTS_KEY, String(discountCents));
+    this.removePromoCode();
+    this.removeReferralName();
+    this.triggerCartUpdate();
+  }
+
+  static removeParentReferralCode(): void {
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem(this.REFERRAL_CODE_KEY);
+    localStorage.removeItem(this.REFERRAL_DISCOUNT_CENTS_KEY);
+    this.triggerCartUpdate();
   }
 
   static getReferralName(): string {
@@ -299,6 +347,8 @@ export class CartManager {
     const trimmed = name.trim();
     if (trimmed) {
       localStorage.setItem(this.REFERRAL_KEY, trimmed);
+      this.removeParentReferralCode();
+      this.removePromoCode();
     } else {
       localStorage.removeItem(this.REFERRAL_KEY);
     }

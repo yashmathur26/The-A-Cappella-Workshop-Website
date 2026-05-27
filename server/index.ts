@@ -56,22 +56,25 @@ if (stripe) {
 
           if (session.payment_status === 'paid') {
             try {
-              // Import storage and email functions dynamically to avoid circular dependencies
               const { storage } = await import("./storage");
               const { sendRegistrationConfirmationEmail } = await import("./brevo");
 
-              // Parse cart items from metadata
+              await storage.completeReferralRedemption(session.id);
+
               const itemsJson = session.metadata?.items_json;
               const items = itemsJson ? JSON.parse(itemsJson) : [];
 
-              // Get guest info from metadata
               const parentEmail =
                 session.customer_details?.email || session.metadata?.parentEmail || '';
               const childName = session.metadata?.childName || '';
+              const appliedCode =
+                session.metadata?.appliedCode ||
+                session.metadata?.promoCode ||
+                session.metadata?.referralName ||
+                '';
 
-              const referralName = session.metadata?.referralName || '';
               console.log(
-                `👤 Processing guest payment for ${childName} (${parentEmail}), ${items.length} items${referralName ? `, referral: ${referralName}` : ''}`,
+                `👤 Processing guest payment for ${childName} (${parentEmail}), ${items.length} items${appliedCode ? `, code: ${appliedCode}` : ''}`,
               );
 
               // Split session total across items so each registration has correct amount
@@ -101,7 +104,7 @@ if (stripe) {
                   paymentType,
                   amountPaidCents,
                   balanceDueCents,
-                  promoCode: session.metadata?.promoCode || null,
+                  promoCode: appliedCode || null,
                 });
                 console.log(
                   `📝 Created registration for week ${item.week_id} (${paymentType}: $${amountPaidCents / 100}, balance: $${balanceDueCents / 100})`,
@@ -143,6 +146,17 @@ if (stripe) {
               // Continue to return success to Stripe even if processing failed
               // You may want to implement a retry mechanism or queue for failed events
             }
+          }
+        }
+
+        if (event.type === 'checkout.session.expired') {
+          const session = event.data.object as Stripe.Checkout.Session;
+          try {
+            const { storage } = await import("./storage");
+            await storage.cancelReferralRedemption(session.id);
+            console.log(`🕐 Checkout expired: released referral slot for session ${session.id}`);
+          } catch (error) {
+            console.error('❌ Error cancelling referral redemption:', error);
           }
         }
 

@@ -69,6 +69,19 @@ export const visits = pgTable("visits", {
   index("idx_visits_visitor_date").on(table.visitorId, table.date),
 ]);
 
+// Referral code redemptions - tracks parent/staff referral code usage
+export const referralCodeRedemptions = pgTable("referral_code_redemptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  code: text("code").notNull(),
+  stripeCheckoutSessionId: text("stripe_checkout_session_id").notNull().unique(),
+  status: text("status").notNull().default("pending"), // pending|completed|cancelled
+  parentEmail: text("parent_email"),
+  createdAt: timestamp("created_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+}, (table) => [
+  index("idx_referral_redemptions_code_status").on(table.code, table.status),
+]);
+
 // Relations
 export const weeksRelations = relations(weeks, ({ many }) => ({
   registrations: many(registrations),
@@ -105,3 +118,6 @@ export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 
 export type Visit = typeof visits.$inferSelect;
 export type InsertVisit = typeof visits.$inferInsert;
+
+export type ReferralCodeRedemption = typeof referralCodeRedemptions.$inferSelect;
+export type InsertReferralCodeRedemption = typeof referralCodeRedemptions.$inferInsert;

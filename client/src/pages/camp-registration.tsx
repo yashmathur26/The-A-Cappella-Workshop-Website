@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tag, X, AlertTriangle, MapPin, ShoppingCart } from "lucide-react";
 import { useLocation } from '@/contexts/LocationContext';
+import { isReferralCode } from '@shared/referral-codes';
 
 
 // Set to true to show maintenance message, false to show normal registration
@@ -189,11 +190,36 @@ export default function Register() {
     window.dispatchEvent(new Event('cartUpdated'));
   };
 
-  const handlePromoCodeSubmit = () => {
+  const handlePromoCodeSubmit = async () => {
     if (!promoCode.trim()) {
       setPromoError("");
       CartManager.clearAppliedCode();
       return;
+    }
+
+    if (isReferralCode(promoCode.trim())) {
+      try {
+        const response = await apiRequest('POST', '/api/validate-referral-code', {
+          code: promoCode.trim(),
+        });
+        const data = await response.json();
+        if (data.valid) {
+          CartManager.setParentReferralCode(data.code, data.discountCents);
+          setPromoCode(data.code);
+          setPromoError("");
+          toast({
+            title: "Code applied!",
+            description: `$${data.discountDollars} off! (${data.usesRemaining} use${data.usesRemaining === 1 ? "" : "s"} remaining)`,
+          });
+          return;
+        }
+        setPromoError(data.message || "Invalid promo/referral code");
+        CartManager.clearAppliedCode();
+        return;
+      } catch {
+        setPromoError("Could not validate code. Please try again.");
+        return;
+      }
     }
     
     const result = CartManager.applyPromoOrReferral(promoCode.trim(), currentLocation);
@@ -404,15 +430,21 @@ export default function Register() {
     }
 
     const referralName = CartManager.getReferralName() || undefined;
+    const parentReferralCode = CartManager.getParentReferralCode() || undefined;
     
     // Go directly to Stripe checkout
     setIsLoading(true);
     setPaymentStatus('pending');
     
     try {
-      // Apply discount to cart items before sending to Stripe
       const promoCode = CartManager.getPromoCode();
-      const discountedCartItems = cart.map(item => {
+      const discountedCartItems = parentReferralCode
+        ? cart.map(item => ({
+            ...item,
+            price: item.price,
+            weekLabel: item.label,
+          }))
+        : cart.map(item => {
         // DOLLAR: $1 per week
         if (promoCode === 'DOLLAR') {
           return {
@@ -446,6 +478,7 @@ export default function Register() {
         parentName: parentName.trim() || undefined,
         locationName: locationData[currentLocation].name,
         referralName,
+        referralCode: parentReferralCode,
       });
       
       const data = await response.json();
@@ -1051,7 +1084,12 @@ export default function Register() {
                         Code "{CartManager.getPromoCode()}" applied!
                       </p>
                     )}
-                    {!CartManager.getPromoCode() && CartManager.getReferralName() && (
+                    {CartManager.getParentReferralCode() && (
+                      <p className="text-green-400 text-xs mt-1">
+                        Code "{CartManager.getParentReferralCode()}" applied — ${CartManager.getReferralDiscountCents() / 100} off!
+                      </p>
+                    )}
+                    {!CartManager.getPromoCode() && !CartManager.getParentReferralCode() && CartManager.getReferralName() && (
                       <p className="text-green-400 text-xs mt-1">
                         Referral from {CartManager.getReferralName()} recorded!
                       </p>
@@ -1068,7 +1106,7 @@ export default function Register() {
                       <span>${cartSubtotal.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-green-400">
-                      <span>Discount ({CartManager.getPromoCode()}):</span>
+                      <span>Discount ({CartManager.getAppliedCodeDisplay()}):</span>
                       <span>-${discountAmount.toFixed(2)}</span>
                     </div>
                   </div>
@@ -1309,7 +1347,12 @@ export default function Register() {
                     {CartManager.getPromoCode() && (
                       <p className="text-green-400 text-xs mt-1">Code "{CartManager.getPromoCode()}" applied!</p>
                     )}
-                    {!CartManager.getPromoCode() && CartManager.getReferralName() && (
+                    {CartManager.getParentReferralCode() && (
+                      <p className="text-green-400 text-xs mt-1">
+                        Code "{CartManager.getParentReferralCode()}" applied — ${CartManager.getReferralDiscountCents() / 100} off!
+                      </p>
+                    )}
+                    {!CartManager.getPromoCode() && !CartManager.getParentReferralCode() && CartManager.getReferralName() && (
                       <p className="text-green-400 text-xs mt-1">
                         Referral from {CartManager.getReferralName()} recorded!
                       </p>
@@ -1327,7 +1370,7 @@ export default function Register() {
                       <span>${cartSubtotal.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-green-400">
-                      <span>Discount ({CartManager.getPromoCode()}):</span>
+                      <span>Discount ({CartManager.getAppliedCodeDisplay()}):</span>
                       <span>-${discountAmount.toFixed(2)}</span>
                     </div>
                   </div>

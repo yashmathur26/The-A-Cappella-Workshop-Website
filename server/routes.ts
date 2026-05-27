@@ -11,6 +11,11 @@ import { storage } from "./storage";
 import { sendRegistrationConfirmationEmail } from "./brevo";
 import { insertRegistrationSchema, type Week, visits } from "@shared/schema";
 import { normalizeReferralName } from "@shared/referrals";
+import {
+  validateReferralCode,
+  applyOrderDiscount,
+  getItemBasePriceDollars,
+} from "./referral-codes";
 import { pool, db } from "./db";
 import { pickResponseRow, resolveSheetColumns } from "./sheet-csv";
 
@@ -543,6 +548,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Validate parent/staff referral code (usage cap + discount)
+  app.post("/api/validate-referral-code", express.json(), async (req, res) => {
+    try {
+      const { code } = req.body;
+      if (!code || !String(code).trim()) {
+        return res.status(400).json({ message: "Code is required" });
+      }
+
+      const result = await validateReferralCode(String(code));
+      if (!result.valid) {
+        const messages: Record<string, string> = {
+          not_found: "Invalid promo/referral code",
+          exhausted: "This referral code has already been used 3 times.",
+          no_database: "Referral codes are unavailable right now. Please try again later.",
+        };
+        return res.json({
+          valid: false,
+          reason: result.reason,
+          message: messages[result.reason] ?? "Invalid code",
+        });
+      }
+
+      res.json(result);
+    } catch (error) {
+      console.error("Error validating referral code:", error);
+      res.status(500).json({ message: "Failed to validate referral code" });
+    }
+  });
+
   // Create checkout session for guest checkout
   app.post("/api/create-checkout-session", express.json(), async (req, res) => {
     try {
@@ -553,7 +587,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const { cartItems, promoCode, parentEmail, childName, parentName, locationName, referralName } = req.body;
+      const {
+        cartItems,
+        promoCode,
+        parentEmail,
+        childName,
+        parentName,
+        locationName,
+        referralName,
+        referralCode,
+      } = req.body;
       
       if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
         return res.status(400).json({ message: "Cart items are required" });
@@ -570,18 +613,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid referral name" });
       }
 
-      const appliedCode = promoCode?.trim()
-        ? String(promoCode).trim().toUpperCase()
-        : normalizedReferral || '';
+      let referralValidation: Awaited<ReturnType<typeof validateReferralCode>> | null = null;
+      if (referralCode && String(referralCode).trim()) {
+        referralValidation = await validateReferralCode(String(referralCode));
+        if (!referralValidation.valid) {
+          const message =
+            referralValidation.reason === "exhausted"
+              ? "This referral code has already been used 3 times."
+              : "Invalid referral code";
+          return res.status(400).json({ message });
+        }
+      }
+
+      let pricedItems = cartItems.map((item: any) => ({ ...item }));
+
+      if (referralValidation?.valid) {
+        const basePrices: number[] = [];
+        for (const item of pricedItems) {
+          const week = item.weekId ? await storage.getWeek(item.weekId) : undefined;
+          basePrices.push(
+            getItemBasePriceDollars(item, week?.priceCents ?? 50000),
+          );
+        }
+        const discountDollars = referralValidation.discountCents / 100;
+        const discountedPrices = applyOrderDiscount(basePrices, discountDollars);
+        pricedItems = pricedItems.map((item: any, index: number) => ({
+          ...item,
+          price: discountedPrices[index],
+        }));
+      }
+
+      const appliedCode = referralValidation?.valid
+        ? referralValidation.code
+        : promoCode?.trim()
+          ? String(promoCode).trim().toUpperCase()
+          : normalizedReferral || '';
+
+      const codeType = referralValidation?.valid
+        ? referralValidation.type
+        : normalizedReferral
+          ? "teacher_name"
+          : promoCode?.trim()
+            ? "promo"
+            : "";
+
+      const discountCents = referralValidation?.valid
+        ? String(referralValidation.discountCents)
+        : "";
 
       // Get the host for redirect URLs
       const protocol = req.get('x-forwarded-proto') || (req.secure ? 'https' : 'http');
       const host = `${protocol}://${req.get('host')}`;
 
-      // Calculate pricing - EARLYBIRD discount is applied on client side
-      // Client sends discounted prices, so we use them directly
-      const lineItems = cartItems.map((item: any) => {
-        const amount = Math.round(item.price * 100); // Price already includes discount from client
+      const lineItems = pricedItems.map((item: any) => {
+        const amount = Math.round(item.price * 100);
         const itemLocation = item.location || locationName || 'Unknown Location';
         const weekLabel = item.weekLabel || item.label || 'Week';
 
@@ -598,11 +683,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       });
 
-      // Calculate 3.6% processing fee based on cart total (after discount)
-      const cartTotal = cartItems.reduce((total: number, item: any) => {
-        return total + item.price; // Price already includes discount from client
+      const cartTotal = pricedItems.reduce((total: number, item: any) => {
+        return total + item.price;
       }, 0);
-      const processingFee = Math.round(cartTotal * 0.036 * 100); // 3.6% fee in cents
+      const processingFee = Math.round(cartTotal * 0.036 * 100);
 
       if (processingFee > 0) {
         lineItems.push({
@@ -618,15 +702,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Determine cancel URL based on location
-      let cancelUrl = `${host}/camp-registration`; // Default to Lexington
+      let cancelUrl = `${host}/camp-registration`;
       if (locationName?.toLowerCase().includes('newton')) {
         cancelUrl = `${host}/newton/register`;
       } else if (locationName?.toLowerCase().includes('wayland')) {
         cancelUrl = `${host}/wayland/register`;
       }
 
-      // Create checkout session
+      const registrationPromoCode = referralValidation?.valid
+        ? referralValidation.code
+        : promoCode || normalizedReferral || '';
+
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
         line_items: lineItems,
@@ -659,17 +745,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
           childName,
           parentName: parentName || '',
           locationName: locationName || '',
-          items_json: JSON.stringify(cartItems.map((item: any) => ({
+          items_json: JSON.stringify(pricedItems.map((item: any) => ({
             week_id: item.weekId,
             week_label: item.weekLabel || item.label || 'Week',
             student_name: childName,
             payment_type: item.paymentType || 'full',
           }))),
-          promoCode: promoCode || '',
+          promoCode: registrationPromoCode,
           referralName: normalizedReferral || '',
           appliedCode,
+          codeType,
+          discountCents,
+          referrerLabel: referralValidation?.valid ? (referralValidation.label ?? '') : '',
         },
       });
+
+      if (referralValidation?.valid) {
+        await storage.createReferralRedemption({
+          code: referralValidation.code,
+          stripeCheckoutSessionId: session.id,
+          parentEmail,
+        });
+      }
 
       res.json({ url: session.url });
     } catch (error) {
