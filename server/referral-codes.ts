@@ -1,4 +1,4 @@
-import { lookupReferralCode, normalizeReferralCode } from "@shared/referral-codes";
+import { lookupReferralCode, normalizeReferralCode, getReferralCodeDisplay } from "@shared/referral-codes";
 import type { ReferralCodeDefinition } from "@shared/referral-codes";
 import { storage } from "./storage";
 
@@ -6,6 +6,7 @@ export type ReferralCodeValidationResult =
   | {
       valid: true;
       code: string;
+      displayCode: string;
       type: ReferralCodeDefinition["type"];
       discountCents: number;
       discountDollars: number;
@@ -26,16 +27,21 @@ export async function validateReferralCode(
   }
 
   const code = normalizeReferralCode(input);
-  const useCount = await storage.countReferralCodeUses(code);
-  const usesRemaining = definition.maxUses - useCount;
+  const useCount =
+    definition.type === "staff" ? 0 : await storage.countReferralCodeUses(code);
+  const usesRemaining =
+    definition.type === "staff" || definition.maxUses === 0
+      ? 999
+      : definition.maxUses - useCount;
 
-  if (usesRemaining <= 0) {
+  if (definition.type !== "staff" && definition.maxUses > 0 && usesRemaining <= 0) {
     return { valid: false, reason: "exhausted" };
   }
 
   return {
     valid: true,
     code,
+    displayCode: getReferralCodeDisplay(definition),
     type: definition.type,
     discountCents: definition.discountCents,
     discountDollars: definition.discountCents / 100,

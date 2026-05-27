@@ -627,7 +627,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let pricedItems = cartItems.map((item: any) => ({ ...item }));
 
-      if (referralValidation?.valid) {
+      if (referralValidation?.valid && referralValidation.discountCents > 0) {
         const basePrices: number[] = [];
         for (const item of pricedItems) {
           const week = item.weekId ? await storage.getWeek(item.weekId) : undefined;
@@ -644,7 +644,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const appliedCode = referralValidation?.valid
-        ? referralValidation.code
+        ? referralValidation.displayCode
         : promoCode?.trim()
           ? String(promoCode).trim().toUpperCase()
           : normalizedReferral || '';
@@ -752,14 +752,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           referrerLabel: referralValidation?.valid ? (referralValidation.label ?? '') : '',
         },
       });
-
-      if (referralValidation?.valid) {
-        await storage.createReferralRedemption({
-          code: referralValidation.code,
-          stripeCheckoutSessionId: session.id,
-          parentEmail,
-        });
-      }
 
       res.json({ url: session.url });
     } catch (error) {

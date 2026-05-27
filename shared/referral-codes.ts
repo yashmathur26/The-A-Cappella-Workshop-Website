@@ -67,10 +67,59 @@ const PARENT_CODES = [
   "BOWS",
 ];
 
-export const REFERRAL_CODES: ReferralCodeDefinition[] = PARENT_CODES.map((code) => ({
-  code,
-  ...PARENT_CODE_DEFAULTS,
-}));
+const STAFF_CODE_DEFAULTS = {
+  type: "staff" as const,
+  discountCents: 0,
+  maxUses: 0,
+};
+
+/** Teacher & TA first names — entered in the promo/referral code field (no discount). */
+const STAFF_NAMES = [
+  "Aman",
+  "Helene",
+  "Abigail",
+  "Rohan",
+  "Izzi",
+  "Luke",
+  "Palin",
+  "Soham",
+  "Vivian",
+  "Shriya",
+  "Diya",
+  "Iris",
+  "Krish",
+  "Amal",
+  "Niva",
+  "Maggie",
+  "Laila",
+  "Tate",
+  "Julian",
+  "Anaya",
+  "Henry",
+  "Lucas",
+  "Enkhjin",
+  "Ayla",
+  "Nishka",
+  "Will",
+  "Ella",
+  "Sofia",
+  "Elliot",
+  "Rowan",
+];
+
+function staffDefinition(name: string): ReferralCodeDefinition {
+  const trimmed = name.trim();
+  return {
+    code: trimmed.toUpperCase(),
+    label: trimmed,
+    ...STAFF_CODE_DEFAULTS,
+  };
+}
+
+export const REFERRAL_CODES: ReferralCodeDefinition[] = [
+  ...PARENT_CODES.map((code) => ({ code, ...PARENT_CODE_DEFAULTS })),
+  ...STAFF_NAMES.map(staffDefinition),
+];
 
 const codeLookup = new Map(
   REFERRAL_CODES.map((def) => [def.code.trim().toUpperCase(), def]),
@@ -88,4 +137,9 @@ export function lookupReferralCode(input: string): ReferralCodeDefinition | null
 
 export function isReferralCode(input: string): boolean {
   return lookupReferralCode(input) !== null;
+}
+
+/** Name shown on Stripe and in the UI (e.g. "Aman" not "AMAN"). */
+export function getReferralCodeDisplay(def: ReferralCodeDefinition): string {
+  return def.label ?? def.code;
 }

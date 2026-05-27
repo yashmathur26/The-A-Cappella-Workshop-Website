@@ -58,8 +58,7 @@ if (stripe) {
             try {
               const { storage } = await import("./storage");
               const { sendRegistrationConfirmationEmail } = await import("./brevo");
-
-              await storage.completeReferralRedemption(session.id);
+              const { lookupReferralCode } = await import("@shared/referral-codes");
 
               const itemsJson = session.metadata?.items_json;
               const items = itemsJson ? JSON.parse(itemsJson) : [];
@@ -72,6 +71,21 @@ if (stripe) {
                 session.metadata?.promoCode ||
                 session.metadata?.referralName ||
                 '';
+
+              const referralDefinition = appliedCode
+                ? lookupReferralCode(appliedCode)
+                : null;
+              if (referralDefinition) {
+                const recorded = await storage.recordReferralRedemptionOnPayment({
+                  code: referralDefinition.code,
+                  stripeCheckoutSessionId: session.id,
+                  parentEmail,
+                  maxUses: referralDefinition.maxUses,
+                });
+                if (recorded) {
+                  console.log(`🎟️ Recorded referral redemption for code ${referralDefinition.code}`);
+                }
+              }
 
               console.log(
                 `👤 Processing guest payment for ${childName} (${parentEmail}), ${items.length} items${appliedCode ? `, code: ${appliedCode}` : ''}`,
@@ -146,17 +160,6 @@ if (stripe) {
               // Continue to return success to Stripe even if processing failed
               // You may want to implement a retry mechanism or queue for failed events
             }
-          }
-        }
-
-        if (event.type === 'checkout.session.expired') {
-          const session = event.data.object as Stripe.Checkout.Session;
-          try {
-            const { storage } = await import("./storage");
-            await storage.cancelReferralRedemption(session.id);
-            console.log(`🕐 Checkout expired: released referral slot for session ${session.id}`);
-          } catch (error) {
-            console.error('❌ Error cancelling referral redemption:', error);
           }
         }
 

@@ -204,13 +204,24 @@ export default function Register() {
         });
         const data = await response.json();
         if (data.valid) {
-          CartManager.setParentReferralCode(data.code, data.discountCents);
-          setPromoCode(data.code);
+          CartManager.setParentReferralCode(
+            data.code,
+            data.discountCents,
+            data.displayCode ?? data.code,
+          );
+          setPromoCode(data.displayCode ?? data.code);
           setPromoError("");
-          toast({
-            title: "Code applied!",
-            description: `$${data.discountDollars} off! (${data.usesRemaining} use${data.usesRemaining === 1 ? "" : "s"} remaining)`,
-          });
+          if (data.discountCents > 0) {
+            toast({
+              title: "Code applied!",
+              description: `$${data.discountDollars} off! (${data.usesRemaining} use${data.usesRemaining === 1 ? "" : "s"} remaining)`,
+            });
+          } else {
+            toast({
+              title: "Referral recorded!",
+              description: `Referred by ${data.displayCode ?? data.code}`,
+            });
+          }
           return;
         }
         setPromoError(data.message || "Invalid promo/referral code");
@@ -225,16 +236,6 @@ export default function Register() {
     const result = CartManager.applyPromoOrReferral(promoCode.trim(), currentLocation);
     if (result === 'cleared') {
       setPromoError("");
-      return;
-    }
-
-    if (result === 'referral') {
-      setPromoError("");
-      setPromoCode(CartManager.getReferralName());
-      toast({
-        title: "Referral recorded!",
-        description: `Referred by ${CartManager.getReferralName()}`,
-      });
       return;
     }
 
@@ -1086,7 +1087,9 @@ export default function Register() {
                     )}
                     {CartManager.getParentReferralCode() && (
                       <p className="text-green-400 text-xs mt-1">
-                        Code "{CartManager.getParentReferralCode()}" applied — ${CartManager.getReferralDiscountCents() / 100} off!
+                        {CartManager.getReferralDiscountCents() > 0
+                          ? `Code "${CartManager.getReferralCodeDisplay()}" applied — $${CartManager.getReferralDiscountCents() / 100} off!`
+                          : `Referral from ${CartManager.getReferralCodeDisplay()} recorded!`}
                       </p>
                     )}
                     {!CartManager.getPromoCode() && !CartManager.getParentReferralCode() && CartManager.getReferralName() && (
@@ -1349,7 +1352,9 @@ export default function Register() {
                     )}
                     {CartManager.getParentReferralCode() && (
                       <p className="text-green-400 text-xs mt-1">
-                        Code "{CartManager.getParentReferralCode()}" applied — ${CartManager.getReferralDiscountCents() / 100} off!
+                        {CartManager.getReferralDiscountCents() > 0
+                          ? `Code "${CartManager.getReferralCodeDisplay()}" applied — $${CartManager.getReferralDiscountCents() / 100} off!`
+                          : `Referral from ${CartManager.getReferralCodeDisplay()} recorded!`}
                       </p>
                     )}
                     {!CartManager.getPromoCode() && !CartManager.getParentReferralCode() && CartManager.getReferralName() && (

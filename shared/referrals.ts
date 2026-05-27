@@ -1,26 +1,13 @@
 /**
- * Teacher & TA referral names — add every staff member parents can enter
- * in the promo/referral code field. Matching is case-insensitive.
+ * @deprecated Teacher/TA names are in shared/referral-codes.ts (staff type).
+ * Kept for backwards compatibility with any legacy referralName API fields.
  */
-export const REFERRAL_NAMES = [
-  "Arjun Kumar",
-  "Yash Mathur",
-  "Shuntavi Schuman-Olivier",
-  // Add teachers and TAs below (one name per line):
-] as const;
+export const REFERRAL_NAMES = [] as const;
 
-export type ReferralName = (typeof REFERRAL_NAMES)[number];
-
-const normalizedLookup = new Map(
-  REFERRAL_NAMES.map((name) => [name.trim().toLowerCase(), name]),
-);
-
-export function normalizeReferralName(input: string): string | null {
-  const trimmed = input.trim();
-  if (!trimmed) return null;
-  return normalizedLookup.get(trimmed.toLowerCase()) ?? null;
+export function normalizeReferralName(_input: string): string | null {
+  return null;
 }
 
-export function isValidReferralName(input: string): boolean {
-  return normalizeReferralName(input) !== null;
+export function isValidReferralName(_input: string): boolean {
+  return false;
 }
