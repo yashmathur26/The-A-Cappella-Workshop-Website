@@ -665,17 +665,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const protocol = req.get('x-forwarded-proto') || (req.secure ? 'https' : 'http');
       const host = `${protocol}://${req.get('host')}`;
 
-      const lineItems = pricedItems.map((item: any) => {
+      const lineItems = pricedItems.map((item: any, index: number) => {
         const amount = Math.round(item.price * 100);
         const itemLocation = item.location || locationName || 'Unknown Location';
         const weekLabel = item.weekLabel || item.label || 'Week';
+        const paymentTypeLabel = item.paymentType === 'deposit' ? '(Deposit)' : '(Full Payment)';
+        const codeSuffix = appliedCode && index === 0 ? ` — CODE: ${appliedCode}` : '';
+        const baseName = `${childName} - ${itemLocation} - ${weekLabel} ${paymentTypeLabel}`;
+        const baseDescription = `${childName} - ${itemLocation} - ${weekLabel} ${item.paymentType === 'deposit' ? '$150 deposit payment' : 'Full payment'}`;
 
         return {
           price_data: {
             currency: 'usd',
             product_data: {
-              name: `${childName} - ${itemLocation} - ${weekLabel} ${item.paymentType === 'deposit' ? '(Deposit)' : '(Full Payment)'}`,
-              description: `${childName} - ${itemLocation} - ${weekLabel} ${item.paymentType === 'deposit' ? '$150 deposit payment' : 'Full payment'}`,
+              name: `${baseName}${codeSuffix}`,
+              description: `${baseDescription}${codeSuffix}`,
             },
             unit_amount: amount,
           },
@@ -728,17 +732,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             optional: true,
             text: { default_value: childName },
           },
-          ...(appliedCode
-            ? [
-                {
-                  key: 'code',
-                  label: { type: 'custom' as const, custom: 'CODE: ' },
-                  type: 'text' as const,
-                  optional: true,
-                  text: { default_value: appliedCode },
-                },
-              ]
-            : []),
         ],
         metadata: {
           parentEmail,
