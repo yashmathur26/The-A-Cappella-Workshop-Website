@@ -212,9 +212,13 @@ export default function Register() {
           setPromoCode(data.displayCode ?? data.code);
           setPromoError("");
           if (data.discountCents > 0) {
+            const description =
+              data.type === "staff"
+                ? `$${data.discountDollars} off!`
+                : `$${data.discountDollars} off! (${data.usesRemaining} use${data.usesRemaining === 1 ? "" : "s"} remaining)`;
             toast({
               title: "Code applied!",
-              description: `$${data.discountDollars} off! (${data.usesRemaining} use${data.usesRemaining === 1 ? "" : "s"} remaining)`,
+              description,
             });
           } else {
             toast({

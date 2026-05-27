@@ -69,11 +69,11 @@ const PARENT_CODES = [
 
 const STAFF_CODE_DEFAULTS = {
   type: "staff" as const,
-  discountCents: 0,
+  discountCents: 5000,
   maxUses: 0,
 };
 
-/** Teacher & TA first names — entered in the promo/referral code field (no discount). */
+/** Teacher & TA first names — entered in the promo/referral code field ($50 off). */
 const STAFF_NAMES = [
   "Aman",
   "Helene",
