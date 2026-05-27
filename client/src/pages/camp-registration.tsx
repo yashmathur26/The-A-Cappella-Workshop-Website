@@ -11,6 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tag, X, AlertTriangle, MapPin, ShoppingCart } from "lucide-react";
 import { useLocation } from '@/contexts/LocationContext';
+import { ReferralNameField } from '@/components/ReferralNameField';
+import { normalizeReferralName } from '@shared/referrals';
 
 
 // Set to true to show maintenance message, false to show normal registration
@@ -24,6 +26,7 @@ export default function Register() {
   const [registrationIds, setRegistrationIds] = useState<string[]>([]);
   const [promoCode, setPromoCode] = useState(CartManager.getPromoCode());
   const [promoError, setPromoError] = useState("");
+  const [referralError, setReferralError] = useState("");
   const [parentEmail, setParentEmail] = useState("");
   const [childName, setChildName] = useState("");
   const [parentName, setParentName] = useState("");
@@ -386,6 +389,19 @@ export default function Register() {
       });
       return;
     }
+
+    const rawReferral = CartManager.getReferralName();
+    const referralName = rawReferral ? normalizeReferralName(rawReferral) : null;
+    if (rawReferral.trim() && !referralName) {
+      setReferralError("Please select a valid teacher or TA from the list.");
+      toast({
+        title: "Invalid referral",
+        description: "Choose a teacher or TA from the referral dropdown, or leave it blank.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setReferralError("");
     
     // Go directly to Stripe checkout
     setIsLoading(true);
@@ -427,6 +443,7 @@ export default function Register() {
         childName: childName.trim(),
         parentName: parentName.trim() || undefined,
         locationName: locationData[currentLocation].name,
+        referralName: referralName || undefined,
       });
       
       const data = await response.json();
@@ -1033,6 +1050,11 @@ export default function Register() {
                       </p>
                     )}
                   </div>
+
+                  <ReferralNameField
+                    error={referralError}
+                    onErrorChange={setReferralError}
+                  />
                 </div>
               )}
               
@@ -1251,6 +1273,10 @@ export default function Register() {
                         placeholder="Parent name"
                         className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
                       />
+                      <ReferralNameField
+                        error={referralError}
+                        onErrorChange={setReferralError}
+                      />
                     </div>
                   )}
 
@@ -1286,6 +1312,11 @@ export default function Register() {
                       <p className="text-green-400 text-xs mt-1">Code "{CartManager.getPromoCode()}" applied!</p>
                     )}
                   </div>
+
+                  <ReferralNameField
+                    error={referralError}
+                    onErrorChange={setReferralError}
+                  />
                 </div>
               )}
 
@@ -1499,6 +1530,11 @@ export default function Register() {
                       className="mt-1.5 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-white/40"
                     />
                   </div>
+
+                  <ReferralNameField
+                    error={referralError}
+                    onErrorChange={setReferralError}
+                  />
 
                   {/* Cart Summary */}
                   <div className="mt-4 p-3 rounded-lg bg-white/5 border border-white/10">

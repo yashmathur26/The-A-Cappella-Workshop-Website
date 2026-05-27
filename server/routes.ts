@@ -10,6 +10,7 @@ import { parse } from "csv-parse/sync";
 import { storage } from "./storage";
 import { sendRegistrationConfirmationEmail } from "./brevo";
 import { insertRegistrationSchema, type Week, visits } from "@shared/schema";
+import { normalizeReferralName } from "@shared/referrals";
 import { pool, db } from "./db";
 import { pickResponseRow, resolveSheetColumns } from "./sheet-csv";
 
@@ -552,7 +553,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const { cartItems, promoCode, parentEmail, childName, parentName, locationName } = req.body;
+      const { cartItems, promoCode, parentEmail, childName, parentName, locationName, referralName } = req.body;
       
       if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
         return res.status(400).json({ message: "Cart items are required" });
@@ -560,6 +561,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!parentEmail || !childName) {
         return res.status(400).json({ message: "Email and child name are required" });
+      }
+
+      const normalizedReferral = referralName
+        ? normalizeReferralName(String(referralName))
+        : null;
+      if (referralName && String(referralName).trim() && !normalizedReferral) {
+        return res.status(400).json({ message: "Invalid referral name" });
       }
 
       // Get the host for redirect URLs
@@ -622,7 +630,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success_url: `${host}/success?session_id={CHECKOUT_SESSION_ID}&ok=1`,
         cancel_url: cancelUrl,
         customer_email: parentEmail,
-        // Show child name on Stripe Checkout
         custom_fields: [
           {
             key: 'child_name',
@@ -631,6 +638,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             optional: true,
             text: { default_value: childName },
           },
+          ...(normalizedReferral
+            ? [
+                {
+                  key: 'referral_from',
+                  label: { type: 'custom' as const, custom: 'REFERAL FROM: ' },
+                  type: 'text' as const,
+                  optional: true,
+                  text: { default_value: normalizedReferral },
+                },
+              ]
+            : []),
         ],
         metadata: {
           parentEmail,
@@ -644,6 +662,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             payment_type: item.paymentType || 'full',
           }))),
           promoCode: promoCode || '',
+          referralName: normalizedReferral || '',
         },
       });
 

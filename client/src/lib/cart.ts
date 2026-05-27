@@ -19,6 +19,7 @@ export interface CartState {
 export class CartManager {
   private static readonly STORAGE_KEY = 'acappella-cart';
   private static readonly PROMO_KEY = 'acappella-promo';
+  private static readonly REFERRAL_KEY = 'acappella-referral';
   
   // Promo codes and their discounts (percentage off)
   private static readonly PROMO_CODES = {
@@ -126,6 +127,7 @@ export class CartManager {
   static clearCart(): void {
     this.setCart([]);
     this.removePromoCode();
+    this.removeReferralName();
     this.triggerCartUpdate();
   }
 
@@ -243,6 +245,28 @@ export class CartManager {
   static removePromoCode(): void {
     if (typeof window === 'undefined') return;
     localStorage.removeItem(this.PROMO_KEY);
+    this.triggerCartUpdate();
+  }
+
+  static getReferralName(): string {
+    if (typeof window === 'undefined') return '';
+    return localStorage.getItem(this.REFERRAL_KEY) || '';
+  }
+
+  static setReferralName(name: string): void {
+    if (typeof window === 'undefined') return;
+    const trimmed = name.trim();
+    if (trimmed) {
+      localStorage.setItem(this.REFERRAL_KEY, trimmed);
+    } else {
+      localStorage.removeItem(this.REFERRAL_KEY);
+    }
+    this.triggerCartUpdate();
+  }
+
+  static removeReferralName(): void {
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem(this.REFERRAL_KEY);
     this.triggerCartUpdate();
   }
 

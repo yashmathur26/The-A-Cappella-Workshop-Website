@@ -69,8 +69,9 @@ if (stripe) {
                 session.customer_details?.email || session.metadata?.parentEmail || '';
               const childName = session.metadata?.childName || '';
 
+              const referralName = session.metadata?.referralName || '';
               console.log(
-                `👤 Processing guest payment for ${childName} (${parentEmail}), ${items.length} items`,
+                `👤 Processing guest payment for ${childName} (${parentEmail}), ${items.length} items${referralName ? `, referral: ${referralName}` : ''}`,
               );
 
               // Split session total across items so each registration has correct amount
