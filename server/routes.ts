@@ -570,6 +570,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid referral name" });
       }
 
+      const appliedCode = promoCode?.trim()
+        ? String(promoCode).trim().toUpperCase()
+        : normalizedReferral || '';
+
       // Get the host for redirect URLs
       const protocol = req.get('x-forwarded-proto') || (req.secure ? 'https' : 'http');
       const host = `${protocol}://${req.get('host')}`;
@@ -638,14 +642,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             optional: true,
             text: { default_value: childName },
           },
-          ...(normalizedReferral
+          ...(appliedCode
             ? [
                 {
-                  key: 'referral_from',
-                  label: { type: 'custom' as const, custom: 'REFERAL FROM: ' },
+                  key: 'code',
+                  label: { type: 'custom' as const, custom: 'CODE: ' },
                   type: 'text' as const,
                   optional: true,
-                  text: { default_value: normalizedReferral },
+                  text: { default_value: appliedCode },
                 },
               ]
             : []),
@@ -663,6 +667,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }))),
           promoCode: promoCode || '',
           referralName: normalizedReferral || '',
+          appliedCode,
         },
       });
 
