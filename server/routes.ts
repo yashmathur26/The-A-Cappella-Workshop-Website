@@ -11,6 +11,7 @@ import { storage } from "./storage";
 import { sendRegistrationConfirmationEmail } from "./brevo";
 import { insertRegistrationSchema, type Week, visits } from "@shared/schema";
 import { normalizeReferralName } from "@shared/referrals";
+import { lookupReferralCode } from "@shared/referral-codes";
 import {
   validateReferralCode,
   applyOrderDiscount,
@@ -558,9 +559,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const result = await validateReferralCode(String(code));
       if (!result.valid) {
+        const definition = lookupReferralCode(String(code));
         const messages: Record<string, string> = {
           not_found: "Invalid promo/referral code",
-          exhausted: "This referral code has already been used 3 times.",
+          exhausted: definition
+            ? `This referral code has already been used ${definition.maxUses} times.`
+            : "This referral code has reached its usage limit.",
           no_database: "Referral codes are unavailable right now. Please try again later.",
         };
         return res.json({
@@ -617,9 +621,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (referralCode && String(referralCode).trim()) {
         referralValidation = await validateReferralCode(String(referralCode));
         if (!referralValidation.valid) {
+          const definition = lookupReferralCode(String(referralCode));
           const message =
             referralValidation.reason === "exhausted"
-              ? "This referral code has already been used 3 times."
+              ? definition
+                ? `This referral code has already been used ${definition.maxUses} times.`
+                : "This referral code has reached its usage limit."
               : "Invalid referral code";
           return res.status(400).json({ message });
         }

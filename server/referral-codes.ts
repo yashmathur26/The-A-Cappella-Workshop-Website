@@ -27,14 +27,10 @@ export async function validateReferralCode(
   }
 
   const code = normalizeReferralCode(input);
-  const useCount =
-    definition.type === "staff" ? 0 : await storage.countReferralCodeUses(code);
-  const usesRemaining =
-    definition.type === "staff" || definition.maxUses === 0
-      ? 999
-      : definition.maxUses - useCount;
+  const useCount = await storage.countReferralCodeUses(code);
+  const usesRemaining = definition.maxUses - useCount;
 
-  if (definition.type !== "staff" && definition.maxUses > 0 && usesRemaining <= 0) {
+  if (usesRemaining <= 0) {
     return { valid: false, reason: "exhausted" };
   }
 
