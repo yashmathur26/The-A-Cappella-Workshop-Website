@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Tag, X, AlertTriangle, MapPin, ShoppingCart } from "lucide-react";
 import { useLocation } from '@/contexts/LocationContext';
 import { isReferralCode } from '@shared/referral-codes';
+import { PromoReferralCodeField } from '@/components/PromoReferralCodeField';
 
 
 // Set to true to show maintenance message, false to show normal registration
@@ -25,6 +26,7 @@ export default function Register() {
   const [registrationIds, setRegistrationIds] = useState<string[]>([]);
   const [promoCode, setPromoCode] = useState(CartManager.getAppliedCodeDisplay());
   const [promoError, setPromoError] = useState("");
+  const [isApplyingCode, setIsApplyingCode] = useState(false);
   const [parentEmail, setParentEmail] = useState("");
   const [childName, setChildName] = useState("");
   const [parentName, setParentName] = useState("");
@@ -194,9 +196,12 @@ export default function Register() {
     if (!promoCode.trim()) {
       setPromoError("");
       CartManager.clearAppliedCode();
+      setCart(CartManager.getCart());
       return;
     }
 
+    setIsApplyingCode(true);
+    try {
     if (isReferralCode(promoCode.trim())) {
       try {
         const response = await apiRequest('POST', '/api/validate-referral-code', {
@@ -211,6 +216,7 @@ export default function Register() {
           );
           setPromoCode(data.displayCode ?? data.code);
           setPromoError("");
+          setCart(CartManager.getCart());
           if (data.discountCents > 0) {
             toast({
               title: "Code applied!",
@@ -226,6 +232,7 @@ export default function Register() {
         }
         setPromoError(data.message || "Invalid promo/referral code");
         CartManager.clearAppliedCode();
+        setCart(CartManager.getCart());
         return;
       } catch {
         setPromoError("Could not validate code. Please try again.");
@@ -236,6 +243,7 @@ export default function Register() {
     const result = CartManager.applyPromoOrReferral(promoCode.trim(), currentLocation);
     if (result === 'cleared') {
       setPromoError("");
+      setCart(CartManager.getCart());
       return;
     }
 
@@ -247,6 +255,7 @@ export default function Register() {
         if (today > expiryDate) {
           setPromoError("EARLYBIRD promo code has expired. It was only valid until February 15, 2026.");
           CartManager.clearAppliedCode();
+          setCart(CartManager.getCart());
           return;
         }
         
@@ -255,11 +264,13 @@ export default function Register() {
         if (hasDepositItems) {
           setPromoError("EARLYBIRD discount only applies to full payments. Remove deposit items to use this code.");
           CartManager.clearAppliedCode();
+          setCart(CartManager.getCart());
           return;
         }
       }
       setPromoError("");
       setPromoCode(CartManager.getPromoCode());
+      setCart(CartManager.getCart());
       toast({
         title: "Promo code applied!",
         description: `You saved $${CartManager.getDiscountAmount()} with code ${promoCode.toUpperCase()}`,
@@ -279,12 +290,16 @@ export default function Register() {
     } else {
       setPromoError("Invalid promo/referral code");
     }
+    } finally {
+      setIsApplyingCode(false);
+    }
   };
 
   const handleRemovePromo = () => {
     CartManager.clearAppliedCode();
     setPromoCode("");
     setPromoError("");
+    setCart(CartManager.getCart());
     toast({
       title: "Code removed",
     });
@@ -1050,54 +1065,15 @@ export default function Register() {
                     </div>
                   )}
 
-                  {/* Promo/Referral Code Section */}
-                  <div>
-                    <Label className="text-white text-sm mb-2 block">Promo/Referral Code (Optional)</Label>
-                    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-                      <Input
-                        value={promoCode}
-                        onChange={(e) => setPromoCode(e.target.value)}
-                        placeholder="Enter promo or referral code"
-                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50 flex-1"
-                        onKeyPress={(e) => e.key === 'Enter' && handlePromoCodeSubmit()}
-                      />
-                      {CartManager.hasAppliedCode() ? (
-                        <button
-                          onClick={handleRemovePromo}
-                          className="px-3 py-2 bg-red-500/20 border border-red-400/30 text-red-200 rounded hover:bg-red-500/30 transition-colors"
-                        >
-                          <X size={16} />
-                        </button>
-                      ) : (
-                        <button
-                          onClick={handlePromoCodeSubmit}
-                          className="px-3 py-2 bg-sky-custom/20 border border-sky-custom/30 text-sky-200 rounded hover:bg-sky-custom/30 transition-colors"
-                        >
-                          <Tag size={16} />
-                        </button>
-                      )}
-                    </div>
-                    {promoError && (
-                      <p className="text-red-400 text-xs mt-1">{promoError}</p>
-                    )}
-                    {CartManager.getPromoCode() && (
-                      <p className="text-green-400 text-xs mt-1">
-                        Code "{CartManager.getPromoCode()}" applied!
-                      </p>
-                    )}
-                    {CartManager.getParentReferralCode() && (
-                      <p className="text-green-400 text-xs mt-1">
-                        {CartManager.getReferralDiscountCents() > 0
-                          ? `Code "${CartManager.getReferralCodeDisplay()}" applied — $${CartManager.getReferralDiscountCents() / 100} off!`
-                          : `Referral from ${CartManager.getReferralCodeDisplay()} recorded!`}
-                      </p>
-                    )}
-                    {!CartManager.getPromoCode() && !CartManager.getParentReferralCode() && CartManager.getReferralName() && (
-                      <p className="text-green-400 text-xs mt-1">
-                        Referral from {CartManager.getReferralName()} recorded!
-                      </p>
-                    )}
-                  </div>
+                  <PromoReferralCodeField
+                    promoCode={promoCode}
+                    onPromoCodeChange={setPromoCode}
+                    promoError={promoError}
+                    onSubmit={handlePromoCodeSubmit}
+                    onRemove={handleRemovePromo}
+                    isApplying={isApplyingCode}
+                    variant="sidebar"
+                  />
                 </div>
               )}
               
@@ -1319,50 +1295,15 @@ export default function Register() {
                     </div>
                   )}
 
-                  {/* Promo/Referral Code - Mobile */}
-                  <div>
-                    <Label className="text-white text-sm mb-2 block">Promo/Referral Code (Optional)</Label>
-                    <div className="flex space-x-2">
-                      <Input
-                        value={promoCode}
-                        onChange={(e) => setPromoCode(e.target.value)}
-                        placeholder="Enter promo or referral code"
-                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50 flex-1"
-                        onKeyPress={(e) => e.key === 'Enter' && handlePromoCodeSubmit()}
-                      />
-                      {CartManager.hasAppliedCode() ? (
-                        <button
-                          onClick={handleRemovePromo}
-                          className="px-3 py-2 bg-red-500/20 border border-red-400/30 text-red-200 rounded hover:bg-red-500/30 transition-colors"
-                        >
-                          <X size={16} />
-                        </button>
-                      ) : (
-                        <button
-                          onClick={handlePromoCodeSubmit}
-                          className="px-3 py-2 bg-sky-custom/20 border border-sky-custom/30 text-sky-200 rounded hover:bg-sky-custom/30 transition-colors"
-                        >
-                          <Tag size={16} />
-                        </button>
-                      )}
-                    </div>
-                    {promoError && <p className="text-red-400 text-xs mt-1">{promoError}</p>}
-                    {CartManager.getPromoCode() && (
-                      <p className="text-green-400 text-xs mt-1">Code "{CartManager.getPromoCode()}" applied!</p>
-                    )}
-                    {CartManager.getParentReferralCode() && (
-                      <p className="text-green-400 text-xs mt-1">
-                        {CartManager.getReferralDiscountCents() > 0
-                          ? `Code "${CartManager.getReferralCodeDisplay()}" applied — $${CartManager.getReferralDiscountCents() / 100} off!`
-                          : `Referral from ${CartManager.getReferralCodeDisplay()} recorded!`}
-                      </p>
-                    )}
-                    {!CartManager.getPromoCode() && !CartManager.getParentReferralCode() && CartManager.getReferralName() && (
-                      <p className="text-green-400 text-xs mt-1">
-                        Referral from {CartManager.getReferralName()} recorded!
-                      </p>
-                    )}
-                  </div>
+                  <PromoReferralCodeField
+                    promoCode={promoCode}
+                    onPromoCodeChange={setPromoCode}
+                    promoError={promoError}
+                    onSubmit={handlePromoCodeSubmit}
+                    onRemove={handleRemovePromo}
+                    isApplying={isApplyingCode}
+                    variant="sidebar"
+                  />
                 </div>
               )}
 
@@ -1473,8 +1414,8 @@ export default function Register() {
 
       {/* Contact Info Modal - appears after form submission */}
       {showContactModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className={`w-full max-w-md rounded-2xl border shadow-2xl ${
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/70 backdrop-blur-sm">
+          <div className={`w-full sm:max-w-md max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl border shadow-2xl ${
             currentLocation === 'wayland' 
               ? 'bg-gradient-to-br from-purple-900/95 to-violet-900/95 border-purple-500/30' 
               : currentLocation === 'newton-wellesley' 
@@ -1577,8 +1518,18 @@ export default function Register() {
                     />
                   </div>
 
+                  <PromoReferralCodeField
+                    promoCode={promoCode}
+                    onPromoCodeChange={setPromoCode}
+                    promoError={promoError}
+                    onSubmit={handlePromoCodeSubmit}
+                    onRemove={handleRemovePromo}
+                    isApplying={isApplyingCode}
+                    variant="modal"
+                  />
+
                   {/* Cart Summary */}
-                  <div className="mt-4 p-3 rounded-lg bg-white/5 border border-white/10">
+                  <div className="mt-2 p-3 rounded-lg bg-white/5 border border-white/10">
                     <p className="text-white/70 text-sm mb-2">Your selection:</p>
                     {cartItems.map(item => (
                       <div key={item.weekId} className="flex justify-between text-sm">
@@ -1586,10 +1537,23 @@ export default function Register() {
                         <span className="text-white font-medium">${item.price}</span>
                       </div>
                     ))}
+                    {hasDiscount && (
+                      <>
+                        <div className="mt-2 pt-2 border-t border-white/10 flex justify-between text-sm text-white/80">
+                          <span>Subtotal</span>
+                          <span>${cartSubtotal.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm text-green-400">
+                          <span>Discount ({CartManager.getAppliedCodeDisplay()})</span>
+                          <span>-${discountAmount.toFixed(2)}</span>
+                        </div>
+                      </>
+                    )}
                     <div className="mt-2 pt-2 border-t border-white/10 flex justify-between">
                       <span className="text-white font-semibold">Total</span>
                       <span className="text-white font-bold">${cartTotal.toFixed(2)}</span>
                     </div>
+                    <p className="text-white/40 text-xs mt-2">* 3.6% processing fee added at checkout</p>
                   </div>
 
                   {/* Proceed Button */}
@@ -1605,9 +1569,9 @@ export default function Register() {
                         proceedToPayment();
                       }
                     }}
-                    disabled={!parentEmail.trim() || !childName.trim() || isLoading}
+                    disabled={!parentEmail.trim() || !childName.trim() || isLoading || isApplyingCode}
                   >
-                    {isLoading ? 'Processing...' : `Proceed to Checkout — $${cartTotal.toFixed(2)}`}
+                    {isLoading ? 'Processing...' : isApplyingCode ? 'Applying code...' : `Proceed to Checkout — $${cartTotal.toFixed(2)}`}
                   </Button>
 
                   <p className="text-center text-white/40 text-xs">
