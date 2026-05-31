@@ -44,7 +44,7 @@ export function PromoReferralCodeField({
       </Label>
       {isModal && (
         <p className="text-white/50 text-xs mb-2">
-          Parent code (e.g. BOWS) or teacher/TA name (e.g. Aman)
+          Parent code (e.g. TREE) or teacher/TA name (e.g. Joe)
         </p>
       )}
       <div className={`flex ${isModal ? "gap-2" : "flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2"}`}>
