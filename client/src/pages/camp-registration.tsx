@@ -9,7 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Tag, X, AlertTriangle, MapPin, ShoppingCart } from "lucide-react";
+import { Tag, X, AlertTriangle, MapPin, ShoppingCart, CheckCircle2 } from "lucide-react";
 import { useLocation } from '@/contexts/LocationContext';
 import { isReferralCode } from '@shared/referral-codes';
 import { PromoReferralCodeField } from '@/components/PromoReferralCodeField';
@@ -38,6 +38,15 @@ export default function Register() {
   const [showContactModal, setShowContactModal] = useState(false);
   const [autoFillFailed, setAutoFillFailed] = useState(false);
   const [isLoadingContact, setIsLoadingContact] = useState(false);
+  const [pendingDiscountCode, setPendingDiscountCode] = useState<{
+    code: string;
+    displayCode: string;
+    discountCents: number;
+    discountDollars: number;
+    usesRemaining: number;
+    type: string;
+  } | null>(null);
+  const [switchedToFull, setSwitchedToFull] = useState(false);
   
   const [sessionId] = useState(() => {
     // Generate or retrieve session ID
@@ -209,6 +218,25 @@ export default function Register() {
         });
         const data = await response.json();
         if (data.valid) {
+          // Discount codes only apply to the final (full) payment. If the cart
+          // is deposit-only, ask the customer to switch before applying.
+          if (data.discountCents > 0) {
+            const items = CartManager.getCartItems();
+            const hasFullPayment = items.some(item => item.paymentType === 'full');
+            const hasDeposit = items.some(item => item.paymentType === 'deposit');
+            if (hasDeposit && !hasFullPayment) {
+              setPendingDiscountCode({
+                code: data.code,
+                displayCode: data.displayCode ?? data.code,
+                discountCents: data.discountCents,
+                discountDollars: data.discountDollars,
+                usesRemaining: data.usesRemaining,
+                type: data.type,
+              });
+              setPromoError("");
+              return;
+            }
+          }
           CartManager.setParentReferralCode(
             data.code,
             data.discountCents,
@@ -303,6 +331,61 @@ export default function Register() {
     toast({
       title: "Code removed",
     });
+  };
+
+  // Resolve the full-payment price for a week (used when switching a deposit to full).
+  const resolveFullPrice = (weekId: string): number => {
+    const week = WEEKS.find(w => w.id === weekId);
+    return week ? week.price : locationPricing.full;
+  };
+
+  // Customer confirmed switching their deposit(s) to full payment to use the code.
+  const handleConfirmSwitchToFull = () => {
+    if (!pendingDiscountCode) return;
+    const pending = pendingDiscountCode;
+    CartManager.convertDepositsToFull(resolveFullPrice);
+    CartManager.setParentReferralCode(
+      pending.code,
+      pending.discountCents,
+      pending.displayCode,
+    );
+    setPromoCode(pending.displayCode);
+    setPromoError("");
+    setCart(CartManager.getCart());
+    setSwitchedToFull(true);
+  };
+
+  // Head to payment from the discount popup (form is already done). Used by both
+  // the "go to payment" success action and the "pay with deposit" decline action.
+  const goToPaymentFromDiscountPopup = () => {
+    setPendingDiscountCode(null);
+    setSwitchedToFull(false);
+    if (parentEmail.trim() && childName.trim()) {
+      setShowContactModal(false);
+      proceedToPayment();
+    } else {
+      setShowContactModal(true);
+    }
+  };
+
+  // Customer declined switching — keep the deposit (no discount) and pay anyway.
+  const handleCancelSwitchToFull = () => {
+    CartManager.removeParentReferralCode();
+    setPromoCode("");
+    setPromoError("");
+    setCart(CartManager.getCart());
+    goToPaymentFromDiscountPopup();
+  };
+
+  // From the success screen, head straight to payment.
+  const handleGoToPaymentAfterSwitch = () => {
+    goToPaymentFromDiscountPopup();
+  };
+
+  // Close the popup without applying the code or going to payment (X button).
+  const handleDismissDiscountPopup = () => {
+    setPendingDiscountCode(null);
+    setSwitchedToFull(false);
   };
 
   // Reset iframe detection refs when form section is shown/hidden
@@ -1580,6 +1663,90 @@ export default function Register() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Deposit -> Full payment switch popup (discount only applies to full payment) */}
+      {pendingDiscountCode && (
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-4 bg-black/70 backdrop-blur-sm">
+          <div className={`w-full sm:max-w-md max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl border shadow-2xl ${
+            currentLocation === 'wayland'
+              ? 'bg-gradient-to-br from-purple-900/95 to-violet-900/95 border-purple-500/30'
+              : currentLocation === 'newton-wellesley'
+                ? 'bg-gradient-to-br from-emerald-900/95 to-green-900/95 border-emerald-500/30'
+                : 'bg-gradient-to-br from-blue-900/95 to-indigo-900/95 border-blue-500/30'
+          }`}>
+            {switchedToFull ? (
+              <div className="p-6 text-center">
+                <div className="mx-auto mb-4 w-14 h-14 rounded-full bg-green-500/20 border border-green-400/30 flex items-center justify-center">
+                  <CheckCircle2 className="w-8 h-8 text-green-300" />
+                </div>
+                <h2 className="text-xl font-bold text-white">
+                  Successfully switched!
+                </h2>
+                <p className="text-white/70 text-sm mt-2">
+                  Your deposit is now a full payment and{' '}
+                  <span className="font-semibold text-green-300">${pendingDiscountCode.discountDollars} off</span>{' '}
+                  has been applied with code{' '}
+                  <span className="font-semibold text-white">{pendingDiscountCode.displayCode}</span>.
+                </p>
+                <Button
+                  onClick={handleGoToPaymentAfterSwitch}
+                  className="w-full mt-5 py-4 text-lg font-semibold rounded-full bg-green-600 hover:bg-green-700 text-white"
+                >
+                  Go to payment
+                </Button>
+              </div>
+            ) : (
+              <div className="p-6">
+                <div className="flex items-start gap-3 mb-4">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-green-500/20 border border-green-400/30 flex items-center justify-center">
+                    <Tag className="w-5 h-5 text-green-300" />
+                  </div>
+                  <div className="flex-1">
+                    <h2 className="text-lg font-bold text-white">
+                      Switch to full payment?
+                    </h2>
+                    <p className="text-white/70 text-sm mt-1">
+                      Code{' '}
+                      <span className="font-semibold text-white">{pendingDiscountCode.displayCode}</span>{' '}
+                      gives <span className="font-semibold text-green-300">${pendingDiscountCode.discountDollars} off</span>,
+                      but the discount only applies to the final (full) payment — not deposits.
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleDismissDiscountPopup}
+                    className="p-2 rounded-full hover:bg-white/10 transition-colors flex-shrink-0"
+                    aria-label="Close"
+                  >
+                    <X className="w-5 h-5 text-white/70" />
+                  </button>
+                </div>
+
+                <div className="p-3 rounded-lg bg-white/5 border border-white/10 mb-4">
+                  <p className="text-white/80 text-sm">
+                    Switch your deposit to the full payment now to use this code and save{' '}
+                    <span className="font-semibold text-green-300">${pendingDiscountCode.discountDollars}</span>.
+                  </p>
+                </div>
+
+                <div className="flex flex-col-reverse sm:flex-row gap-2">
+                  <Button
+                    onClick={handleCancelSwitchToFull}
+                    className="flex-1 py-3 rounded-full bg-white/10 hover:bg-white/20 text-white font-medium"
+                  >
+                    Pay with deposit
+                  </Button>
+                  <Button
+                    onClick={handleConfirmSwitchToFull}
+                    className="flex-1 py-3 rounded-full bg-green-600 hover:bg-green-700 text-white font-semibold"
+                  >
+                    Switch &amp; save ${pendingDiscountCode.discountDollars}
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

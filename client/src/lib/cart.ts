@@ -121,6 +121,33 @@ export class CartManager {
     return { success: false, error: 'invalid_week' };
   }
 
+  /**
+   * Convert every deposit line item in the cart into a full payment. Used when a
+   * discount code (which only applies to the final/full payment) is entered on a
+   * deposit-only cart and the customer chooses to switch.
+   * Returns the number of items that were converted.
+   */
+  static convertDepositsToFull(resolveFullPrice: (weekId: string) => number): number {
+    const cart = this.getCart();
+    let converted = 0;
+    const updated = cart.map(item => {
+      if (item.paymentType === 'deposit') {
+        converted++;
+        return {
+          ...item,
+          paymentType: 'full' as const,
+          price: resolveFullPrice(item.weekId),
+        };
+      }
+      return item;
+    });
+    if (converted > 0) {
+      this.setCart(updated);
+      this.triggerCartUpdate();
+    }
+    return converted;
+  }
+
   static removeFromCart(weekId: string): void {
     const cart = this.getCart().filter(item => item.weekId !== weekId);
     this.setCart(cart);

@@ -46,20 +46,35 @@ export async function validateReferralCode(
   };
 }
 
-/** Apply a fixed discount once to the last line item, flooring at $0. */
+/**
+ * Apply a fixed discount once to a single eligible line item, flooring at $0.
+ *
+ * Discount codes only apply to the final (full) payment, so when payment types
+ * are provided the discount is applied to the last full-payment item. If there
+ * are no full-payment items, no discount is applied.
+ */
 export function applyOrderDiscount(
   prices: number[],
   discountDollars: number,
+  paymentTypes?: Array<string | undefined>,
 ): number[] {
   if (prices.length === 0 || discountDollars <= 0) return prices;
 
   const result = [...prices];
-  let remaining = discountDollars;
-  const lastIndex = result.length - 1;
 
-  const deduction = Math.min(remaining, result[lastIndex]);
-  result[lastIndex] = Math.round((result[lastIndex] - deduction) * 100) / 100;
-  remaining -= deduction;
+  let targetIndex = result.length - 1;
+  if (paymentTypes) {
+    targetIndex = -1;
+    for (let i = 0; i < result.length; i++) {
+      if ((paymentTypes[i] ?? "full") !== "deposit") {
+        targetIndex = i;
+      }
+    }
+    if (targetIndex === -1) return result; // no full-payment item — no discount
+  }
+
+  const deduction = Math.min(discountDollars, result[targetIndex]);
+  result[targetIndex] = Math.round((result[targetIndex] - deduction) * 100) / 100;
 
   return result;
 }

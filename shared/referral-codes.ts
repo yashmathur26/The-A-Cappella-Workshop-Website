@@ -51,20 +51,34 @@ const PARENT_CODES = [
   "DUET",
   "SOLO",
   "BAND",
-  "VAMP",
   "WAIL",
   "BELT",
   "HUMS",
-  "PICK",
   "STAR",
   "FANS",
-  "MIKE",
-  "JAMS",
-  "PLAY",
-  "LIVE",
-  "CHOR",
+  "HAND",
+  "FEET",
+  "VAMP",
+  "PICK",
+  "STEM",
+  "FRET",
+  "NECK",
   "TUBA",
-  "BOWS",
+  "OBOE",
+  "FIFE",
+  "GIGS",
+  "SETS",
+  "MICS",
+  "AMPS",
+  "WIRE",
+  "CORD",
+  "JACK",
+  "KNOB",
+  "FADE",
+  "GAIN",
+  "DROP",
+  "HOOK",
+  "BARS",
 ];
 
 const STAFF_CODE_DEFAULTS = {
@@ -142,4 +156,12 @@ export function isReferralCode(input: string): boolean {
 /** Name shown on Stripe and in the UI (e.g. "Aman" not "AMAN"). */
 export function getReferralCodeDisplay(def: ReferralCodeDefinition): string {
   return def.label ?? def.code;
+}
+
+/**
+ * Discount referral codes only apply to the final (full) payment, never to
+ * deposit-only line items.
+ */
+export function isFullPaymentOnlyCode(def: ReferralCodeDefinition): boolean {
+  return def.discountCents > 0;
 }

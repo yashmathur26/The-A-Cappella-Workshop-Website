@@ -635,15 +635,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let pricedItems = cartItems.map((item: any) => ({ ...item }));
 
       if (referralValidation?.valid && referralValidation.discountCents > 0) {
+        // Discount codes only apply to the final (full) payment, never deposits.
+        const hasFullPayment = pricedItems.some(
+          (item: any) => (item.paymentType ?? "full") !== "deposit",
+        );
+        if (!hasFullPayment) {
+          return res.status(400).json({
+            message:
+              "This code only applies to the final (full) payment, not deposits.",
+          });
+        }
+
         const basePrices: number[] = [];
+        const paymentTypes: Array<string | undefined> = [];
         for (const item of pricedItems) {
           const week = item.weekId ? await storage.getWeek(item.weekId) : undefined;
           basePrices.push(
             getItemBasePriceDollars(item, week?.priceCents ?? 50000),
           );
+          paymentTypes.push(item.paymentType);
         }
         const discountDollars = referralValidation.discountCents / 100;
-        const discountedPrices = applyOrderDiscount(basePrices, discountDollars);
+        const discountedPrices = applyOrderDiscount(
+          basePrices,
+          discountDollars,
+          paymentTypes,
+        );
         pricedItems = pricedItems.map((item: any, index: number) => ({
           ...item,
           price: discountedPrices[index],
