@@ -14,7 +14,8 @@ export const NEWTON_FORM_EMBED_URL =
  *
  * Get the URL: Google Form → Send → link (<> ) → copy, then add `?embedded=true` if not already present.
  */
-const WAYLAND_FORM_EMBED_HARDCODE = "";
+const WAYLAND_FORM_EMBED_HARDCODE =
+  "https://docs.google.com/forms/d/e/1FAIpQLSe1HvEQUQ_4GeQWN66aWNvZ2PoHV2ZwFTBqm8h5EUsN-bxzEQ/viewform?embedded=true";
 
 export function getWaylandFormEmbedUrl(): string | undefined {
   const fromEnv = (import.meta.env.VITE_WAYLAND_FORM_EMBED_URL as string | undefined)?.trim();
