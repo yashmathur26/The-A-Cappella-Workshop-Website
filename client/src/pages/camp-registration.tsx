@@ -1509,7 +1509,7 @@ export default function Register() {
               {/* Header */}
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-white">
-                  {isLoadingContact ? 'Loading Your Info...' : autoFillFailed ? 'Enter Your Details' : 'Confirm Your Info'}
+                  {autoFillFailed ? 'Enter Your Details' : 'Confirm Your Info'}
                 </h2>
                 <button
                   onClick={() => setShowContactModal(false)}
@@ -1519,23 +1519,19 @@ export default function Register() {
                 </button>
               </div>
 
-              {/* Loading State */}
+              {/* Non-blocking auto-fill hint — fields stay usable underneath */}
               {isLoadingContact && (
-                <div className="py-8 text-center">
-                  <div className="w-12 h-12 mx-auto mb-4 border-4 border-white/20 border-t-white rounded-full animate-spin" />
-                  <p className="text-white/80">Fetching your info from the registration form...</p>
-                  <p className="text-white/50 text-sm mt-2">
-                    This can take up to 25 seconds. You can also enter your info manually below.
+                <div className="mb-4 p-3 rounded-lg bg-white/5 border border-white/10 flex items-center gap-3">
+                  <div className="w-5 h-5 flex-shrink-0 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                  <p className="text-white/70 text-xs flex-1">
+                    Trying to auto-fill from your form submission… you can just enter your info below.
                   </p>
                   <button
-                    onClick={() => {
-                      setIsLoadingContact(false);
-                      setAutoFillFailed(true);
-                    }}
-                    className="mt-3 text-white/60 text-xs underline hover:text-white/90"
+                    onClick={() => setIsLoadingContact(false)}
+                    className="text-white/60 text-xs underline hover:text-white/90 flex-shrink-0"
                     type="button"
                   >
-                    Skip and enter manually
+                    Dismiss
                   </button>
                 </div>
               )}
@@ -1555,8 +1551,8 @@ export default function Register() {
                 </div>
               )}
 
-              {/* Form Fields */}
-              {!isLoadingContact && (
+              {/* Form Fields — always available so customers can enter info manually */}
+              {(
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="modal-parent-email" className="text-white/90 text-sm font-medium">
