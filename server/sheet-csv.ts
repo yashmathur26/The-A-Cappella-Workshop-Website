@@ -86,18 +86,16 @@ export function resolveSheetColumns(headerRow: string[]) {
 }
 
 /**
- * Pick the correct response row from the sheet.
+ * Pick the correct response row from the sheet — by IDENTITY ONLY.
  *
- * Behavior matches the original "it just works for Lexington" implementation:
- * scan backwards to find the most recent row that has a non-empty parent email.
- * This handles sheets with empty/incomplete trailing rows.
+ * We only return a row when we can confidently tie it to *this* user:
+ *   1. exact session-id match (form has the hidden session-id field prefilled), or
+ *   2. exact parent-email match (the user entered their email on the site).
  *
- * If a `registeredParentEmail` is provided AND we find that exact email, we
- * prefer that row. If it's provided but not found, we still fall back to the
- * most recent valid row (matches the pre-2026-04 behavior).
- *
- * If a `sessionIdCol` is found and we have an exact session-id match, we use
- * that — most reliable when the form has the hidden session-id field prefilled.
+ * If neither matches we return null and the caller drops the user into manual
+ * entry. We deliberately do NOT fall back to "the most recent row": that leaked
+ * other families' email/student name whenever submissions overlapped (Family B
+ * submits while Family A is at checkout → Family A saw Family B's info).
  */
 export function pickResponseRow(
   rows: string[][],
@@ -128,18 +126,8 @@ export function pickResponseRow(
       const cell = (rows[r][parentEmailCol] ?? "").trim().toLowerCase();
       if (cell === want) return rows[r];
     }
-    // Email not found — fall through to "most recent row" (this is the
-    // pre-2026-04 behavior the user is reverting to).
   }
 
-  // Fallback: most recent row that has a non-empty parent email cell.
-  // Scanning backwards skips manually-added incomplete trailing rows.
-  if (parentEmailCol >= 0) {
-    for (let r = rows.length - 1; r >= 1; r--) {
-      const cell = (rows[r][parentEmailCol] ?? "").trim();
-      if (cell) return rows[r];
-    }
-  }
-
+  // No confident identity match — do not guess. Caller falls back to manual entry.
   return null;
 }
