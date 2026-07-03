@@ -88,12 +88,14 @@ export default function PayBalance() {
       if (!res.ok) {
         throw new Error(data.message || "Could not look up balance");
       }
-      if (data.hasBalance) {
-        setSummary(data as BalanceSummary);
-      } else {
+      if (data.source === "none") {
+        // No record at all in Stripe or the registration sheet.
         setNoBalanceMsg(
-          "No outstanding balance found for this email. Make sure you use the same email you registered with. If you already paid in full, you're all set!",
+          "We couldn't find a registration for this email. Make sure you use the same email you registered with.",
         );
+      } else {
+        // Found them — show the summary screen even when the balance is $0.
+        setSummary(data as BalanceSummary);
       }
     } catch (err) {
       setLookupError(
@@ -222,7 +224,7 @@ export default function PayBalance() {
           )}
         </GlassCard>
 
-        {summary?.hasBalance && (
+        {summary && summary.source !== "none" && (
           <GlassCard className="p-6 space-y-5">
             {/* Who this is for */}
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
@@ -240,69 +242,96 @@ export default function PayBalance() {
               )}
             </div>
 
-            <div>
-              <h2 className="text-lg font-semibold text-white">
-                Your remaining balance
-              </h2>
-              <p className="text-white/50 text-sm">
-                You've paid your deposit — here's what's left for each week.
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              {summary.items.map((item) => (
-                <div
-                  key={item.weekId}
-                  className="p-4 rounded-lg bg-white/5 border border-white/10"
-                >
-                  <div className="flex justify-between items-start gap-3">
-                    <div>
-                      <p className="text-white font-medium">
-                        {item.locationName} — {item.weekLabel}
-                      </p>
-                      <p className="text-white/40 text-xs mt-1">
-                        {formatDollars(item.fullPriceCents)} tuition −{" "}
-                        {formatDollars(item.depositPaidCents)} deposit paid
-                      </p>
-                    </div>
-                    <p className="text-lg font-bold text-sky-custom whitespace-nowrap">
-                      {formatDollars(item.balanceDueCents)}
-                    </p>
-                  </div>
+            {summary.hasBalance ? (
+              <>
+                <div>
+                  <h2 className="text-lg font-semibold text-white">
+                    Your remaining balance
+                  </h2>
+                  <p className="text-white/50 text-sm">
+                    You've paid your deposit — here's what's left for each week.
+                  </p>
                 </div>
-              ))}
-            </div>
 
-            <div className="border-t border-white/10 pt-4 flex justify-between items-center">
-              <span className="text-white/80 font-medium">Total due</span>
-              <span className="text-2xl font-bold text-white">
-                {formatDollars(summary.totalDueCents)}
-              </span>
-            </div>
+                <div className="space-y-3">
+                  {summary.items.map((item) => (
+                    <div
+                      key={item.weekId}
+                      className="p-4 rounded-lg bg-white/5 border border-white/10"
+                    >
+                      <div className="flex justify-between items-start gap-3">
+                        <div>
+                          <p className="text-white font-medium">
+                            {item.locationName} — {item.weekLabel}
+                          </p>
+                          <p className="text-white/40 text-xs mt-1">
+                            {formatDollars(item.fullPriceCents)} tuition −{" "}
+                            {formatDollars(item.depositPaidCents)} deposit paid
+                          </p>
+                        </div>
+                        <p className="text-lg font-bold text-sky-custom whitespace-nowrap">
+                          {formatDollars(item.balanceDueCents)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
 
-            <p className="text-white/40 text-xs">
-              A 3.6% card processing fee is added at checkout. To avoid the fee,
-              pay via Zelle or check — email{" "}
-              <a
-                href="mailto:theacappellaworkshop@gmail.com"
-                className="text-sky-custom underline"
-              >
-                theacappellaworkshop@gmail.com
-              </a>
-              .
-            </p>
+                <div className="border-t border-white/10 pt-4 flex justify-between items-center">
+                  <span className="text-white/80 font-medium">Total due</span>
+                  <span className="text-2xl font-bold text-white">
+                    {formatDollars(summary.totalDueCents)}
+                  </span>
+                </div>
 
-            <GradientButton
-              variant="aqua"
-              className="w-full"
-              onClick={handlePay}
-              disabled={isPaying}
-            >
-              <CreditCard className="w-4 h-4 mr-2" />
-              {isPaying
-                ? "Redirecting to checkout..."
-                : `Pay ${formatDollars(summary.totalDueCents)} + processing fee`}
-            </GradientButton>
+                <p className="text-white/40 text-xs">
+                  A 3.6% card processing fee is added at checkout. To avoid the
+                  fee, pay via Zelle or check — email{" "}
+                  <a
+                    href="mailto:theacappellaworkshop@gmail.com"
+                    className="text-sky-custom underline"
+                  >
+                    theacappellaworkshop@gmail.com
+                  </a>
+                  .
+                </p>
+
+                <GradientButton
+                  variant="aqua"
+                  className="w-full"
+                  onClick={handlePay}
+                  disabled={isPaying}
+                >
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  {isPaying
+                    ? "Redirecting to checkout..."
+                    : `Pay ${formatDollars(summary.totalDueCents)} + processing fee`}
+                </GradientButton>
+              </>
+            ) : (
+              /* Found the registration, but nothing is owed. */
+              <>
+                <div className="flex flex-col items-center text-center py-4">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-teal-custom to-sky-custom flex items-center justify-center mb-4">
+                    <Check className="text-white" size={32} />
+                  </div>
+                  <h2 className="text-xl font-bold text-white mb-1">
+                    You're all paid up!
+                  </h2>
+                  <p className="text-white/50 text-sm">
+                    There's no remaining balance on your account. Nothing more to
+                    pay.
+                  </p>
+                </div>
+
+                <div className="border-t border-white/10 pt-4 flex justify-between items-center">
+                  <span className="text-white/80 font-medium">Total due</span>
+                  <span className="text-2xl font-bold text-white">
+                    {formatDollars(0)}
+                  </span>
+                </div>
+              </>
+            )}
           </GlassCard>
         )}
 
