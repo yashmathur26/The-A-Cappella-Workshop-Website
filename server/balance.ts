@@ -82,15 +82,9 @@ function safeParseArray(json: unknown): any[] {
   }
 }
 
-// --- Stripe: cache the full paid-session list briefly so per-lookup pagination
-// doesn't hammer the API. Balances change rarely; 2 min staleness is fine. ---
-let sessionCache: { at: number; data: Stripe.Checkout.Session[] } | null = null;
-const SESSION_TTL_MS = 120_000;
-
+// Fetch the full paid-session list fresh on every lookup, so a just-paid deposit
+// shows up immediately. Volume is low (one page or two), so paginating live is fine.
 async function getAllPaidSessions(stripe: Stripe): Promise<Stripe.Checkout.Session[]> {
-  if (sessionCache && Date.now() - sessionCache.at < SESSION_TTL_MS) {
-    return sessionCache.data;
-  }
   const all: Stripe.Checkout.Session[] = [];
   let startingAfter: string | undefined;
   for (let page = 0; page < 10; page++) {
@@ -102,9 +96,7 @@ async function getAllPaidSessions(stripe: Stripe): Promise<Stripe.Checkout.Sessi
     if (!resp.has_more || resp.data.length === 0) break;
     startingAfter = resp.data[resp.data.length - 1].id;
   }
-  const paid = all.filter((s) => s.payment_status === "paid");
-  sessionCache = { at: Date.now(), data: paid };
-  return paid;
+  return all.filter((s) => s.payment_status === "paid");
 }
 
 function sessionEmail(s: Stripe.Checkout.Session): string {
@@ -117,7 +109,7 @@ function sessionEmail(s: Stripe.Checkout.Session): string {
     .toLowerCase();
 }
 
-// --- Tracker sheet (cached similarly). ---
+// --- Tracker sheet ---
 type SheetRow = {
   emails: string[];
   weekIds: string[];
@@ -126,18 +118,25 @@ type SheetRow = {
   timestamp: string;
 };
 
-let sheetCache: { at: number; data: SheetRow[] } | null = null;
-const SHEET_TTL_MS = 120_000;
+// Retained only as a fallback if a fetch fails — never used to skip a fresh fetch.
+let lastGoodSheet: SheetRow[] | null = null;
 
 async function getSheetRows(): Promise<SheetRow[]> {
-  if (sheetCache && Date.now() - sheetCache.at < SHEET_TTL_MS) {
-    return sheetCache.data;
-  }
   try {
-    const resp = await fetch(TRACKER_SHEET_CSV_URL, { redirect: "follow" });
+    // Cache-buster: Google's published CSV is CDN-cached (~5 min); a fresh query
+    // string forces the newest copy so newly-added rows appear right away.
+    const bustedUrl =
+      TRACKER_SHEET_CSV_URL +
+      (TRACKER_SHEET_CSV_URL.includes("?") ? "&" : "?") +
+      "_cb=" +
+      Date.now();
+    const resp = await fetch(bustedUrl, {
+      redirect: "follow",
+      headers: { "cache-control": "no-cache" },
+    });
     if (!resp.ok) {
       console.warn(`[balance] tracker sheet fetch failed: ${resp.status}`);
-      return sheetCache?.data ?? [];
+      return lastGoodSheet ?? [];
     }
     let text = await resp.text();
     if (text.charCodeAt(0) === 0xfeff) text = text.slice(1); // strip BOM
@@ -186,11 +185,11 @@ async function getSheetRows(): Promise<SheetRow[]> {
         timestamp: col.timestamp >= 0 ? (r[col.timestamp] ?? "").trim() : "",
       });
     }
-    sheetCache = { at: Date.now(), data: parsed };
+    lastGoodSheet = parsed;
     return parsed;
   } catch (err) {
     console.error("[balance] failed to load tracker sheet:", err);
-    return sheetCache?.data ?? [];
+    return lastGoodSheet ?? [];
   }
 }
 
