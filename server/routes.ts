@@ -19,7 +19,7 @@ import {
 } from "./referral-codes";
 import { pool, db } from "./db";
 import { pickResponseRow, resolveSheetColumns } from "./sheet-csv";
-import { getCampWeekLabel, getCampLocationName } from "@shared/camp-week-labels";
+import { computeOutstandingForEmail } from "./balance";
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, {
@@ -777,8 +777,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Outstanding deposit balances for a parent email (used by /pay-balance page).
+  // Sources of truth are Stripe (card deposits) + the tracker sheet (Zelle/check),
+  // reconciled by (email, week) — see server/balance.ts.
   app.get("/api/balance-summary", async (req, res) => {
     try {
+      if (!stripe) {
+        return res.status(501).json({
+          message: "Balance lookup is unavailable because STRIPE_SECRET_KEY is not set.",
+        });
+      }
       const email = typeof req.query.email === "string" ? req.query.email.trim() : "";
       if (!email) {
         return res.status(400).json({ message: "Parent email is required" });
@@ -788,33 +795,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Please enter a valid email address" });
       }
 
-      const outstanding = await storage.getOutstandingRegistrations(email);
-      const items = await Promise.all(
-        outstanding.map(async (reg) => {
-          const week = await storage.getWeek(reg.weekId);
-          const weekLabel = week?.label ?? getCampWeekLabel(reg.weekId);
-          const locationName = getCampLocationName(reg.weekId);
-          return {
-            registrationId: reg.id,
-            childName: reg.childName,
-            weekId: reg.weekId,
-            weekLabel,
-            locationName,
-            depositPaidCents: reg.amountPaidCents,
-            balanceDueCents: reg.balanceDueCents,
-            paymentType: reg.paymentType,
-          };
-        }),
-      );
-
-      const totalDueCents = items.reduce((sum, item) => sum + item.balanceDueCents, 0);
-
-      res.json({
-        parentEmail: email.toLowerCase(),
-        items,
-        totalDueCents,
-        hasBalance: items.length > 0,
-      });
+      const result = await computeOutstandingForEmail(stripe, email);
+      res.json(result);
     } catch (error) {
       console.error("Error fetching balance summary:", error);
       res.status(500).json({ message: "Failed to look up balance" });
@@ -830,9 +812,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const { parentEmail, registrationIds } = req.body as {
+      const { parentEmail, weekIds, registrationIds } = req.body as {
         parentEmail?: string;
-        registrationIds?: string[];
+        weekIds?: string[];
+        registrationIds?: string[]; // legacy field; treated as weekIds
       };
 
       if (!parentEmail?.trim()) {
@@ -845,19 +828,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Please enter a valid email address" });
       }
 
-      let toPay = await storage.getOutstandingRegistrations(email);
+      // Recompute authoritatively from Stripe + the tracker sheet — never trust
+      // client-supplied amounts.
+      const summary = await computeOutstandingForEmail(stripe, email);
+      let toPay = summary.items;
 
-      if (registrationIds && Array.isArray(registrationIds) && registrationIds.length > 0) {
-        const idSet = new Set(registrationIds);
-        toPay = toPay.filter((r) => idSet.has(r.id));
+      const requestedWeeks = weekIds ?? registrationIds;
+      if (Array.isArray(requestedWeeks) && requestedWeeks.length > 0) {
+        const weekSet = new Set(requestedWeeks);
+        toPay = toPay.filter((i) => weekSet.has(i.weekId));
       }
 
       if (toPay.length === 0) {
         return res.status(404).json({
-          message: "No outstanding balance found for this email. If you already paid in full, you're all set!",
+          message:
+            "No outstanding balance found for this email. If you already paid in full, you're all set!",
         });
       }
 
+      const childName = summary.studentName || "Student";
       const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
       const balanceItems: Array<{
         registration_id: string;
@@ -866,21 +855,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         balance_cents: number;
       }> = [];
 
-      for (const reg of toPay) {
-        const balance = reg.balanceDueCents;
+      for (const item of toPay) {
+        const balance = item.balanceDueCents;
         if (balance <= 0) continue;
-
-        const week = await storage.getWeek(reg.weekId);
-        const weekLabel = week?.label ?? getCampWeekLabel(reg.weekId);
-        const locationName = getCampLocationName(reg.weekId);
-        const childName = reg.childName || "Student";
 
         lineItems.push({
           price_data: {
             currency: "usd",
             product_data: {
-              name: `${childName} — ${locationName} — ${weekLabel} (Final Payment)`,
-              description: `Remaining balance after $${(reg.amountPaidCents / 100).toFixed(2)} deposit`,
+              name: `${childName} — ${item.locationName} — ${item.weekLabel} (Final Payment)`,
+              description: `Remaining balance after $${(item.depositPaidCents / 100).toFixed(2)} deposit`,
             },
             unit_amount: balance,
           },
@@ -888,8 +872,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
 
         balanceItems.push({
-          registration_id: reg.id,
-          week_id: reg.weekId,
+          registration_id: "",
+          week_id: item.weekId,
           child_name: childName,
           balance_cents: balance,
         });

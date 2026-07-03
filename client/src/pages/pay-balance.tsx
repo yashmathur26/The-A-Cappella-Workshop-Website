@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
-import { Check, CreditCard, Mail, Search, AlertCircle } from "lucide-react";
+import {
+  Check,
+  CreditCard,
+  Mail,
+  Search,
+  AlertCircle,
+  CalendarDays,
+  GraduationCap,
+} from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GradientButton } from "@/components/ui/gradient-button";
 import { Input } from "@/components/ui/input";
@@ -8,18 +16,19 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 
 type BalanceItem = {
-  registrationId: string;
-  childName: string;
   weekId: string;
   weekLabel: string;
   locationName: string;
+  fullPriceCents: number;
   depositPaidCents: number;
   balanceDueCents: number;
-  paymentType: string;
 };
 
 type BalanceSummary = {
   parentEmail: string;
+  studentName: string;
+  signedUpAt: string | null;
+  source: "stripe" | "sheet" | "mixed" | "none";
   items: BalanceItem[];
   totalDueCents: number;
   hasBalance: boolean;
@@ -29,12 +38,24 @@ function formatDollars(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
+function formatSignupDate(iso: string | null): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
 export default function PayBalance() {
   const [email, setEmail] = useState("");
   const [summary, setSummary] = useState<BalanceSummary | null>(null);
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [isPaying, setIsPaying] = useState(false);
   const [lookupError, setLookupError] = useState("");
+  const [noBalanceMsg, setNoBalanceMsg] = useState("");
   const [paidSuccess, setPaidSuccess] = useState(false);
   const { toast } = useToast();
 
@@ -49,6 +70,7 @@ export default function PayBalance() {
   const handleLookup = async (e?: React.FormEvent) => {
     e?.preventDefault();
     setLookupError("");
+    setNoBalanceMsg("");
     setSummary(null);
 
     const trimmed = email.trim();
@@ -66,10 +88,11 @@ export default function PayBalance() {
       if (!res.ok) {
         throw new Error(data.message || "Could not look up balance");
       }
-      setSummary(data as BalanceSummary);
-      if (!data.hasBalance) {
-        setLookupError(
-          "No outstanding balance found for this email. If you paid in full already, you're all set!",
+      if (data.hasBalance) {
+        setSummary(data as BalanceSummary);
+      } else {
+        setNoBalanceMsg(
+          "No outstanding balance found for this email. Make sure you use the same email you registered with. If you already paid in full, you're all set!",
         );
       }
     } catch (err) {
@@ -91,7 +114,7 @@ export default function PayBalance() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           parentEmail: summary.parentEmail,
-          registrationIds: summary.items.map((i) => i.registrationId),
+          weekIds: summary.items.map((i) => i.weekId),
         }),
       });
       const data = await res.json();
@@ -130,7 +153,7 @@ export default function PayBalance() {
               from Stripe shortly — check your spam folder if you don't see it.
             </p>
             <Link href="/">
-              <GradientButton>Return to Home</GradientButton>
+              <GradientButton variant="aqua">Return to Home</GradientButton>
             </Link>
           </GlassCard>
         </div>
@@ -138,17 +161,20 @@ export default function PayBalance() {
     );
   }
 
+  const signupDate = summary ? formatSignupDate(summary.signedUpAt) : null;
+
   return (
     <div className="min-h-screen">
       <div className="max-w-lg mx-auto px-6 py-16">
         <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-full bg-blue-500/20 flex items-center justify-center mx-auto mb-4">
+          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-cyan-500/30 to-indigo-500/30 flex items-center justify-center mx-auto mb-4">
             <CreditCard className="w-7 h-7 text-sky-custom" />
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">Pay Remaining Balance</h1>
           <p className="text-white/60 text-sm">
-            Enter the parent/guardian email you used when registering. We'll show
-            any outstanding deposit balances for all camp weeks.
+            Enter the same parent/guardian email you used when you paid your
+            deposit. We'll show your remaining balance and take you to secure
+            checkout.
           </p>
         </div>
 
@@ -173,39 +199,70 @@ export default function PayBalance() {
             </div>
             <GradientButton
               type="submit"
+              variant="aqua"
               className="w-full"
               disabled={isLookingUp}
             >
               <Search className="w-4 h-4 mr-2" />
-              {isLookingUp ? "Looking up..." : "Find My Balance"}
+              {isLookingUp ? "Checking..." : "Check Balance & Pay"}
             </GradientButton>
           </form>
 
           {lookupError && (
+            <div className="mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 flex gap-2">
+              <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+              <p className="text-red-200 text-sm">{lookupError}</p>
+            </div>
+          )}
+          {noBalanceMsg && (
             <div className="mt-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 flex gap-2">
               <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-              <p className="text-amber-200 text-sm">{lookupError}</p>
+              <p className="text-amber-200 text-sm">{noBalanceMsg}</p>
             </div>
           )}
         </GlassCard>
 
         {summary?.hasBalance && (
-          <GlassCard className="p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-white">Outstanding balances</h2>
+          <GlassCard className="p-6 space-y-5">
+            {/* Who this is for */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+              {summary.studentName && (
+                <span className="flex items-center gap-1.5 text-white/80">
+                  <GraduationCap className="w-4 h-4 text-sky-custom" />
+                  {summary.studentName}
+                </span>
+              )}
+              {signupDate && (
+                <span className="flex items-center gap-1.5 text-white/50">
+                  <CalendarDays className="w-4 h-4" />
+                  Registered {signupDate}
+                </span>
+              )}
+            </div>
+
+            <div>
+              <h2 className="text-lg font-semibold text-white">
+                Your remaining balance
+              </h2>
+              <p className="text-white/50 text-sm">
+                You've paid your deposit — here's what's left for each week.
+              </p>
+            </div>
+
             <div className="space-y-3">
               {summary.items.map((item) => (
                 <div
-                  key={item.registrationId}
+                  key={item.weekId}
                   className="p-4 rounded-lg bg-white/5 border border-white/10"
                 >
                   <div className="flex justify-between items-start gap-3">
                     <div>
-                      <p className="text-white font-medium">{item.childName}</p>
-                      <p className="text-white/60 text-sm">
+                      <p className="text-white font-medium">
                         {item.locationName} — {item.weekLabel}
                       </p>
                       <p className="text-white/40 text-xs mt-1">
-                        Deposit paid: {formatDollars(item.depositPaidCents)}
+                        {formatDollars(item.fullPriceCents)} tuition −{" "}
+                        {formatDollars(item.depositPaidCents)} deposit paid
                       </p>
                     </div>
                     <p className="text-lg font-bold text-sky-custom whitespace-nowrap">
@@ -236,6 +293,7 @@ export default function PayBalance() {
             </p>
 
             <GradientButton
+              variant="aqua"
               className="w-full"
               onClick={handlePay}
               disabled={isPaying}
