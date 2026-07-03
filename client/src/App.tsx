@@ -14,6 +14,7 @@ import About from "@/pages/about";
 import FAQ from "@/pages/faq";
 import Gallery from "@/pages/gallery";
 import CampRegistration from "@/pages/camp-registration";
+import PayBalance from "@/pages/pay-balance";
 import Status from "@/pages/status";
 import NotFound from "@/pages/not-found";
 
@@ -59,9 +60,10 @@ function Router() {
   // Track visits automatically
   useVisitTracker();
   
-  // Show footer on all pages except registration pages
+  // Show footer on all pages except registration and pay-balance
   const showFooter = !location.startsWith('/camp-registration') && 
-                     !location.startsWith('/register');
+                     !location.startsWith('/register') &&
+                     !location.startsWith('/pay-balance');
   
   return (
     <>
@@ -93,6 +95,7 @@ function Router() {
         <Route path="/gallery" component={Gallery} />
         <Route path="/camp-registration" component={CampRegistration} />
         <Route path="/register" component={CampRegistration} />
+        <Route path="/pay-balance" component={PayBalance} />
         <Route path="/success" component={Status} />
         <Route component={NotFound} />
       </Switch>

@@ -19,6 +19,7 @@ import {
 } from "./referral-codes";
 import { pool, db } from "./db";
 import { pickResponseRow, resolveSheetColumns } from "./sheet-csv";
+import { getCampWeekLabel, getCampLocationName } from "@shared/camp-week-labels";
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, {
@@ -772,6 +773,170 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error checking payment status:", error);
       res.status(500).json({ message: error?.message || "Error checking payment status" });
+    }
+  });
+
+  // Outstanding deposit balances for a parent email (used by /pay-balance page).
+  app.get("/api/balance-summary", async (req, res) => {
+    try {
+      const email = typeof req.query.email === "string" ? req.query.email.trim() : "";
+      if (!email) {
+        return res.status(400).json({ message: "Parent email is required" });
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ message: "Please enter a valid email address" });
+      }
+
+      const outstanding = await storage.getOutstandingRegistrations(email);
+      const items = await Promise.all(
+        outstanding.map(async (reg) => {
+          const week = await storage.getWeek(reg.weekId);
+          const weekLabel = week?.label ?? getCampWeekLabel(reg.weekId);
+          const locationName = getCampLocationName(reg.weekId);
+          return {
+            registrationId: reg.id,
+            childName: reg.childName,
+            weekId: reg.weekId,
+            weekLabel,
+            locationName,
+            depositPaidCents: reg.amountPaidCents,
+            balanceDueCents: reg.balanceDueCents,
+            paymentType: reg.paymentType,
+          };
+        }),
+      );
+
+      const totalDueCents = items.reduce((sum, item) => sum + item.balanceDueCents, 0);
+
+      res.json({
+        parentEmail: email.toLowerCase(),
+        items,
+        totalDueCents,
+        hasBalance: items.length > 0,
+      });
+    } catch (error) {
+      console.error("Error fetching balance summary:", error);
+      res.status(500).json({ message: "Failed to look up balance" });
+    }
+  });
+
+  // Create Stripe Checkout for remaining deposit balance(s).
+  app.post("/api/balance-checkout", express.json(), async (req, res) => {
+    try {
+      if (!stripe) {
+        return res.status(501).json({
+          message: "Payments are disabled because STRIPE_SECRET_KEY is not set on the server.",
+        });
+      }
+
+      const { parentEmail, registrationIds } = req.body as {
+        parentEmail?: string;
+        registrationIds?: string[];
+      };
+
+      if (!parentEmail?.trim()) {
+        return res.status(400).json({ message: "Parent email is required" });
+      }
+
+      const email = parentEmail.trim().toLowerCase();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ message: "Please enter a valid email address" });
+      }
+
+      let toPay = await storage.getOutstandingRegistrations(email);
+
+      if (registrationIds && Array.isArray(registrationIds) && registrationIds.length > 0) {
+        const idSet = new Set(registrationIds);
+        toPay = toPay.filter((r) => idSet.has(r.id));
+      }
+
+      if (toPay.length === 0) {
+        return res.status(404).json({
+          message: "No outstanding balance found for this email. If you already paid in full, you're all set!",
+        });
+      }
+
+      const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
+      const balanceItems: Array<{
+        registration_id: string;
+        week_id: string;
+        child_name: string;
+        balance_cents: number;
+      }> = [];
+
+      for (const reg of toPay) {
+        const balance = reg.balanceDueCents;
+        if (balance <= 0) continue;
+
+        const week = await storage.getWeek(reg.weekId);
+        const weekLabel = week?.label ?? getCampWeekLabel(reg.weekId);
+        const locationName = getCampLocationName(reg.weekId);
+        const childName = reg.childName || "Student";
+
+        lineItems.push({
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: `${childName} — ${locationName} — ${weekLabel} (Final Payment)`,
+              description: `Remaining balance after $${(reg.amountPaidCents / 100).toFixed(2)} deposit`,
+            },
+            unit_amount: balance,
+          },
+          quantity: 1,
+        });
+
+        balanceItems.push({
+          registration_id: reg.id,
+          week_id: reg.weekId,
+          child_name: childName,
+          balance_cents: balance,
+        });
+      }
+
+      if (lineItems.length === 0) {
+        return res.status(404).json({ message: "No outstanding balance to pay" });
+      }
+
+      const subtotalCents = balanceItems.reduce((sum, item) => sum + item.balance_cents, 0);
+      const processingFee = Math.round(subtotalCents * 0.036);
+
+      if (processingFee > 0) {
+        lineItems.push({
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: "Processing Fee (3.6%)",
+              description: "To avoid this fee, pay via Zelle or check — email theacappellaworkshop@gmail.com",
+            },
+            unit_amount: processingFee,
+          },
+          quantity: 1,
+        });
+      }
+
+      const protocol = req.get("x-forwarded-proto") || (req.secure ? "https" : "http");
+      const host = `${protocol}://${req.get("host")}`;
+
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ["card"],
+        line_items: lineItems,
+        mode: "payment",
+        success_url: `${host}/pay-balance?paid=1&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${host}/pay-balance?cancelled=1`,
+        customer_email: email,
+        metadata: {
+          paymentType: "balance",
+          parentEmail: email,
+          balance_items_json: JSON.stringify(balanceItems),
+        },
+      });
+
+      res.json({ url: session.url });
+    } catch (error) {
+      console.error("Error creating balance checkout session:", error);
+      res.status(500).json({ message: "Failed to create checkout session" });
     }
   });
 

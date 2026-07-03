@@ -27,9 +27,16 @@ export interface IStorage {
   getRegistrations(parentEmail?: string): Promise<Registration[]>;
   getRegistration(id: string): Promise<Registration | undefined>;
   getRegistrationBySessionId(sessionId: string): Promise<Registration | undefined>;
+  getOutstandingRegistrations(parentEmail: string): Promise<Registration[]>;
   createRegistration(registration: InsertRegistration): Promise<Registration>;
   updateRegistrationStatus(id: string, status: string): Promise<void>;
   updateRegistrationStripeData(id: string, sessionId?: string, paymentIntentId?: string): Promise<void>;
+  settleRegistrationBalance(
+    id: string,
+    balancePaidCents: number,
+    stripeSessionId: string,
+    stripePaymentIntentId: string,
+  ): Promise<void>;
 
   // Payment operations
   getPayments(parentEmail: string): Promise<Payment[]>;
@@ -111,6 +118,19 @@ export class DatabaseStorage implements IStorage {
     return registration || undefined;
   }
 
+  async getOutstandingRegistrations(parentEmail: string): Promise<Registration[]> {
+    const email = parentEmail.trim().toLowerCase();
+    return await this._db
+      .select()
+      .from(registrations)
+      .where(
+        and(
+          eq(registrations.parentEmail, email),
+          sql`${registrations.balanceDueCents} > 0`,
+        ),
+      );
+  }
+
   async createRegistration(regData: InsertRegistration): Promise<Registration> {
     const [registration] = await this._db
       .insert(registrations)
@@ -137,6 +157,31 @@ export class DatabaseStorage implements IStorage {
         stripeCheckoutSessionId: sessionId,
         stripePaymentIntentId: paymentIntentId,
         updatedAt: new Date() 
+      })
+      .where(eq(registrations.id, id));
+  }
+
+  async settleRegistrationBalance(
+    id: string,
+    balancePaidCents: number,
+    stripeSessionId: string,
+    stripePaymentIntentId: string,
+  ): Promise<void> {
+    const [existing] = await this._db
+      .select()
+      .from(registrations)
+      .where(eq(registrations.id, id));
+    if (!existing) return;
+
+    await this._db
+      .update(registrations)
+      .set({
+        amountPaidCents: existing.amountPaidCents + balancePaidCents,
+        balanceDueCents: 0,
+        status: "paid",
+        stripeCheckoutSessionId: stripeSessionId,
+        stripePaymentIntentId: stripePaymentIntentId,
+        updatedAt: new Date(),
       })
       .where(eq(registrations.id, id));
   }
@@ -335,6 +380,13 @@ class MemoryStorage implements IStorage {
     return this._registrations.find((r) => r.stripeCheckoutSessionId === sessionId);
   }
 
+  async getOutstandingRegistrations(parentEmail: string): Promise<Registration[]> {
+    const email = parentEmail.trim().toLowerCase();
+    return this._registrations.filter(
+      (r) => r.parentEmail === email && r.balanceDueCents > 0,
+    );
+  }
+
   async createRegistration(regData: InsertRegistration): Promise<Registration> {
     const now = new Date();
     const id =
@@ -375,6 +427,22 @@ class MemoryStorage implements IStorage {
     if (!r) return;
     r.stripeCheckoutSessionId = sessionId ?? r.stripeCheckoutSessionId;
     r.stripePaymentIntentId = paymentIntentId ?? r.stripePaymentIntentId;
+    r.updatedAt = new Date();
+  }
+
+  async settleRegistrationBalance(
+    id: string,
+    balancePaidCents: number,
+    stripeSessionId: string,
+    stripePaymentIntentId: string,
+  ): Promise<void> {
+    const r = this._registrations.find((x) => x.id === id);
+    if (!r) return;
+    r.amountPaidCents += balancePaidCents;
+    r.balanceDueCents = 0;
+    r.status = "paid";
+    r.stripeCheckoutSessionId = stripeSessionId;
+    r.stripePaymentIntentId = stripePaymentIntentId;
     r.updatedAt = new Date();
   }
 
