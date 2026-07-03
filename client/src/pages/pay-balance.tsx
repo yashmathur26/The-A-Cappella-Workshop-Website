@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
+import { motion, AnimatePresence, MotionConfig, type Variants } from "framer-motion";
 import {
   Check,
   CreditCard,
@@ -8,6 +9,8 @@ import {
   AlertCircle,
   CalendarDays,
   GraduationCap,
+  ShieldCheck,
+  Loader2,
 } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GradientButton } from "@/components/ui/gradient-button";
@@ -59,6 +62,25 @@ function formatSignupDate(iso: string | null): string | null {
     day: "numeric",
   });
 }
+
+// --- Motion presets -------------------------------------------------------
+const spring = { type: "spring" as const, stiffness: 320, damping: 30 };
+
+const listContainer: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.07, delayChildren: 0.04 } },
+};
+
+const rowItem: Variants = {
+  hidden: { opacity: 0, y: 14 },
+  show: { opacity: 1, y: 0, transition: spring },
+};
+
+const cardReveal: Variants = {
+  hidden: { opacity: 0, y: 18, scale: 0.985 },
+  show: { opacity: 1, y: 0, scale: 1, transition: { ...spring, damping: 26 } },
+  exit: { opacity: 0, y: -10, transition: { duration: 0.18 } },
+};
 
 export default function PayBalance() {
   const [email, setEmail] = useState("");
@@ -152,254 +174,364 @@ export default function PayBalance() {
 
   if (paidSuccess) {
     return (
-      <div className="min-h-screen">
-        <div className="max-w-lg mx-auto px-6 py-20 text-center">
-          <GlassCard className="p-10">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-teal-custom to-sky-custom flex items-center justify-center mx-auto mb-6">
-              <Check className="text-white" size={40} />
-            </div>
-            <h1 className="text-2xl font-bold text-teal-custom mb-4">
-              Payment received!
-            </h1>
-            <p className="text-white/80 mb-6">
-              Your remaining camp balance has been paid. You'll receive a receipt
-              from Stripe shortly — check your spam folder if you don't see it.
-            </p>
-            <Link href="/">
-              <GradientButton variant="aqua">Return to Home</GradientButton>
-            </Link>
-          </GlassCard>
+      <MotionConfig reducedMotion="user">
+        <div className="min-h-screen">
+          <div className="max-w-lg mx-auto px-6 py-20 text-center">
+            <motion.div initial="hidden" animate="show" variants={cardReveal}>
+              <GlassCard className="p-10">
+                <motion.div
+                  initial={{ scale: 0, rotate: -12 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ type: "spring", stiffness: 260, damping: 16, delay: 0.1 }}
+                  className="w-20 h-20 rounded-full bg-gradient-to-br from-teal-custom to-sky-custom flex items-center justify-center mx-auto mb-6 shadow-lg shadow-teal-500/30"
+                >
+                  <Check className="text-white" size={40} strokeWidth={3} />
+                </motion.div>
+                <h1 className="text-2xl font-bold text-teal-custom mb-4">
+                  Payment received!
+                </h1>
+                <p className="text-white/80 mb-6">
+                  Your remaining camp balance has been paid. You'll receive a receipt
+                  from Stripe shortly — check your spam folder if you don't see it.
+                </p>
+                <Link href="/">
+                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
+                    <GradientButton variant="aqua">Return to Home</GradientButton>
+                  </motion.div>
+                </Link>
+              </GlassCard>
+            </motion.div>
+          </div>
         </div>
-      </div>
+      </MotionConfig>
     );
   }
 
   const signupDate = summary ? formatSignupDate(summary.signedUpAt) : null;
 
   return (
-    <div className="min-h-screen">
-      <div className="max-w-lg mx-auto px-6 py-16">
-        <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-cyan-500/30 to-indigo-500/30 flex items-center justify-center mx-auto mb-4">
-            <CreditCard className="w-7 h-7 text-sky-custom" />
-          </div>
-          <h1 className="text-3xl font-bold text-white mb-2">Pay Remaining Balance</h1>
-          <p className="text-white/60 text-sm">
-            Enter the same parent/guardian email you used when you paid your
-            deposit. We'll show your remaining balance and take you to secure
-            checkout.
-          </p>
-        </div>
-
-        <GlassCard className="p-6 mb-6">
-          <form onSubmit={handleLookup} className="space-y-4">
-            <div>
-              <Label htmlFor="parent-email" className="text-white/90 text-sm">
-                Parent / Guardian Email
-              </Label>
-              <div className="relative mt-1.5">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
-                <Input
-                  id="parent-email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="parent@example.com"
-                  className="pl-10 bg-white/5 border-white/20 text-white placeholder:text-white/30"
-                  autoComplete="email"
-                />
-              </div>
-            </div>
-            <GradientButton
-              type="submit"
-              variant="aqua"
-              className="w-full"
-              disabled={isLookingUp}
+    <MotionConfig reducedMotion="user">
+      <div className="min-h-screen">
+        <div className="max-w-lg mx-auto px-6 py-16">
+          {/* Header */}
+          <motion.div
+            className="text-center mb-8"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ ...spring, damping: 24 }}
+          >
+            <motion.div
+              initial={{ scale: 0.6, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 220, damping: 15, delay: 0.05 }}
+              className="relative w-16 h-16 mx-auto mb-5"
             >
-              <Search className="w-4 h-4 mr-2" />
-              {isLookingUp ? "Checking..." : "Check Balance & Pay"}
-            </GradientButton>
-          </form>
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-cyan-500 via-sky-500 to-indigo-500 opacity-30 blur-lg" />
+              <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500/25 to-indigo-500/25 border border-white/10 flex items-center justify-center backdrop-blur-sm">
+                <CreditCard className="w-7 h-7 text-sky-custom" />
+              </div>
+            </motion.div>
+            <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2 tracking-tight">
+              Pay Remaining Balance
+            </h1>
+            <p className="text-white/60 text-sm leading-relaxed max-w-sm mx-auto">
+              Enter the same parent/guardian email you used when you paid your
+              deposit. We'll show your remaining balance and take you to secure
+              checkout.
+            </p>
+          </motion.div>
 
-          {lookupError && (
-            <div className="mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 flex gap-2">
-              <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-              <p className="text-red-200 text-sm">{lookupError}</p>
-            </div>
-          )}
-          {noBalanceMsg && (
-            <div className="mt-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 flex gap-2">
-              <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-              <p className="text-amber-200 text-sm">{noBalanceMsg}</p>
-            </div>
-          )}
-        </GlassCard>
-
-        {summary && summary.source !== "none" && (
-          <GlassCard className="p-6 space-y-5">
-            {/* Who this is for */}
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-              {summary.studentName && (
-                <span className="flex items-center gap-1.5 text-white/80">
-                  <GraduationCap className="w-4 h-4 text-sky-custom" />
-                  {summary.studentName}
-                </span>
-              )}
-              {signupDate && (
-                <span className="flex items-center gap-1.5 text-white/50">
-                  <CalendarDays className="w-4 h-4" />
-                  Registered {signupDate}
-                </span>
-              )}
-            </div>
-
-            {summary.hasBalance ? (
-              <>
+          {/* Lookup card */}
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ ...spring, damping: 26, delay: 0.08 }}
+          >
+            <GlassCard className="p-6 mb-6">
+              <form onSubmit={handleLookup} className="space-y-4">
                 <div>
-                  <h2 className="text-lg font-semibold text-white">
-                    Your remaining balance
-                  </h2>
-                  <p className="text-white/50 text-sm">
-                    You've paid your deposit — here's what's left for each week.
-                  </p>
+                  <Label htmlFor="parent-email" className="text-white/90 text-sm">
+                    Parent / Guardian Email
+                  </Label>
+                  <div className="relative mt-1.5 group">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 transition-colors group-focus-within:text-sky-custom" />
+                    <Input
+                      id="parent-email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="parent@example.com"
+                      className="pl-10 bg-white/5 border-white/20 text-white placeholder:text-white/30 transition-all focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:border-sky-500/50"
+                      autoComplete="email"
+                    />
+                  </div>
                 </div>
+                <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.985 }}>
+                  <GradientButton
+                    type="submit"
+                    variant="aqua"
+                    className="w-full"
+                    disabled={isLookingUp}
+                  >
+                    {isLookingUp ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Search className="w-4 h-4 mr-2" />
+                    )}
+                    {isLookingUp ? "Checking..." : "Check Balance & Pay"}
+                  </GradientButton>
+                </motion.div>
+              </form>
 
-                <div className="space-y-3">
-                  {summary.items.map((item) => (
-                    <div
-                      key={item.weekId}
-                      className="p-4 rounded-lg bg-white/5 border border-white/10"
-                    >
-                      <div className="flex justify-between items-start gap-3">
-                        <div>
-                          <p className="text-white font-medium">
-                            {item.locationName} — {item.weekLabel}
-                          </p>
-                          <p className="text-white/40 text-xs mt-1">
-                            {formatDollars(item.fullPriceCents)} tuition −{" "}
-                            {formatDollars(item.depositPaidCents)} deposit paid
-                          </p>
-                        </div>
-                        <p className="text-lg font-bold text-sky-custom whitespace-nowrap">
-                          {formatDollars(item.balanceDueCents)}
+              <AnimatePresence mode="wait">
+                {lookupError && (
+                  <motion.div
+                    key="err"
+                    initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                    animate={{ opacity: 1, height: "auto", marginTop: 16 }}
+                    exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                    transition={{ duration: 0.22 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 flex gap-2">
+                      <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                      <p className="text-red-200 text-sm">{lookupError}</p>
+                    </div>
+                  </motion.div>
+                )}
+                {noBalanceMsg && (
+                  <motion.div
+                    key="nobal"
+                    initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                    animate={{ opacity: 1, height: "auto", marginTop: 16 }}
+                    exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                    transition={{ duration: 0.22 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex gap-2">
+                      <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                      <p className="text-amber-200 text-sm">{noBalanceMsg}</p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </GlassCard>
+          </motion.div>
+
+          {/* Results */}
+          <AnimatePresence mode="wait">
+            {summary && summary.source !== "none" && (
+              <motion.div
+                key={summary.parentEmail + summary.hasBalance}
+                variants={cardReveal}
+                initial="hidden"
+                animate="show"
+                exit="exit"
+              >
+                <GlassCard className="p-6 space-y-5">
+                  {/* Who this is for */}
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                    {summary.studentName && (
+                      <span className="flex items-center gap-1.5 text-white/80">
+                        <GraduationCap className="w-4 h-4 text-sky-custom" />
+                        {summary.studentName}
+                      </span>
+                    )}
+                    {signupDate && (
+                      <span className="flex items-center gap-1.5 text-white/50">
+                        <CalendarDays className="w-4 h-4" />
+                        Registered {signupDate}
+                      </span>
+                    )}
+                  </div>
+
+                  {summary.hasBalance ? (
+                    <>
+                      <div>
+                        <h2 className="text-lg font-semibold text-white">
+                          Your remaining balance
+                        </h2>
+                        <p className="text-white/50 text-sm">
+                          You've paid your deposit — here's what's left for each week.
                         </p>
                       </div>
-                    </div>
-                  ))}
-                </div>
 
-                <div className="border-t border-white/10 pt-4 flex justify-between items-center">
-                  <span className="text-white/80 font-medium">Total due</span>
-                  <span className="text-2xl font-bold text-white">
-                    {formatDollars(summary.totalDueCents)}
-                  </span>
-                </div>
-
-                <p className="text-white/40 text-xs">
-                  A 3.6% card processing fee is added at checkout. To avoid the
-                  fee, pay via Zelle or check — email{" "}
-                  <a
-                    href="mailto:theacappellaworkshop@gmail.com"
-                    className="text-sky-custom underline"
-                  >
-                    theacappellaworkshop@gmail.com
-                  </a>
-                  .
-                </p>
-
-                <GradientButton
-                  variant="aqua"
-                  className="w-full"
-                  onClick={handlePay}
-                  disabled={isPaying}
-                >
-                  <CreditCard className="w-4 h-4 mr-2" />
-                  {isPaying
-                    ? "Redirecting to checkout..."
-                    : `Pay ${formatDollars(summary.totalDueCents)} + processing fee`}
-                </GradientButton>
-              </>
-            ) : (
-              /* Found the registration, but nothing is owed. */
-              <>
-                <div className="flex flex-col items-center text-center py-2">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-teal-custom to-sky-custom flex items-center justify-center mb-4">
-                    <Check className="text-white" size={32} />
-                  </div>
-                  <h2 className="text-xl font-bold text-white mb-1">
-                    You're all paid up!
-                  </h2>
-                  <p className="text-white/50 text-sm">
-                    There's no remaining balance on your account. Nothing more to
-                    pay.
-                  </p>
-                </div>
-
-                {summary.history.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-white/70 uppercase tracking-wide mb-3">
-                      Purchase history
-                    </h3>
-                    <div className="space-y-3">
-                      {summary.history.map((h) => (
-                        <div
-                          key={h.weekId}
-                          className="p-4 rounded-lg bg-white/5 border border-white/10"
-                        >
-                          <div className="flex justify-between items-start gap-3">
-                            <div>
-                              <p className="text-white font-medium">
-                                {h.locationName} — {h.weekLabel}
+                      <motion.div
+                        className="space-y-3"
+                        variants={listContainer}
+                        initial="hidden"
+                        animate="show"
+                      >
+                        {summary.items.map((item) => (
+                          <motion.div
+                            key={item.weekId}
+                            variants={rowItem}
+                            className="p-4 rounded-xl bg-white/5 border border-white/10 transition-colors hover:bg-white/[0.08]"
+                          >
+                            <div className="flex justify-between items-start gap-3">
+                              <div>
+                                <p className="text-white font-medium">
+                                  {item.locationName} — {item.weekLabel}
+                                </p>
+                                <p className="text-white/40 text-xs mt-1 tabular-nums">
+                                  {formatDollars(item.fullPriceCents)} tuition −{" "}
+                                  {formatDollars(item.depositPaidCents)} deposit paid
+                                </p>
+                              </div>
+                              <p className="text-lg font-bold whitespace-nowrap tabular-nums bg-gradient-to-r from-cyan-300 to-sky-400 bg-clip-text text-transparent">
+                                {formatDollars(item.balanceDueCents)}
                               </p>
-                              <span
-                                className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full ${
-                                  h.status === "paid_in_full"
-                                    ? "bg-teal-500/20 text-teal-200 border border-teal-500/30"
-                                    : "bg-amber-500/20 text-amber-200 border border-amber-500/30"
-                                }`}
-                              >
-                                {h.status === "paid_in_full"
-                                  ? "Paid in full"
-                                  : "Deposit paid"}
-                              </span>
                             </div>
-                            <p className="text-lg font-bold text-teal-custom whitespace-nowrap">
-                              {formatDollars(h.amountPaidCents)}
-                            </p>
-                          </div>
+                          </motion.div>
+                        ))}
+                      </motion.div>
+
+                      <div className="border-t border-white/10 pt-4 flex justify-between items-center">
+                        <span className="text-white/80 font-medium">Total due</span>
+                        <motion.span
+                          key={summary.totalDueCents}
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.15, ...spring }}
+                          className="text-2xl font-bold text-white tabular-nums"
+                        >
+                          {formatDollars(summary.totalDueCents)}
+                        </motion.span>
+                      </div>
+
+                      <p className="text-white/40 text-xs">
+                        A 3.6% card processing fee is added at checkout. To avoid the
+                        fee, pay via Zelle or check — email{" "}
+                        <a
+                          href="mailto:theacappellaworkshop@gmail.com"
+                          className="text-sky-custom underline"
+                        >
+                          theacappellaworkshop@gmail.com
+                        </a>
+                        .
+                      </p>
+
+                      <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.985 }}>
+                        <GradientButton
+                          variant="aqua"
+                          className="w-full"
+                          onClick={handlePay}
+                          disabled={isPaying}
+                        >
+                          {isPaying ? (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          ) : (
+                            <CreditCard className="w-4 h-4 mr-2" />
+                          )}
+                          {isPaying
+                            ? "Redirecting to checkout..."
+                            : `Pay ${formatDollars(summary.totalDueCents)} + processing fee`}
+                        </GradientButton>
+                      </motion.div>
+
+                      <p className="flex items-center justify-center gap-1.5 text-white/30 text-xs">
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        Secure checkout powered by Stripe
+                      </p>
+                    </>
+                  ) : (
+                    /* Found the registration, but nothing is owed. */
+                    <>
+                      <div className="flex flex-col items-center text-center py-2">
+                        <motion.div
+                          initial={{ scale: 0, rotate: -10 }}
+                          animate={{ scale: 1, rotate: 0 }}
+                          transition={{ type: "spring", stiffness: 240, damping: 15, delay: 0.05 }}
+                          className="w-16 h-16 rounded-full bg-gradient-to-br from-teal-custom to-sky-custom flex items-center justify-center mb-4 shadow-lg shadow-teal-500/30"
+                        >
+                          <Check className="text-white" size={32} strokeWidth={3} />
+                        </motion.div>
+                        <h2 className="text-xl font-bold text-white mb-1">
+                          You're all paid up!
+                        </h2>
+                        <p className="text-white/50 text-sm">
+                          There's no remaining balance on your account. Nothing more to
+                          pay.
+                        </p>
+                      </div>
+
+                      {summary.history.length > 0 && (
+                        <div>
+                          <h3 className="text-sm font-semibold text-white/70 uppercase tracking-wide mb-3">
+                            Purchase history
+                          </h3>
+                          <motion.div
+                            className="space-y-3"
+                            variants={listContainer}
+                            initial="hidden"
+                            animate="show"
+                          >
+                            {summary.history.map((h) => (
+                              <motion.div
+                                key={h.weekId}
+                                variants={rowItem}
+                                className="p-4 rounded-xl bg-white/5 border border-white/10 transition-colors hover:bg-white/[0.08]"
+                              >
+                                <div className="flex justify-between items-start gap-3">
+                                  <div>
+                                    <p className="text-white font-medium">
+                                      {h.locationName} — {h.weekLabel}
+                                    </p>
+                                    <span
+                                      className={`inline-flex items-center gap-1 mt-1.5 text-xs px-2 py-0.5 rounded-full ${
+                                        h.status === "paid_in_full"
+                                          ? "bg-teal-500/20 text-teal-200 border border-teal-500/30"
+                                          : "bg-amber-500/20 text-amber-200 border border-amber-500/30"
+                                      }`}
+                                    >
+                                      {h.status === "paid_in_full" && (
+                                        <Check className="w-3 h-3" strokeWidth={3} />
+                                      )}
+                                      {h.status === "paid_in_full"
+                                        ? "Paid in full"
+                                        : "Deposit paid"}
+                                    </span>
+                                  </div>
+                                  <p className="text-lg font-bold text-teal-custom whitespace-nowrap tabular-nums">
+                                    {formatDollars(h.amountPaidCents)}
+                                  </p>
+                                </div>
+                              </motion.div>
+                            ))}
+                          </motion.div>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                      )}
 
-                <div className="border-t border-white/10 pt-4 flex justify-between items-center">
-                  <span className="text-white/80 font-medium">Total paid</span>
-                  <span className="text-2xl font-bold text-white">
-                    {formatDollars(summary.totalPaidCents)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-white/60">Balance remaining</span>
-                  <span className="text-white/80 font-semibold">
-                    {formatDollars(0)}
-                  </span>
-                </div>
-              </>
+                      <div className="border-t border-white/10 pt-4 flex justify-between items-center">
+                        <span className="text-white/80 font-medium">Total paid</span>
+                        <span className="text-2xl font-bold text-white tabular-nums">
+                          {formatDollars(summary.totalPaidCents)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-white/60">Balance remaining</span>
+                        <span className="text-white/80 font-semibold tabular-nums">
+                          {formatDollars(0)}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </GlassCard>
+              </motion.div>
             )}
-          </GlassCard>
-        )}
+          </AnimatePresence>
 
-        <p className="text-center text-white/40 text-xs mt-8">
-          Questions? Email{" "}
-          <a
-            href="mailto:theacappellaworkshop@gmail.com"
-            className="text-sky-custom underline"
-          >
-            theacappellaworkshop@gmail.com
-          </a>
-        </p>
+          <p className="text-center text-white/40 text-xs mt-8">
+            Questions? Email{" "}
+            <a
+              href="mailto:theacappellaworkshop@gmail.com"
+              className="text-sky-custom underline"
+            >
+              theacappellaworkshop@gmail.com
+            </a>
+          </p>
+        </div>
       </div>
-    </div>
+    </MotionConfig>
   );
 }
