@@ -4,7 +4,7 @@ import { GlassCard } from '@/components/ui/glass-card';
 import { InteractiveCard } from '@/components/ui/interactive-card';
 import { AddToCartButton } from '@/components/ui/add-to-cart-button';
 import { AnimatedCheck } from '@/components/ui/animated-check';
-import { ScreenFlash } from '@/components/ui/screen-flash';
+import { RazerSweep } from '@/components/ui/razer-sweep';
 import { GradientButton } from '@/components/ui/gradient-button';
 import { CartManager, type CartItem } from '@/lib/cart';
 import { apiRequest } from '@/lib/queryClient';
@@ -803,7 +803,7 @@ export default function Register() {
 
   return (
     <div className="min-h-screen pb-24 lg:pb-0">
-      <ScreenFlash trigger={cartFlash} />
+      <RazerSweep trigger={cartFlash} />
       <div className="max-w-7xl mx-auto px-6 py-20 flex flex-col items-center lg:items-stretch">
         <motion.h1
           initial={{ opacity: 0, y: 24 }}
@@ -927,7 +927,7 @@ export default function Register() {
                     
                     {/* Payment Options */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="bg-white/5 border border-white/10 rounded-lg p-4 hover:bg-white/10 transition-colors">
+                      <div data-razor className="bg-white/5 border border-white/10 rounded-lg p-4 hover:bg-white/10 transition-colors">
                         <div className="flex justify-between items-center mb-2">
                           <span className="font-semibold text-white">Full Payment</span>
                           <span className="text-xl font-bold text-white">${week.price}</span>
@@ -951,7 +951,7 @@ export default function Register() {
                         />
                       </div>
                       
-                      <div className="bg-white/5 border border-white/10 rounded-lg p-4 hover:bg-white/10 transition-colors">
+                      <div data-razor className="bg-white/5 border border-white/10 rounded-lg p-4 hover:bg-white/10 transition-colors">
                         <div className="flex justify-between items-center mb-2">
                           <span className="font-semibold text-white">Deposit</span>
                           <span className="text-xl font-bold text-white">$150</span>

@@ -226,6 +226,29 @@ body.location-wayland {
     }
   }
 
+  /* Razer-style green edge sweep: a box's outline lights up green as the
+     diagonal light band passes over it (delay set per box in JS). */
+  .razor-sweep {
+    outline: 2px solid rgba(52, 211, 153, 0);
+    outline-offset: -1px;
+    animation: razorEdge 0.85s cubic-bezier(0.23, 1, 0.32, 1) var(--razor-delay, 0ms) both;
+  }
+
+  @keyframes razorEdge {
+    0% {
+      outline-color: rgba(52, 211, 153, 0);
+    }
+    22% {
+      outline-color: rgba(110, 231, 183, 0.95);
+    }
+    55% {
+      outline-color: rgba(52, 211, 153, 0.55);
+    }
+    100% {
+      outline-color: rgba(52, 211, 153, 0);
+    }
+  }
+
   /* Secondary gradient button (purple theme) */
   .btn-gradient-secondary {
     background: linear-gradient(90deg, #7c3aed, #a855f7 60%, #c084fc);
