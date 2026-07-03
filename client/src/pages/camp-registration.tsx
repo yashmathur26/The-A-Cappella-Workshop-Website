@@ -4,6 +4,7 @@ import { GlassCard } from '@/components/ui/glass-card';
 import { InteractiveCard } from '@/components/ui/interactive-card';
 import { AddToCartButton } from '@/components/ui/add-to-cart-button';
 import { AnimatedCheck } from '@/components/ui/animated-check';
+import { ScreenFlash } from '@/components/ui/screen-flash';
 import { GradientButton } from '@/components/ui/gradient-button';
 import { CartManager, type CartItem } from '@/lib/cart';
 import { apiRequest } from '@/lib/queryClient';
@@ -90,6 +91,7 @@ export default function Register() {
   } | null>(null);
   const [switchedToFull, setSwitchedToFull] = useState(false);
   const [checkoutTransition, setCheckoutTransition] = useState(false);
+  const [cartFlash, setCartFlash] = useState(0);
   
   const [sessionId] = useState(() => {
     // Generate or retrieve session ID
@@ -228,6 +230,8 @@ export default function Register() {
       
       setCart(CartManager.getCart());
       window.dispatchEvent(new Event('cartUpdated'));
+      // Green shine flood across the screen on a successful add.
+      setCartFlash((n) => n + 1);
     }
   };
 
@@ -799,6 +803,7 @@ export default function Register() {
 
   return (
     <div className="min-h-screen pb-24 lg:pb-0">
+      <ScreenFlash trigger={cartFlash} />
       <div className="max-w-7xl mx-auto px-6 py-20 flex flex-col items-center lg:items-stretch">
         <motion.h1
           initial={{ opacity: 0, y: 24 }}

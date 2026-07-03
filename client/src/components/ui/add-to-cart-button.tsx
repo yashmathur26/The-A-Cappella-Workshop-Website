@@ -54,14 +54,8 @@ export function AddToCartButton({
       onClick={onClick}
       disabled={disabled}
       whileTap={{ scale: 0.95 }}
-      animate={
-        celebrating
-          ? { scale: [1, 1.18, 1.18, 1], transition: { duration: 0.7, times: [0, 0.28, 0.62, 1], ease: easeOutQuint } }
-          : { scale: 1, transition: { duration: 0.2 } }
-      }
       className={cn(
-        "relative w-full py-2.5 text-sm font-medium min-h-[44px] rounded-full inline-flex items-center justify-center ring-1 ring-inset ring-white/15 transition-colors disabled:opacity-50 z-0",
-        celebrating && "z-10 shadow-xl shadow-emerald-500/40",
+        "relative w-full py-2.5 text-sm font-medium min-h-[44px] rounded-full inline-flex items-center justify-center ring-1 ring-inset ring-white/15 transition-colors disabled:opacity-50",
         colorClass,
       )}
     >
