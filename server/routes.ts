@@ -19,7 +19,7 @@ import {
 } from "./referral-codes";
 import { pool, db } from "./db";
 import { pickResponseRow, resolveSheetColumns } from "./sheet-csv";
-import { computeOutstandingForEmail } from "./balance";
+import { computeOutstandingForEmail, toInitials } from "./balance";
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, {
@@ -796,7 +796,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const result = await computeOutstandingForEmail(stripe, email);
-      res.json(result);
+      // Never expose the full child name to whoever types an email — mask to
+      // initials. The full name is still used server-side for Stripe line items.
+      res.json({ ...result, studentName: toInitials(result.studentName) });
     } catch (error) {
       console.error("Error fetching balance summary:", error);
       res.status(500).json({ message: "Failed to look up balance" });

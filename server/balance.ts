@@ -20,6 +20,16 @@ import { getCampWeekLabel, getCampLocationName } from "@shared/camp-week-labels"
 
 const DEPOSIT_CENTS = 15000; // Flat $150 deposit per week (all locations).
 
+/**
+ * Reduce a child's name to initials for public display, e.g. "Maya Nistala" → "M.N."
+ * Used so the balance page never exposes a full child name to whoever types an email.
+ */
+export function toInitials(name: string): string {
+  const parts = (name ?? "").trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "";
+  return parts.map((p) => p[0].toUpperCase() + ".").join("");
+}
+
 /** Full tuition per week. Lexington + legacy weeks are $500; Newton/Wayland are $600. */
 export function getWeekFullPriceCents(weekId: string): number {
   if (weekId === "nw-wk2" || weekId === "way-wk1") return 60000;
