@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { GlassCard } from '@/components/ui/glass-card';
+import { InteractiveCard } from '@/components/ui/interactive-card';
+import { AddToCartButton } from '@/components/ui/add-to-cart-button';
 import { GradientButton } from '@/components/ui/gradient-button';
 import { CartManager, type CartItem } from '@/lib/cart';
 import { apiRequest } from '@/lib/queryClient';
@@ -887,11 +889,7 @@ export default function Register() {
                 animate="show"
               >
                 {WEEKS.map((week, index) => (
-                  <motion.div
-                    key={week.id}
-                    variants={riseItem}
-                    whileHover={{ y: -6, transition: springy }}
-                  >
+                  <InteractiveCard key={week.id} variants={riseItem}>
                   <GlassCard
                     className={`p-6 week-card ${CartManager.isInCart(week.id) ? 'selected' : ''}`}
                   >
@@ -926,14 +924,8 @@ export default function Register() {
                           <span className="text-xl font-bold text-white">${week.price}</span>
                         </div>
                         <p className="text-xs text-white/60 mb-3">Pay today, no additional fees</p>
-                        <Button
-                          variant={CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'full' ? 'outline' : 'default'}
-                          size="sm"
-                          className={`w-full py-2.5 text-sm font-medium min-h-[44px] rounded-full transition-all active:scale-[0.97] ring-1 ring-inset ring-white/15 ${
-                            CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'full'
-                              ? 'bg-white/10 border-white/20 text-white hover:bg-white/20'
-                              : currentLocation === 'wayland' ? 'bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-400 hover:to-violet-500 text-white border-0 shadow-lg shadow-violet-900/30' : currentLocation === 'newton-wellesley' ? 'bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white border-0 shadow-lg shadow-emerald-900/30' : 'bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-400 hover:to-emerald-500 text-white border-0 shadow-lg shadow-teal-900/30'
-                          }`}
+                        <AddToCartButton
+                          inCart={CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'full'}
                           disabled={CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'deposit'}
                           onClick={() => {
                             if (CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'full') {
@@ -942,9 +934,12 @@ export default function Register() {
                               addWeekToCart(week.id, 'full');
                             }
                           }}
-                        >
-                          {CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'full' ? 'Remove' : 'Add to Cart'}
-                        </Button>
+                          colorClass={
+                            CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'full'
+                              ? 'bg-white/10 border-white/20 text-white hover:bg-white/20'
+                              : currentLocation === 'wayland' ? 'bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-400 hover:to-violet-500 text-white border-0 shadow-lg shadow-violet-900/30' : currentLocation === 'newton-wellesley' ? 'bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white border-0 shadow-lg shadow-emerald-900/30' : 'bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-400 hover:to-emerald-500 text-white border-0 shadow-lg shadow-teal-900/30'
+                          }
+                        />
                       </div>
                       
                       <div className="bg-white/5 border border-white/10 rounded-lg p-4 hover:bg-white/10 transition-colors">
@@ -953,14 +948,8 @@ export default function Register() {
                           <span className="text-xl font-bold text-white">$150</span>
                         </div>
                         <p className="text-xs text-white/60 mb-3">${week.price - 150} remaining via invoice</p>
-                        <Button
-                          variant={CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'deposit' ? 'outline' : 'default'}
-                          size="sm"
-                          className={`w-full py-2.5 text-sm font-medium min-h-[44px] rounded-full transition-all active:scale-[0.97] ring-1 ring-inset ring-white/15 ${
-                            CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'deposit'
-                              ? 'bg-white/10 border-white/20 text-white hover:bg-white/20'
-                              : currentLocation === 'wayland' ? 'bg-gradient-to-r from-violet-500 to-fuchsia-600 hover:from-violet-400 hover:to-fuchsia-500 text-white border-0 shadow-lg shadow-fuchsia-900/30' : currentLocation === 'newton-wellesley' ? 'bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-400 hover:to-teal-500 text-white border-0 shadow-lg shadow-green-900/30' : 'bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white border-0 shadow-lg shadow-blue-900/30'
-                          }`}
+                        <AddToCartButton
+                          inCart={CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'deposit'}
                           disabled={CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'full'}
                           onClick={() => {
                             if (CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'deposit') {
@@ -969,13 +958,16 @@ export default function Register() {
                               addWeekToCart(week.id, 'deposit');
                             }
                           }}
-                        >
-                          {CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'deposit' ? 'Remove' : 'Add to Cart'}
-                        </Button>
+                          colorClass={
+                            CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'deposit'
+                              ? 'bg-white/10 border-white/20 text-white hover:bg-white/20'
+                              : currentLocation === 'wayland' ? 'bg-gradient-to-r from-violet-500 to-fuchsia-600 hover:from-violet-400 hover:to-fuchsia-500 text-white border-0 shadow-lg shadow-fuchsia-900/30' : currentLocation === 'newton-wellesley' ? 'bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-400 hover:to-teal-500 text-white border-0 shadow-lg shadow-green-900/30' : 'bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white border-0 shadow-lg shadow-blue-900/30'
+                          }
+                        />
                       </div>
                     </div>
                   </GlassCard>
-                  </motion.div>
+                  </InteractiveCard>
                 ))}
               </motion.div>
             </section>
