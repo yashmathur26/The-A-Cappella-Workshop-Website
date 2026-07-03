@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { GlassCard } from '@/components/ui/glass-card';
 import { GradientButton } from '@/components/ui/gradient-button';
 import { CartManager, type CartItem } from '@/lib/cart';
@@ -17,6 +18,44 @@ import { PromoReferralCodeField } from '@/components/PromoReferralCodeField';
 
 // Set to true to show maintenance message, false to show normal registration
 const MAINTENANCE_MODE = false;
+
+// --- Shared motion presets (purely presentational) ---
+const springy = { type: 'spring' as const, stiffness: 320, damping: 30 };
+
+const staggerList: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.08, delayChildren: 0.05 } },
+};
+
+const riseItem: Variants = {
+  hidden: { opacity: 0, y: 22 },
+  show: { opacity: 1, y: 0, transition: springy },
+};
+
+const cartRow: Variants = {
+  hidden: { opacity: 0, x: 16, height: 0 },
+  show: { opacity: 1, x: 0, height: 'auto', transition: springy },
+  exit: { opacity: 0, x: -16, height: 0, transition: { duration: 0.2 } },
+};
+
+// Backdrop + panel transitions for the modals/drawers.
+const backdrop: Variants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { duration: 0.2 } },
+  exit: { opacity: 0, transition: { duration: 0.2 } },
+};
+
+const modalPanel: Variants = {
+  hidden: { opacity: 0, y: 40, scale: 0.96 },
+  show: { opacity: 1, y: 0, scale: 1, transition: { ...springy, damping: 28 } },
+  exit: { opacity: 0, y: 30, scale: 0.97, transition: { duration: 0.18 } },
+};
+
+const drawerPanel: Variants = {
+  hidden: { y: '100%' },
+  show: { y: 0, transition: { ...springy, damping: 32 } },
+  exit: { y: '100%', transition: { duration: 0.25 } },
+};
 
 export default function Register() {
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -755,7 +794,14 @@ export default function Register() {
   return (
     <div className="min-h-screen pb-24 lg:pb-0">
       <div className="max-w-7xl mx-auto px-6 py-20 flex flex-col items-center lg:items-stretch">
-        <h1 className={`text-4xl lg:text-5xl font-bold text-center mb-8 w-full ${currentLocation === 'wayland' ? 'gradient-text-purple' : 'gradient-text'}`}>Register for Summer 2026</h1>
+        <motion.h1
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ...springy, damping: 24 }}
+          className={`text-4xl lg:text-5xl font-bold text-center mb-8 w-full ${currentLocation === 'wayland' ? 'gradient-text-purple' : 'gradient-text'}`}
+        >
+          Register for Summer 2026
+        </motion.h1>
         
         {/* Payment Status Messages */}
         {paymentStatus === 'pending' && (
@@ -834,18 +880,28 @@ export default function Register() {
             <section className="w-full">
               <h2 className="text-2xl font-bold mb-4 text-white text-center lg:text-left">Step 1 — Choose Your Week(s)</h2>
               <p className="text-white/80 mb-6 text-center lg:text-left">Select your preferred weeks and payment option.</p>
-              <div className="grid gap-6 w-full">
+              <motion.div
+                className="grid gap-6 w-full"
+                variants={staggerList}
+                initial="hidden"
+                animate="show"
+              >
                 {WEEKS.map((week, index) => (
-                  <GlassCard 
-                    key={week.id} 
+                  <motion.div
+                    key={week.id}
+                    variants={riseItem}
+                    whileHover={{ y: -6, transition: springy }}
+                  >
+                  <GlassCard
                     className={`p-6 week-card ${CartManager.isInCart(week.id) ? 'selected' : ''}`}
                   >
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="text-xl font-bold text-white">Week {index + 1}: <span className="font-normal">{week.label}</span></h3>
-                          {/* "Filling up fast" badge for weeks 2 and 3 */}
-                          {(index === 1 || index === 2) && (
+                          {/* "Filling up fast" — Lexington Aug 10 & Aug 24 only */}
+                          {currentLocation === 'lexington' &&
+                            (week.id === 'lex-wk3' || week.id === 'lex-wk5') && (
                             <span className="px-2 py-1 text-xs font-semibold bg-orange-500/20 text-orange-300 border border-orange-500/30 rounded-full animate-pulse">
                               ⚡ Filling up fast
                             </span>
@@ -873,10 +929,10 @@ export default function Register() {
                         <Button
                           variant={CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'full' ? 'outline' : 'default'}
                           size="sm"
-                          className={`w-full py-2.5 text-sm font-medium min-h-[44px] rounded-full transition-all ${
-                            CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'full' 
-                              ? 'bg-white/10 border-white/20 text-white hover:bg-white/20' 
-                              : currentLocation === 'wayland' ? 'bg-purple-600 hover:bg-purple-700 text-white border-0' : currentLocation === 'newton-wellesley' ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-0' : 'bg-teal-600 hover:bg-teal-700 text-white border-0'
+                          className={`w-full py-2.5 text-sm font-medium min-h-[44px] rounded-full transition-all active:scale-[0.97] ring-1 ring-inset ring-white/15 ${
+                            CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'full'
+                              ? 'bg-white/10 border-white/20 text-white hover:bg-white/20'
+                              : currentLocation === 'wayland' ? 'bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-400 hover:to-violet-500 text-white border-0 shadow-lg shadow-violet-900/30' : currentLocation === 'newton-wellesley' ? 'bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white border-0 shadow-lg shadow-emerald-900/30' : 'bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-400 hover:to-emerald-500 text-white border-0 shadow-lg shadow-teal-900/30'
                           }`}
                           disabled={CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'deposit'}
                           onClick={() => {
@@ -900,10 +956,10 @@ export default function Register() {
                         <Button
                           variant={CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'deposit' ? 'outline' : 'default'}
                           size="sm"
-                          className={`w-full py-2.5 text-sm font-medium min-h-[44px] rounded-full transition-all ${
-                            CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'deposit' 
-                              ? 'bg-white/10 border-white/20 text-white hover:bg-white/20' 
-                              : currentLocation === 'wayland' ? 'bg-violet-600 hover:bg-violet-700 text-white border-0' : currentLocation === 'newton-wellesley' ? 'bg-green-600 hover:bg-green-700 text-white border-0' : 'bg-sky-600 hover:bg-sky-700 text-white border-0'
+                          className={`w-full py-2.5 text-sm font-medium min-h-[44px] rounded-full transition-all active:scale-[0.97] ring-1 ring-inset ring-white/15 ${
+                            CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'deposit'
+                              ? 'bg-white/10 border-white/20 text-white hover:bg-white/20'
+                              : currentLocation === 'wayland' ? 'bg-gradient-to-r from-violet-500 to-fuchsia-600 hover:from-violet-400 hover:to-fuchsia-500 text-white border-0 shadow-lg shadow-fuchsia-900/30' : currentLocation === 'newton-wellesley' ? 'bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-400 hover:to-teal-500 text-white border-0 shadow-lg shadow-green-900/30' : 'bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white border-0 shadow-lg shadow-blue-900/30'
                           }`}
                           disabled={CartManager.isInCart(week.id) && CartManager.getPaymentType(week.id) === 'full'}
                           onClick={() => {
@@ -919,8 +975,9 @@ export default function Register() {
                       </div>
                     </div>
                   </GlassCard>
+                  </motion.div>
                 ))}
-              </div>
+              </motion.div>
             </section>
 
             {/* Step 2: Registration Form - Only show after weeks are selected */}
@@ -1068,8 +1125,17 @@ export default function Register() {
                 {cartItems.length === 0 ? (
                   <p className="text-white/60">No weeks selected</p>
                 ) : (
-                  cartItems.map(item => (
-                    <div key={item.weekId} className="flex justify-between items-center text-sm bg-white/5 rounded-lg p-3 border border-white/10">
+                  <AnimatePresence initial={false}>
+                  {cartItems.map(item => (
+                    <motion.div
+                      key={item.weekId}
+                      layout
+                      variants={cartRow}
+                      initial="hidden"
+                      animate="show"
+                      exit="exit"
+                      className="flex justify-between items-center text-sm bg-white/5 rounded-lg p-3 border border-white/10 overflow-hidden"
+                    >
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-white/90 text-base font-medium">{item.label}</span>
@@ -1091,15 +1157,17 @@ export default function Register() {
                           </div>
                         )}
                       </div>
-                      <button
+                      <motion.button
+                        whileTap={{ scale: 0.85 }}
                         onClick={() => removeWeekFromCart(item.weekId)}
                         className="ml-3 p-1 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded transition-colors"
                         title="Remove from cart"
                       >
                         <X size={16} />
-                      </button>
-                    </div>
-                  ))
+                      </motion.button>
+                    </motion.div>
+                  ))}
+                  </AnimatePresence>
                 )}
               </div>
               
@@ -1263,15 +1331,27 @@ export default function Register() {
       )}
 
       {/* Mobile Cart Drawer */}
+      <AnimatePresence>
       {showMobileCart && (
-        <div className="lg:hidden fixed inset-0 z-50">
+        <motion.div
+          variants={backdrop}
+          initial="hidden"
+          animate="show"
+          exit="exit"
+          className="lg:hidden fixed inset-0 z-50"
+        >
           {/* Backdrop */}
-          <div 
+          <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setShowMobileCart(false)}
           />
           {/* Drawer */}
-          <div className="absolute bottom-0 left-0 right-0 bg-gray-900 border-t border-white/20 rounded-t-2xl max-h-[80vh] overflow-y-auto">
+          <motion.div
+            variants={drawerPanel}
+            initial="hidden"
+            animate="show"
+            exit="exit"
+            className="absolute bottom-0 left-0 right-0 bg-gray-900 border-t border-white/20 rounded-t-2xl max-h-[80vh] overflow-y-auto">
             <div className="p-4 border-b border-white/10 flex justify-between items-center sticky top-0 bg-gray-900">
               <h3 className="text-xl font-bold text-white">Your Cart</h3>
               <button
@@ -1438,9 +1518,10 @@ export default function Register() {
                 )}
               </div>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       {/* Mobile "Proceed to Step 2" Button - Fixed at bottom, only shows when cart has items and form not shown */}
       {cartItems.length > 0 && !showForm && (
@@ -1496,13 +1577,25 @@ export default function Register() {
       )}
 
       {/* Contact Info Modal - appears after form submission */}
+      <AnimatePresence>
       {showContactModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/70 backdrop-blur-sm">
-          <div className={`w-full sm:max-w-md max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl border shadow-2xl ${
-            currentLocation === 'wayland' 
-              ? 'bg-gradient-to-br from-purple-900/95 to-violet-900/95 border-purple-500/30' 
-              : currentLocation === 'newton-wellesley' 
-                ? 'bg-gradient-to-br from-emerald-900/95 to-green-900/95 border-emerald-500/30' 
+        <motion.div
+          variants={backdrop}
+          initial="hidden"
+          animate="show"
+          exit="exit"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/70 backdrop-blur-sm"
+        >
+          <motion.div
+            variants={modalPanel}
+            initial="hidden"
+            animate="show"
+            exit="exit"
+            className={`w-full sm:max-w-md max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl border shadow-2xl ${
+            currentLocation === 'wayland'
+              ? 'bg-gradient-to-br from-purple-900/95 to-violet-900/95 border-purple-500/30'
+              : currentLocation === 'newton-wellesley'
+                ? 'bg-gradient-to-br from-emerald-900/95 to-green-900/95 border-emerald-500/30'
                 : 'bg-gradient-to-br from-blue-900/95 to-indigo-900/95 border-blue-500/30'
           }`}>
             <div className="p-6">
@@ -1659,14 +1752,27 @@ export default function Register() {
                 </div>
               )}
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       {/* Deposit -> Full payment switch popup (discount only applies to full payment) */}
+      <AnimatePresence>
       {pendingDiscountCode && (
-        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-4 bg-black/70 backdrop-blur-sm">
-          <div className={`w-full sm:max-w-md max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl border shadow-2xl ${
+        <motion.div
+          variants={backdrop}
+          initial="hidden"
+          animate="show"
+          exit="exit"
+          className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-4 bg-black/70 backdrop-blur-sm"
+        >
+          <motion.div
+            variants={modalPanel}
+            initial="hidden"
+            animate="show"
+            exit="exit"
+            className={`w-full sm:max-w-md max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl border shadow-2xl ${
             currentLocation === 'wayland'
               ? 'bg-gradient-to-br from-purple-900/95 to-violet-900/95 border-purple-500/30'
               : currentLocation === 'newton-wellesley'
@@ -1743,9 +1849,10 @@ export default function Register() {
                 </div>
               </div>
             )}
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 }
