@@ -51,6 +51,20 @@ function dateTokenToWeekId(token: string): string | null {
   return SHEET_DATE_TO_WEEK[norm] ?? null;
 }
 
+/**
+ * Read the sheet's PAYMENT column tolerantly. Handles the standard
+ * "FULL PAID" / "DEPOSIT PAID" as well as reasonable variants ("Paid in full",
+ * "Full Payment", "Deposit", casing/spacing differences). "NOT PAID" and blanks
+ * classify as none. Full is checked first so "paid in full" never reads as deposit.
+ */
+export function classifyPayment(raw: string): "full" | "deposit" | "none" {
+  const v = (raw ?? "").toUpperCase().replace(/\s+/g, " ").trim();
+  if (!v || v.includes("NOT PAID") || v.includes("UNPAID")) return "none";
+  if (v.includes("FULL")) return "full";
+  if (v.includes("DEPOSIT")) return "deposit";
+  return "none";
+}
+
 export type BalanceItem = {
   weekId: string;
   weekLabel: string;
@@ -251,16 +265,17 @@ export async function computeOutstandingForEmail(
     const ts = Date.parse(row.timestamp);
     if (!Number.isNaN(ts)) noteSignup(ts);
 
-    if (row.payment === "FULL PAID") {
+    const status = classifyPayment(row.payment);
+    if (status === "full") {
       for (const wk of row.weekIds) settledWeeks.add(wk);
-    } else if (row.payment === "DEPOSIT PAID") {
+    } else if (status === "deposit") {
       // Only credit a sheet deposit when Stripe doesn't already record one for
       // this week, so overlapping records aren't double-counted.
       for (const wk of row.weekIds) {
         if (!depositByWeek.has(wk)) depositByWeek.set(wk, DEPOSIT_CENTS);
       }
     }
-    // NOT PAID / blank → nothing owed on the balance page.
+    // NOT PAID / blank / anything else → nothing owed on the balance page.
   }
 
   // 3) Build outstanding items --------------------------------------------
