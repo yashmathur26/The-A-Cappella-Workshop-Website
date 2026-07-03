@@ -3,6 +3,7 @@ import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { GlassCard } from '@/components/ui/glass-card';
 import { InteractiveCard } from '@/components/ui/interactive-card';
 import { AddToCartButton } from '@/components/ui/add-to-cart-button';
+import { AnimatedCheck } from '@/components/ui/animated-check';
 import { GradientButton } from '@/components/ui/gradient-button';
 import { CartManager, type CartItem } from '@/lib/cart';
 import { apiRequest } from '@/lib/queryClient';
@@ -88,6 +89,7 @@ export default function Register() {
     type: string;
   } | null>(null);
   const [switchedToFull, setSwitchedToFull] = useState(false);
+  const [checkoutTransition, setCheckoutTransition] = useState(false);
   
   const [sessionId] = useState(() => {
     // Generate or retrieve session ID
@@ -624,9 +626,11 @@ export default function Register() {
       const data = await response.json();
       
       if (data.url) {
-        // Always redirect in the same window for cleaner UX
-        window.location.href = data.url;
-        
+        // Play a brief success-checkmark transition, then redirect to Stripe.
+        setCheckoutTransition(true);
+        setTimeout(() => {
+          window.location.href = data.url;
+        }, 1200);
       } else {
         throw new Error('No checkout URL received');
       }
@@ -889,7 +893,7 @@ export default function Register() {
                 animate="show"
               >
                 {WEEKS.map((week, index) => (
-                  <InteractiveCard key={week.id} variants={riseItem}>
+                  <InteractiveCard key={week.id} variants={riseItem} floatDelay={index * 0.8}>
                   <GlassCard
                     className={`p-6 week-card ${CartManager.isInCart(week.id) ? 'selected' : ''}`}
                   >
@@ -974,9 +978,21 @@ export default function Register() {
 
             {/* Step 2: Registration Form - Only show after weeks are selected */}
             {showForm && (
-              <section className="w-full">
-                <h2 className="text-2xl font-bold mb-6 text-white text-center lg:text-left">Step 2 — Complete Registration Form</h2>
-                
+              <motion.section
+                className="w-full"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
+              >
+                <motion.h2
+                  className="text-2xl font-bold mb-6 text-white text-center lg:text-left"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1], delay: 0.1 }}
+                >
+                  Step 2 — Complete Registration Form
+                </motion.h2>
+
                 {/* Form Submission Status */}
                 <GlassCard className={`p-4 mb-2 ${formSubmitted ? 'bg-green-500/20 border-green-500/50 lg:bg-green-500/10 lg:border-green-500/30' : 'bg-blue-500/10 border-blue-500/30'}`}>
                   <div className="flex items-center space-x-3">
@@ -1005,20 +1021,29 @@ export default function Register() {
 
                 <GlassCard className="p-6">
                   <p className="text-white/80 mb-4">Fill out the form below. After you submit, a popup will appear to confirm your details before checkout.</p>
-                  <div className="bg-white/5 rounded-lg p-2 border border-white/10 mb-0 overflow-hidden">
+                  <div className="rounded-2xl border border-white/15 overflow-hidden bg-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]">
                     {registrationIframeSrc ? (
-                      <iframe
-                        src={registrationIframeSrc}
-                        width="100%"
-                        height={formSubmitted ? "320" : "520"}
-                        frameBorder="0"
-                        marginHeight={0}
-                        marginWidth={0}
-                        className="rounded"
-                        onLoad={handleIframeLoad}
-                      >
-                        Loading…
-                      </iframe>
+                      <>
+                        <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/10 bg-white/[0.05]">
+                          <span className="w-2.5 h-2.5 rounded-full bg-red-400/70" />
+                          <span className="w-2.5 h-2.5 rounded-full bg-amber-400/70" />
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400/70" />
+                          <span className="ml-2 text-xs text-white/50">Secure registration form</span>
+                        </div>
+                        <iframe
+                          title="Registration form"
+                          src={registrationIframeSrc}
+                          width="100%"
+                          height={formSubmitted ? "320" : "520"}
+                          frameBorder="0"
+                          marginHeight={0}
+                          marginWidth={0}
+                          className="block w-full bg-white transition-[height] duration-500 ease-out"
+                          onLoad={handleIframeLoad}
+                        >
+                          Loading…
+                        </iframe>
+                      </>
                     ) : (
                       <div className="rounded bg-amber-500/10 border border-amber-500/30 p-4 text-sm text-amber-100/90">
                         <p className="font-semibold text-amber-200 mb-2">
@@ -1105,7 +1130,7 @@ export default function Register() {
                     </div>
                   )}
                 </GlassCard>
-              </section>
+              </motion.section>
             )}
           </div>
 
@@ -1844,6 +1869,33 @@ export default function Register() {
           </motion.div>
         </motion.div>
       )}
+      </AnimatePresence>
+
+      {/* Checkout transition — cool success checkmark before redirecting to Stripe */}
+      <AnimatePresence>
+        {checkoutTransition && (
+          <motion.div
+            variants={backdrop}
+            initial="hidden"
+            animate="show"
+            exit="exit"
+            className="fixed inset-0 z-[70] flex items-center justify-center bg-black/75 backdrop-blur-md"
+          >
+            <motion.div
+              variants={modalPanel}
+              initial="hidden"
+              animate="show"
+              exit="exit"
+              className="text-center px-8"
+            >
+              <div className="mx-auto mb-6 w-28 h-28 rounded-full bg-gradient-to-br from-teal-custom to-sky-custom flex items-center justify-center text-white shadow-2xl shadow-teal-500/40">
+                <AnimatedCheck size={72} />
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-1">You're all set!</h2>
+              <p className="text-white/70">Taking you to secure checkout…</p>
+            </motion.div>
+          </motion.div>
+        )}
       </AnimatePresence>
     </div>
   );
