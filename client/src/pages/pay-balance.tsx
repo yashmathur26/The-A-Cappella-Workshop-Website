@@ -231,7 +231,7 @@ export default function PayBalance() {
                 <CreditCard className="w-7 h-7 text-sky-custom" />
               </div>
             </motion.div>
-            <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2 tracking-tight">
+            <h1 className="gradient-text text-3xl sm:text-4xl font-bold mb-2 tracking-tight">
               Pay Remaining Balance
             </h1>
             <p className="text-white/60 text-sm leading-relaxed max-w-sm mx-auto">

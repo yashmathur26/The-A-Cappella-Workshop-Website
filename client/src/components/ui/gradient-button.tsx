@@ -20,7 +20,7 @@ export function GradientButton({
     primary: 'btn-gradient text-white',
     ghost: 'glass-card text-white hover:bg-white/20',
     purple: 'bg-purple-400 hover:bg-purple-500 text-gray-900 shadow-lg shadow-purple-400/30 hover:shadow-purple-400/50',
-    aqua: 'text-white bg-gradient-to-r from-cyan-500 via-sky-500 to-indigo-500 bg-[length:200%_100%] bg-left hover:bg-right shadow-lg shadow-sky-500/25 hover:shadow-sky-400/40 transition-[background-position,box-shadow] duration-500 disabled:opacity-60'
+    aqua: 'text-white bg-gradient-to-r from-cyan-500 via-sky-500 to-indigo-500 bg-[length:200%_100%] bg-left hover:bg-right ring-1 ring-inset ring-white/25 shadow-lg shadow-sky-500/30 hover:shadow-sky-400/50 [box-shadow:inset_0_1px_0_rgba(255,255,255,0.45),0_10px_25px_rgba(14,165,233,0.3)] hover:-translate-y-0.5 transition-all duration-500 disabled:opacity-60'
   };
 
   const sizeClasses = {
