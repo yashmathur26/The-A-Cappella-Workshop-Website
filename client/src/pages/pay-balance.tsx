@@ -24,6 +24,15 @@ type BalanceItem = {
   balanceDueCents: number;
 };
 
+type HistoryItem = {
+  weekId: string;
+  weekLabel: string;
+  locationName: string;
+  fullPriceCents: number;
+  amountPaidCents: number;
+  status: "paid_in_full" | "deposit_paid";
+};
+
 type BalanceSummary = {
   parentEmail: string;
   studentName: string;
@@ -32,6 +41,8 @@ type BalanceSummary = {
   items: BalanceItem[];
   totalDueCents: number;
   hasBalance: boolean;
+  history: HistoryItem[];
+  totalPaidCents: number;
 };
 
 function formatDollars(cents: number): string {
@@ -311,7 +322,7 @@ export default function PayBalance() {
             ) : (
               /* Found the registration, but nothing is owed. */
               <>
-                <div className="flex flex-col items-center text-center py-4">
+                <div className="flex flex-col items-center text-center py-2">
                   <div className="w-16 h-16 rounded-full bg-gradient-to-br from-teal-custom to-sky-custom flex items-center justify-center mb-4">
                     <Check className="text-white" size={32} />
                   </div>
@@ -324,9 +335,53 @@ export default function PayBalance() {
                   </p>
                 </div>
 
+                {summary.history.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-white/70 uppercase tracking-wide mb-3">
+                      Purchase history
+                    </h3>
+                    <div className="space-y-3">
+                      {summary.history.map((h) => (
+                        <div
+                          key={h.weekId}
+                          className="p-4 rounded-lg bg-white/5 border border-white/10"
+                        >
+                          <div className="flex justify-between items-start gap-3">
+                            <div>
+                              <p className="text-white font-medium">
+                                {h.locationName} — {h.weekLabel}
+                              </p>
+                              <span
+                                className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full ${
+                                  h.status === "paid_in_full"
+                                    ? "bg-teal-500/20 text-teal-200 border border-teal-500/30"
+                                    : "bg-amber-500/20 text-amber-200 border border-amber-500/30"
+                                }`}
+                              >
+                                {h.status === "paid_in_full"
+                                  ? "Paid in full"
+                                  : "Deposit paid"}
+                              </span>
+                            </div>
+                            <p className="text-lg font-bold text-teal-custom whitespace-nowrap">
+                              {formatDollars(h.amountPaidCents)}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="border-t border-white/10 pt-4 flex justify-between items-center">
-                  <span className="text-white/80 font-medium">Total due</span>
+                  <span className="text-white/80 font-medium">Total paid</span>
                   <span className="text-2xl font-bold text-white">
+                    {formatDollars(summary.totalPaidCents)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-white/60">Balance remaining</span>
+                  <span className="text-white/80 font-semibold">
                     {formatDollars(0)}
                   </span>
                 </div>

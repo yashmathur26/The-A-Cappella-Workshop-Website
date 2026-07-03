@@ -74,6 +74,16 @@ export type BalanceItem = {
   balanceDueCents: number;
 };
 
+/** A week the parent has paid something toward — their purchase record. */
+export type HistoryItem = {
+  weekId: string;
+  weekLabel: string;
+  locationName: string;
+  fullPriceCents: number;
+  amountPaidCents: number;
+  status: "paid_in_full" | "deposit_paid";
+};
+
 export type BalanceResult = {
   parentEmail: string;
   studentName: string;
@@ -84,6 +94,9 @@ export type BalanceResult = {
   items: BalanceItem[];
   totalDueCents: number;
   hasBalance: boolean;
+  /** Every week the parent has paid toward (full or deposit), for display. */
+  history: HistoryItem[];
+  totalPaidCents: number;
 };
 
 function safeParseArray(json: unknown): any[] {
@@ -297,7 +310,39 @@ export async function computeOutstandingForEmail(
   }
   items.sort((a, b) => a.weekId.localeCompare(b.weekId));
 
+  // 4) Build purchase history — every week paid toward, full or deposit --------
+  const allWeeks = new Set<string>([
+    ...Array.from(settledWeeks),
+    ...Array.from(depositByWeek.keys()),
+  ]);
+  const history: HistoryItem[] = [];
+  for (const weekId of Array.from(allWeeks)) {
+    const fullPriceCents = getWeekFullPriceCents(weekId);
+    if (settledWeeks.has(weekId)) {
+      history.push({
+        weekId,
+        weekLabel: getCampWeekLabel(weekId),
+        locationName: getCampLocationName(weekId),
+        fullPriceCents,
+        amountPaidCents: fullPriceCents,
+        status: "paid_in_full",
+      });
+    } else {
+      const amountPaidCents = Math.min(depositByWeek.get(weekId) ?? 0, fullPriceCents);
+      history.push({
+        weekId,
+        weekLabel: getCampWeekLabel(weekId),
+        locationName: getCampLocationName(weekId),
+        fullPriceCents,
+        amountPaidCents,
+        status: "deposit_paid",
+      });
+    }
+  }
+  history.sort((a, b) => a.weekId.localeCompare(b.weekId));
+
   const totalDueCents = items.reduce((sum, i) => sum + i.balanceDueCents, 0);
+  const totalPaidCents = history.reduce((sum, h) => sum + h.amountPaidCents, 0);
   const source: BalanceResult["source"] =
     sawStripe && sawSheet ? "mixed" : sawStripe ? "stripe" : sawSheet ? "sheet" : "none";
 
@@ -309,5 +354,7 @@ export async function computeOutstandingForEmail(
     items,
     totalDueCents,
     hasBalance: items.length > 0,
+    history,
+    totalPaidCents,
   };
 }
