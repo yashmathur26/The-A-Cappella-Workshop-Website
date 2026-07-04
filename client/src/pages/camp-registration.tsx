@@ -898,7 +898,7 @@ export default function Register() {
                 animate="show"
               >
                 {WEEKS.map((week, index) => (
-                  <InteractiveCard key={week.id} variants={riseItem} floatDelay={index * 0.8}>
+                  <InteractiveCard key={week.id} variants={riseItem}>
                   <GlassCard
                     className={`p-6 week-card ${CartManager.isInCart(week.id) ? 'selected' : ''}`}
                   >

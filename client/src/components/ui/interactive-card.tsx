@@ -14,8 +14,6 @@ interface InteractiveCardProps {
   variants?: Variants;
   /** Max tilt in degrees. */
   maxTilt?: number;
-  /** Phase offset (seconds) for the idle float, so cards drift out of sync. */
-  floatDelay?: number;
 }
 
 /**
@@ -27,8 +25,7 @@ export function InteractiveCard({
   children,
   className,
   variants,
-  maxTilt = 3.5,
-  floatDelay = 0,
+  maxTilt = 1.5,
 }: InteractiveCardProps) {
   const ref = useRef<HTMLDivElement>(null);
   const reduce = useReducedMotion();
@@ -77,18 +74,7 @@ export function InteractiveCard({
       }
       className={`relative ${className ?? ""}`}
     >
-      {/* Gentle idle float so the card feels alive (skipped for reduced motion). */}
-      <motion.div
-        animate={reduce ? undefined : { y: [0, -6, 0] }}
-        transition={
-          reduce
-            ? undefined
-            : { duration: 6, repeat: Infinity, ease: "easeInOut", delay: floatDelay }
-        }
-        style={{ transformStyle: "preserve-3d" }}
-      >
-        {children}
-      </motion.div>
+      {children}
       {/* Cursor-following spotlight */}
       <div
         className="pointer-events-none absolute inset-0 rounded-2xl transition-opacity duration-300"
