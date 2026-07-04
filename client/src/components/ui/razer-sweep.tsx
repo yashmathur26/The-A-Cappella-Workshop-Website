@@ -1,13 +1,12 @@
 import { useEffect } from "react";
-import { motion } from "framer-motion";
 
 /**
- * A diagonal green "razor" sweep played when something is added to the cart.
- * A green light band travels from the lower-left corner to the upper-right
- * corner; as it passes each box, that box's edges light up green (timed by the
- * box's position along the diagonal), and glossy surfaces catch a green hint.
+ * A diagonal green "razor" edge sweep played when something is added to the
+ * cart: each box's edges light up green in turn, from the lower-left corner to
+ * the upper-right corner (delay computed per box from its diagonal position).
  *
- * `trigger` is a counter — bumping it replays the sweep.
+ * `trigger` is a counter — bumping it replays the sweep. Renders nothing; the
+ * effect just toggles a CSS class on each box.
  */
 export function RazerSweep({ trigger }: { trigger: number }) {
   useEffect(() => {
@@ -35,22 +34,5 @@ export function RazerSweep({ trigger }: { trigger: number }) {
     });
   }, [trigger]);
 
-  if (trigger === 0) return null;
-
-  return (
-    <div key={trigger} className="pointer-events-none fixed inset-0 z-[80] overflow-hidden">
-      {/* Traveling diagonal light band — the "razor". */}
-      <motion.div
-        className="absolute"
-        style={{
-          inset: "-45%",
-          background:
-            "linear-gradient(45deg, transparent 47%, rgba(52,211,153,0.10) 49%, rgba(110,231,183,0.35) 50%, rgba(52,211,153,0.10) 51%, transparent 53%)",
-        }}
-        initial={{ x: "-55%", y: "55%", opacity: 0 }}
-        animate={{ x: "55%", y: "-55%", opacity: [0, 1, 1, 0] }}
-        transition={{ duration: 0.95, ease: [0.23, 1, 0.32, 1], times: [0, 0.15, 0.8, 1] }}
-      />
-    </div>
-  );
+  return null;
 }
