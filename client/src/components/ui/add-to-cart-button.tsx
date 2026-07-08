@@ -7,20 +7,20 @@ interface AddToCartButtonProps {
   inCart: boolean;
   disabled?: boolean;
   onClick: () => void;
-  /** State-dependent color classes (gradient for "add", muted for "remove"). */
+  /** State-dependent color classes. */
   colorClass?: string;
   addLabel?: string;
   removeLabel?: string;
 }
 
-const easeOutQuint = [0.23, 1, 0.32, 1] as const;
-const CELEBRATE_MS = 1000;
+const softSpring = { type: "spring" as const, stiffness: 420, damping: 32 };
+const CELEBRATE_MS = 1100;
 
 /**
- * Add-to-cart button with a big celebratory moment: on add, the button expands,
- * a checkmark draws itself over a success-green flash while sparks burst outward,
- * then it eases back down and settles into "Remove". Removing mid-celebration
- * cancels it immediately.
+ * Add-to-cart button with an understated, Apple-style confirmation: on add, the
+ * label softly blurs/slides away and a checkmark draws itself in with a gentle
+ * spring, reading "Added", then eases into the "Remove" state. Same size
+ * throughout; no color flash. Removing mid-celebration cancels it.
  */
 export function AddToCartButton({
   inCart,
@@ -35,14 +35,12 @@ export function AddToCartButton({
 
   useEffect(() => {
     if (!prevInCart.current && inCart) {
-      // Just added → celebrate.
       setCelebrating(true);
       const t = setTimeout(() => setCelebrating(false), CELEBRATE_MS);
       prevInCart.current = inCart;
       return () => clearTimeout(t);
     }
     if (prevInCart.current && !inCart) {
-      // Removed (possibly mid-celebration) → cancel immediately.
       setCelebrating(false);
     }
     prevInCart.current = inCart;
@@ -53,94 +51,53 @@ export function AddToCartButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      whileTap={{ scale: 0.95 }}
+      whileTap={{ scale: 0.97 }}
       className={cn(
-        "relative w-full py-2.5 text-sm font-medium min-h-[44px] rounded-full inline-flex items-center justify-center ring-1 ring-inset ring-white/15 transition-colors disabled:opacity-50",
+        "relative w-full py-2.5 text-sm font-medium min-h-[44px] rounded-full inline-flex items-center justify-center overflow-hidden ring-1 ring-inset ring-white/15 disabled:opacity-50",
         colorClass,
       )}
     >
-      {/* Success tint flash */}
-      <AnimatePresence>
-        {celebrating && (
-          <motion.span
-            key="tint"
-            className="absolute inset-0 rounded-full bg-gradient-to-r from-emerald-400/50 to-teal-400/50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Label / checkmark swap */}
       <AnimatePresence mode="popLayout" initial={false}>
         {celebrating ? (
           <motion.span
             key="added"
-            className="relative inline-flex items-center gap-2 text-base font-semibold"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.22, ease: easeOutQuint }}
+            className="inline-flex items-center gap-2"
+            initial={{ opacity: 0, y: 14, filter: "blur(4px)" }}
+            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            exit={{ opacity: 0, y: -14, filter: "blur(4px)" }}
+            transition={softSpring}
           >
             <motion.svg
               viewBox="0 0 24 24"
-              className="w-7 h-7"
-              initial={{ scale: 0.2, rotate: -20 }}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={{ type: "spring", stiffness: 500, damping: 16, delay: 0.05 }}
+              className="w-[18px] h-[18px]"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 500, damping: 20, delay: 0.04 }}
             >
               <motion.path
-                d="M5 13l4 4L19 7"
+                d="M5 12.5l4.5 4.5L19 7"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth={3}
+                strokeWidth={2.5}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 initial={{ pathLength: 0 }}
                 animate={{ pathLength: 1 }}
-                transition={{ duration: 0.4, ease: easeOutQuint, delay: 0.12 }}
+                transition={{ duration: 0.4, ease: [0.65, 0, 0.35, 1], delay: 0.12 }}
               />
             </motion.svg>
-            Added!
+            Added
           </motion.span>
         ) : (
           <motion.span
             key={inCart ? "remove" : "add"}
-            className="relative"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.22, ease: easeOutQuint }}
+            initial={{ opacity: 0, y: 14, filter: "blur(4px)" }}
+            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            exit={{ opacity: 0, y: -14, filter: "blur(4px)" }}
+            transition={softSpring}
           >
             {inCart ? removeLabel : addLabel}
           </motion.span>
-        )}
-      </AnimatePresence>
-
-      {/* Spark burst (allowed to fly beyond the button) */}
-      <AnimatePresence>
-        {celebrating && (
-          <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
-            {Array.from({ length: 12 }).map((_, i) => {
-              const angle = (i / 12) * Math.PI * 2;
-              return (
-                <motion.span
-                  key={i}
-                  className="absolute w-1.5 h-1.5 rounded-full bg-white"
-                  initial={{ opacity: 1, x: 0, y: 0, scale: 1 }}
-                  animate={{
-                    opacity: 0,
-                    x: Math.cos(angle) * 60,
-                    y: Math.sin(angle) * 34,
-                    scale: 0.3,
-                  }}
-                  transition={{ duration: 0.8, ease: easeOutQuint }}
-                />
-              );
-            })}
-          </span>
         )}
       </AnimatePresence>
     </motion.button>

@@ -4,7 +4,6 @@ import { GlassCard } from '@/components/ui/glass-card';
 import { InteractiveCard } from '@/components/ui/interactive-card';
 import { AddToCartButton } from '@/components/ui/add-to-cart-button';
 import { AnimatedCheck } from '@/components/ui/animated-check';
-import { RazerSweep } from '@/components/ui/razer-sweep';
 import { GradientButton } from '@/components/ui/gradient-button';
 import { CartManager, type CartItem } from '@/lib/cart';
 import { apiRequest } from '@/lib/queryClient';
@@ -91,7 +90,6 @@ export default function Register() {
   } | null>(null);
   const [switchedToFull, setSwitchedToFull] = useState(false);
   const [checkoutTransition, setCheckoutTransition] = useState(false);
-  const [cartFlash, setCartFlash] = useState(0);
   
   const [sessionId] = useState(() => {
     // Generate or retrieve session ID
@@ -230,8 +228,6 @@ export default function Register() {
       
       setCart(CartManager.getCart());
       window.dispatchEvent(new Event('cartUpdated'));
-      // Green shine flood across the screen on a successful add.
-      setCartFlash((n) => n + 1);
     }
   };
 
@@ -803,7 +799,6 @@ export default function Register() {
 
   return (
     <div className="min-h-screen pb-24 lg:pb-0">
-      <RazerSweep trigger={cartFlash} />
       <div className="max-w-7xl mx-auto px-6 py-20 flex flex-col items-center lg:items-stretch">
         <motion.h1
           initial={{ opacity: 0, y: 24 }}
@@ -897,7 +892,9 @@ export default function Register() {
                 initial="hidden"
                 animate="show"
               >
-                {WEEKS.map((week, index) => (
+                {WEEKS.map((week, index) => {
+                  const isFull = currentLocation === 'lexington' && week.id === 'lex-wk2';
+                  return (
                   <InteractiveCard key={week.id} variants={riseItem}>
                   <GlassCard
                     className={`p-6 week-card ${CartManager.isInCart(week.id) ? 'selected' : ''}`}
@@ -906,11 +903,9 @@ export default function Register() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="text-xl font-bold text-white">Week {index + 1}: <span className="font-normal">{week.label}</span></h3>
-                          {/* "Filling up fast" — Lexington Aug 10 & Aug 24 only */}
-                          {currentLocation === 'lexington' &&
-                            (week.id === 'lex-wk3' || week.id === 'lex-wk5') && (
-                            <span className="px-2 py-1 text-xs font-semibold bg-orange-500/20 text-orange-300 border border-orange-500/30 rounded-full animate-pulse">
-                              ⚡ Filling up fast
+                          {isFull && (
+                            <span className="px-2.5 py-1 text-xs font-bold bg-red-500/20 text-red-300 border border-red-500/40 rounded-full uppercase tracking-wide">
+                              Full
                             </span>
                           )}
                         </div>
@@ -926,8 +921,20 @@ export default function Register() {
                     </div>
                     
                     {/* Payment Options */}
+                    {isFull ? (
+                      <div className="rounded-lg border border-white/10 bg-white/5 p-5 text-center">
+                        <p className="text-white font-semibold mb-1">This week is full</p>
+                        <p className="text-white/60 text-sm">
+                          Email{' '}
+                          <a href="mailto:theacappellaworkshop@gmail.com" className="text-sky-custom underline">
+                            theacappellaworkshop@gmail.com
+                          </a>{' '}
+                          to join the waitlist.
+                        </p>
+                      </div>
+                    ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div data-razor className="bg-white/5 border border-white/10 rounded-lg p-4 hover:bg-white/10 transition-colors">
+                      <div className="bg-white/5 border border-white/10 rounded-lg p-4 hover:bg-white/10 transition-colors">
                         <div className="flex justify-between items-center mb-2">
                           <span className="font-semibold text-white">Full Payment</span>
                           <span className="text-xl font-bold text-white">${week.price}</span>
@@ -951,7 +958,7 @@ export default function Register() {
                         />
                       </div>
                       
-                      <div data-razor className="bg-white/5 border border-white/10 rounded-lg p-4 hover:bg-white/10 transition-colors">
+                      <div className="bg-white/5 border border-white/10 rounded-lg p-4 hover:bg-white/10 transition-colors">
                         <div className="flex justify-between items-center mb-2">
                           <span className="font-semibold text-white">Deposit</span>
                           <span className="text-xl font-bold text-white">$150</span>
@@ -975,9 +982,11 @@ export default function Register() {
                         />
                       </div>
                     </div>
+                    )}
                   </GlassCard>
                   </InteractiveCard>
-                ))}
+                  );
+                })}
               </motion.div>
             </section>
 
