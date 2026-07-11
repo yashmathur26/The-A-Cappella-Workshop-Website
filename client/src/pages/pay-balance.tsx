@@ -336,7 +336,7 @@ export default function PayBalance() {
                       ) : (
                         <Search className="w-4 h-4 mr-2" />
                       )}
-                      {isSendingCode ? "Sending code..." : "Email me a code"}
+                      {isSendingCode ? "Sending code..." : "Continue"}
                     </GradientButton>
                   </motion.div>
                   <p className="text-white/40 text-xs text-center">
