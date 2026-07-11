@@ -86,7 +86,7 @@ export default function PayBalance() {
   const [email, setEmail] = useState("");
   const [summary, setSummary] = useState<BalanceSummary | null>(null);
   const [isLookingUp, setIsLookingUp] = useState(false);
-  const [isPaying, setIsPaying] = useState(false);
+  const [payingWeek, setPayingWeek] = useState<string | null>(null);
   const [lookupError, setLookupError] = useState("");
   const [noBalanceMsg, setNoBalanceMsg] = useState("");
   const [paidSuccess, setPaidSuccess] = useState(false);
@@ -139,17 +139,19 @@ export default function PayBalance() {
     }
   };
 
-  const handlePay = async () => {
-    if (!summary?.hasBalance) return;
+  // Each week is paid in its own checkout — multi-week parents check out once
+  // per week rather than in one lump sum.
+  const handlePay = async (weekId: string) => {
+    if (!summary) return;
 
-    setIsPaying(true);
+    setPayingWeek(weekId);
     try {
       const res = await fetch("/api/balance-checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           parentEmail: summary.parentEmail,
-          weekIds: summary.items.map((i) => i.weekId),
+          weekIds: [weekId],
         }),
       });
       const data = await res.json();
@@ -168,7 +170,7 @@ export default function PayBalance() {
           err instanceof Error ? err.message : "Failed to start checkout",
         variant: "destructive",
       });
-      setIsPaying(false);
+      setPayingWeek(null);
     }
   };
 
@@ -356,6 +358,14 @@ export default function PayBalance() {
                         </p>
                       </div>
 
+                      {summary.items.length > 1 && (
+                        <div className="p-3 rounded-lg bg-sky-500/10 border border-sky-500/25 text-sky-100 text-xs">
+                          You registered for {summary.items.length} weeks — each
+                          week is paid separately, so you'll check out once per
+                          week below.
+                        </div>
+                      )}
+
                       <motion.div
                         className="space-y-3"
                         variants={listContainer}
@@ -366,9 +376,9 @@ export default function PayBalance() {
                           <motion.div
                             key={item.weekId}
                             variants={rowItem}
-                            className="p-4 rounded-xl bg-white/5 border border-white/10 transition-colors hover:bg-white/[0.08]"
+                            className="p-4 rounded-xl bg-white/5 border border-white/10"
                           >
-                            <div className="flex justify-between items-start gap-3">
+                            <div className="flex justify-between items-start gap-3 mb-3">
                               <div>
                                 <p className="text-white font-medium">
                                   {item.locationName} — {item.weekLabel}
@@ -382,21 +392,34 @@ export default function PayBalance() {
                                 {formatDollars(item.balanceDueCents)}
                               </p>
                             </div>
+                            <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.985 }}>
+                              <GradientButton
+                                variant="aqua"
+                                className="w-full"
+                                onClick={() => handlePay(item.weekId)}
+                                disabled={payingWeek !== null}
+                              >
+                                {payingWeek === item.weekId ? (
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                ) : (
+                                  <CreditCard className="w-4 h-4 mr-2" />
+                                )}
+                                {payingWeek === item.weekId
+                                  ? "Redirecting to checkout..."
+                                  : `Pay ${formatDollars(item.balanceDueCents)} + fee`}
+                              </GradientButton>
+                            </motion.div>
                           </motion.div>
                         ))}
                       </motion.div>
 
                       <div className="border-t border-white/10 pt-4 flex justify-between items-center">
-                        <span className="text-white/80 font-medium">Total due</span>
-                        <motion.span
-                          key={summary.totalDueCents}
-                          initial={{ opacity: 0, y: 6 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.15, ...spring }}
-                          className="text-2xl font-bold text-white tabular-nums"
-                        >
+                        <span className="text-white/80 font-medium">
+                          Total remaining
+                        </span>
+                        <span className="text-2xl font-bold text-white tabular-nums">
                           {formatDollars(summary.totalDueCents)}
-                        </motion.span>
+                        </span>
                       </div>
 
                       <p className="text-white/40 text-xs">
@@ -410,24 +433,6 @@ export default function PayBalance() {
                         </a>
                         .
                       </p>
-
-                      <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.985 }}>
-                        <GradientButton
-                          variant="aqua"
-                          className="w-full"
-                          onClick={handlePay}
-                          disabled={isPaying}
-                        >
-                          {isPaying ? (
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          ) : (
-                            <CreditCard className="w-4 h-4 mr-2" />
-                          )}
-                          {isPaying
-                            ? "Redirecting to checkout..."
-                            : `Pay ${formatDollars(summary.totalDueCents)} + processing fee`}
-                        </GradientButton>
-                      </motion.div>
 
                       <p className="flex items-center justify-center gap-1.5 text-white/30 text-xs">
                         <ShieldCheck className="w-3.5 h-3.5" />
