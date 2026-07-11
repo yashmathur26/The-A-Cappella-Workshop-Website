@@ -1,7 +1,25 @@
 import axios from 'axios';
+import nodemailer from 'nodemailer';
 
 const BREVO_API_URL = 'https://api.brevo.com/v3';
 const API_KEY = process.env.BREVO_API_KEY;
+
+// Free Gmail SMTP transport (cheapest option — no third-party account, uses the
+// workshop's own Gmail). Requires GMAIL_USER + GMAIL_APP_PASSWORD (a Google
+// "App Password", which needs 2-Step Verification enabled on that account).
+let cachedGmailTransport: nodemailer.Transporter | null = null;
+function getGmailTransport(): nodemailer.Transporter | null {
+  const user = process.env.GMAIL_USER;
+  const pass = process.env.GMAIL_APP_PASSWORD;
+  if (!user || !pass) return null;
+  if (!cachedGmailTransport) {
+    cachedGmailTransport = nodemailer.createTransport({
+      service: "gmail",
+      auth: { user, pass },
+    });
+  }
+  return cachedGmailTransport;
+}
 
 interface EmailParams {
   to: string;
@@ -39,18 +57,41 @@ export async function sendBrevoEmail({ to, templateId, params }: EmailParams): P
   }
 }
 
-// Raw transactional email (no Brevo template needed — inline subject + HTML).
+// Raw transactional email (inline subject + HTML). Prefers free Gmail SMTP when
+// configured; otherwise falls back to the Brevo API. Returns false if neither is
+// configured or both fail.
 export async function sendRawEmail(
   to: string,
   subject: string,
   htmlContent: string,
 ): Promise<boolean> {
+  const senderName = process.env.BREVO_SENDER_NAME || "The A Cappella Workshop";
+
+  // 1) Free Gmail SMTP (preferred — cheapest, no verified-sender step).
+  const gmail = getGmailTransport();
+  if (gmail) {
+    try {
+      await gmail.sendMail({
+        from: `${senderName} <${process.env.GMAIL_USER}>`,
+        to,
+        subject,
+        html: htmlContent,
+      });
+      console.log(`✅ Raw email sent via Gmail SMTP to ${to}`);
+      return true;
+    } catch (error) {
+      console.error("❌ Gmail SMTP error (falling back to Brevo if configured):", error);
+    }
+  }
+
+  // 2) Brevo API fallback.
   if (!API_KEY) {
-    console.warn("BREVO_API_KEY is not set; skipping email send.");
+    console.warn(
+      "No email transport configured; set GMAIL_USER + GMAIL_APP_PASSWORD (recommended) or BREVO_API_KEY.",
+    );
     return false;
   }
   const senderEmail = process.env.BREVO_SENDER_EMAIL || "theacappellaworkshop@gmail.com";
-  const senderName = process.env.BREVO_SENDER_NAME || "The A Cappella Workshop";
   try {
     await axios.post(
       `${BREVO_API_URL}/smtp/email`,
@@ -68,7 +109,7 @@ export async function sendRawEmail(
         },
       },
     );
-    console.log(`✅ Raw email sent successfully to ${to}`);
+    console.log(`✅ Raw email sent via Brevo to ${to}`);
     return true;
   } catch (error) {
     console.error("❌ Brevo raw email error:", error);
