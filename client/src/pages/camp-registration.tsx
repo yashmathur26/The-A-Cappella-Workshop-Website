@@ -1570,7 +1570,7 @@ export default function Register() {
               }, 100);
             }}
           >
-            Registration Form ({cartItems.length} {cartItems.length === 1 ? 'week' : 'weeks'})
+            Next — Fill out form
           </Button>
         </div>
       )}
@@ -1580,9 +1580,9 @@ export default function Register() {
         <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-gray-900 border-t border-white/10 p-4 shadow-2xl">
           <Button
             className={`w-full border-0 rounded-full py-4 font-semibold text-lg text-white opacity-100 ${
-              !formSubmitted || !parentEmail.trim() || !childName.trim()
-                ? 'bg-gray-600 cursor-not-allowed'
-                : 'bg-green-600 hover:bg-green-700'
+              formSubmitted && parentEmail.trim() && childName.trim()
+                ? 'bg-green-600 hover:bg-green-700'
+                : 'bg-blue-600 hover:bg-blue-700'
             }`}
             onClick={() => {
               if (formSubmitted && parentEmail.trim() && childName.trim()) {
@@ -1590,17 +1590,17 @@ export default function Register() {
               } else if (formSubmitted) {
                 setShowContactModal(true);
               } else {
-                toast({
-                  title: "Complete Form First",
-                  description: "Please fill out and submit the registration form above.",
-                  variant: "destructive",
-                });
+                // Not submitted yet — take them straight to the form.
+                const formSection = document.querySelector('section:has(iframe)');
+                if (formSection) {
+                  formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
               }
             }}
             disabled={isLoading}
           >
-            {isLoading ? 'Processing...' : 
-             !formSubmitted ? '⏳ Complete Form First' :
+            {isLoading ? 'Processing...' :
+             !formSubmitted ? 'Next — Fill out form' :
              !parentEmail.trim() || !childName.trim() ? 'Enter Contact Info' :
              'Proceed to Checkout'}
           </Button>
