@@ -8,7 +8,8 @@ import fs from "fs";
 import path from "path";
 import { parse } from "csv-parse/sync";
 import { storage } from "./storage";
-import { sendRegistrationConfirmationEmail } from "./brevo";
+import { sendRegistrationConfirmationEmail, sendBalanceVerificationCode } from "./brevo";
+import { randomUUID } from "crypto";
 import { insertRegistrationSchema, type Week, visits } from "@shared/schema";
 import { normalizeReferralName } from "@shared/referrals";
 import { lookupReferralCode } from "@shared/referral-codes";
@@ -776,9 +777,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // --- Email verification for the balance page ---------------------------
+  // A parent must prove they control the email before any balance / child info
+  // is shown: enter email -> we email a 6-digit code -> verify -> receive a
+  // short-lived token that authorizes viewing the balance and starting checkout.
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const CODE_TTL_MS = 10 * 60 * 1000; // 10 min
+  const TOKEN_TTL_MS = 30 * 60 * 1000; // 30 min
+  const MAX_CODE_ATTEMPTS = 5;
+  const balanceCodes = new Map<string, { code: string; expiresAt: number; attempts: number; lastSentAt: number }>();
+  const balanceTokens = new Map<string, { email: string; expiresAt: number }>();
+
+  const emailFromValidToken = (token: unknown): string | null => {
+    if (typeof token !== "string" || !token) return null;
+    const entry = balanceTokens.get(token);
+    if (!entry) return null;
+    if (Date.now() > entry.expiresAt) {
+      balanceTokens.delete(token);
+      return null;
+    }
+    return entry.email;
+  };
+
+  // Step 1: request a verification code. Only emails with an actual record get a
+  // code emailed (so we don't blast codes to arbitrary addresses).
+  app.post("/api/balance/send-code", express.json(), async (req, res) => {
+    try {
+      if (!stripe) {
+        return res.status(501).json({ message: "Balance lookup is unavailable (Stripe not configured)." });
+      }
+      const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+      if (!EMAIL_RE.test(email)) {
+        return res.status(400).json({ message: "Please enter a valid email address" });
+      }
+
+      // Light resend throttle.
+      const existing = balanceCodes.get(email);
+      if (existing && Date.now() - existing.lastSentAt < 20_000) {
+        return res.json({ found: true, sent: true, throttled: true });
+      }
+
+      const summary = await computeOutstandingForEmail(stripe, email);
+      if (summary.source === "none") {
+        // Nothing to protect — tell them plainly, no code sent.
+        return res.json({ found: false });
+      }
+
+      const code = String(Math.floor(100000 + Math.random() * 900000));
+      balanceCodes.set(email, {
+        code,
+        expiresAt: Date.now() + CODE_TTL_MS,
+        attempts: 0,
+        lastSentAt: Date.now(),
+      });
+      const sent = await sendBalanceVerificationCode(email, code);
+      if (!sent) {
+        return res.status(502).json({
+          found: true,
+          sent: false,
+          message: "We couldn't send the verification email. Please contact theacappellaworkshop@gmail.com.",
+        });
+      }
+      res.json({ found: true, sent: true });
+    } catch (error) {
+      console.error("Error sending balance code:", error);
+      res.status(500).json({ message: "Failed to send verification code" });
+    }
+  });
+
+  // Step 2: verify the code. On success, returns the (masked) balance summary
+  // and a short-lived token used to authorize the checkout call.
+  app.post("/api/balance/verify-code", express.json(), async (req, res) => {
+    try {
+      if (!stripe) {
+        return res.status(501).json({ message: "Balance lookup is unavailable (Stripe not configured)." });
+      }
+      const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+      const code = typeof req.body?.code === "string" ? req.body.code.trim() : "";
+      if (!EMAIL_RE.test(email) || !/^\d{6}$/.test(code)) {
+        return res.status(400).json({ message: "Enter the 6-digit code from your email." });
+      }
+
+      const entry = balanceCodes.get(email);
+      if (!entry || Date.now() > entry.expiresAt) {
+        balanceCodes.delete(email);
+        return res.status(400).json({ message: "That code has expired. Request a new one." });
+      }
+      if (entry.attempts >= MAX_CODE_ATTEMPTS) {
+        balanceCodes.delete(email);
+        return res.status(429).json({ message: "Too many attempts. Request a new code." });
+      }
+      if (entry.code !== code) {
+        entry.attempts += 1;
+        return res.status(400).json({ message: "Incorrect code. Please try again." });
+      }
+
+      balanceCodes.delete(email);
+      const token = randomUUID();
+      balanceTokens.set(token, { email, expiresAt: Date.now() + TOKEN_TTL_MS });
+
+      const result = await computeOutstandingForEmail(stripe, email);
+      res.json({
+        token,
+        summary: { ...result, studentName: toInitials(result.studentName) },
+      });
+    } catch (error) {
+      console.error("Error verifying balance code:", error);
+      res.status(500).json({ message: "Failed to verify code" });
+    }
+  });
+
   // Outstanding deposit balances for a parent email (used by /pay-balance page).
-  // Sources of truth are Stripe (card deposits) + the tracker sheet (Zelle/check),
-  // reconciled by (email, week) — see server/balance.ts.
+  // Requires a valid verification token (see /api/balance/verify-code) so child
+  // info and amounts are never exposed to an unverified caller.
   app.get("/api/balance-summary", async (req, res) => {
     try {
       if (!stripe) {
@@ -786,18 +897,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: "Balance lookup is unavailable because STRIPE_SECRET_KEY is not set.",
         });
       }
-      const email = typeof req.query.email === "string" ? req.query.email.trim() : "";
-      if (!email) {
-        return res.status(400).json({ message: "Parent email is required" });
-      }
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
-        return res.status(400).json({ message: "Please enter a valid email address" });
+      const tokenEmail = emailFromValidToken(req.query.token);
+      if (!tokenEmail) {
+        return res.status(401).json({ message: "Verification required" });
       }
 
-      const result = await computeOutstandingForEmail(stripe, email);
-      // Never expose the full child name to whoever types an email — mask to
-      // initials. The full name is still used server-side for Stripe line items.
+      const result = await computeOutstandingForEmail(stripe, tokenEmail);
+      // Never expose the full child name — mask to initials. The full name is
+      // still used server-side for Stripe line items.
       res.json({ ...result, studentName: toInitials(result.studentName) });
     } catch (error) {
       console.error("Error fetching balance summary:", error);
@@ -814,20 +921,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const { parentEmail, weekIds, registrationIds } = req.body as {
-        parentEmail?: string;
+      const { token, weekIds, registrationIds } = req.body as {
+        token?: string;
         weekIds?: string[];
         registrationIds?: string[]; // legacy field; treated as weekIds
       };
 
-      if (!parentEmail?.trim()) {
-        return res.status(400).json({ message: "Parent email is required" });
-      }
-
-      const email = parentEmail.trim().toLowerCase();
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
-        return res.status(400).json({ message: "Please enter a valid email address" });
+      // The email comes from the verification token, not the client — a caller
+      // can only pay for the email they actually verified.
+      const email = emailFromValidToken(token);
+      if (!email) {
+        return res.status(401).json({ message: "Verification required. Please look up your balance again." });
       }
 
       // Recompute authoritatively from Stripe + the tracker sheet — never trust

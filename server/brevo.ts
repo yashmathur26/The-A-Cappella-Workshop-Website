@@ -39,6 +39,62 @@ export async function sendBrevoEmail({ to, templateId, params }: EmailParams): P
   }
 }
 
+// Raw transactional email (no Brevo template needed — inline subject + HTML).
+export async function sendRawEmail(
+  to: string,
+  subject: string,
+  htmlContent: string,
+): Promise<boolean> {
+  if (!API_KEY) {
+    console.warn("BREVO_API_KEY is not set; skipping email send.");
+    return false;
+  }
+  const senderEmail = process.env.BREVO_SENDER_EMAIL || "theacappellaworkshop@gmail.com";
+  const senderName = process.env.BREVO_SENDER_NAME || "The A Cappella Workshop";
+  try {
+    await axios.post(
+      `${BREVO_API_URL}/smtp/email`,
+      {
+        sender: { email: senderEmail, name: senderName },
+        to: [{ email: to }],
+        subject,
+        htmlContent,
+      },
+      {
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          "api-key": API_KEY,
+        },
+      },
+    );
+    console.log(`✅ Raw email sent successfully to ${to}`);
+    return true;
+  } catch (error) {
+    console.error("❌ Brevo raw email error:", error);
+    return false;
+  }
+}
+
+// Balance-lookup verification code
+export async function sendBalanceVerificationCode(
+  email: string,
+  code: string,
+): Promise<boolean> {
+  const html = `
+    <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0f172a">
+      <h2 style="margin:0 0 8px">Your verification code</h2>
+      <p style="color:#475569;margin:0 0 20px">Enter this code on the Pay Remaining Balance page to view your balance.</p>
+      <div style="font-size:34px;font-weight:700;letter-spacing:8px;background:#f1f5f9;border-radius:12px;padding:16px 0;text-align:center">${code}</div>
+      <p style="color:#94a3b8;font-size:13px;margin:20px 0 0">This code expires in 10 minutes. If you didn't request it, you can ignore this email.</p>
+    </div>`;
+  return sendRawEmail(
+    email,
+    `Your A Cappella Workshop code: ${code}`,
+    html,
+  );
+}
+
 // Password reset email
 export async function sendPasswordResetEmail(email: string, resetToken: string, resetUrl: string) {
   return sendBrevoEmail({

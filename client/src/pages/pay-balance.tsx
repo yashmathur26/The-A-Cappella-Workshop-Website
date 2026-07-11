@@ -10,6 +10,7 @@ import {
   CalendarDays,
   GraduationCap,
   ShieldCheck,
+  KeyRound,
   Loader2,
 } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -84,10 +85,15 @@ const cardReveal: Variants = {
 
 export default function PayBalance() {
   const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [step, setStep] = useState<"email" | "code">("email");
+  const [token, setToken] = useState<string | null>(null);
   const [summary, setSummary] = useState<BalanceSummary | null>(null);
-  const [isLookingUp, setIsLookingUp] = useState(false);
+  const [isSendingCode, setIsSendingCode] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
   const [payingWeek, setPayingWeek] = useState<string | null>(null);
   const [lookupError, setLookupError] = useState("");
+  const [codeError, setCodeError] = useState("");
   const [noBalanceMsg, setNoBalanceMsg] = useState("");
   const [paidSuccess, setPaidSuccess] = useState(false);
   const { toast } = useToast();
@@ -97,62 +103,110 @@ export default function PayBalance() {
     if (params.get("paid") === "1") {
       setPaidSuccess(true);
       window.history.replaceState({}, "", "/pay-balance");
+      return;
+    }
+    // Resume a still-valid verified session (e.g. to pay another week after
+    // returning from checkout) without asking for a new code.
+    const savedToken = sessionStorage.getItem("balanceToken");
+    const savedEmail = sessionStorage.getItem("balanceEmail");
+    if (savedToken && savedEmail) {
+      (async () => {
+        try {
+          const res = await fetch(
+            `/api/balance-summary?token=${encodeURIComponent(savedToken)}`,
+          );
+          if (!res.ok) throw new Error("expired");
+          const data = await res.json();
+          setEmail(savedEmail);
+          setToken(savedToken);
+          setSummary(data as BalanceSummary);
+        } catch {
+          sessionStorage.removeItem("balanceToken");
+          sessionStorage.removeItem("balanceEmail");
+        }
+      })();
     }
   }, []);
 
-  const handleLookup = async (e?: React.FormEvent) => {
+  // Step 1 — email a 6-digit verification code.
+  const handleSendCode = async (e?: React.FormEvent) => {
     e?.preventDefault();
     setLookupError("");
     setNoBalanceMsg("");
-    setSummary(null);
-
     const trimmed = email.trim();
     if (!trimmed) {
       setLookupError("Please enter your email address.");
       return;
     }
-
-    setIsLookingUp(true);
+    setIsSendingCode(true);
     try {
-      const res = await fetch(
-        `/api/balance-summary?email=${encodeURIComponent(trimmed)}`,
-      );
+      const res = await fetch("/api/balance/send-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmed }),
+      });
       const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || "Could not look up balance");
-      }
-      if (data.source === "none") {
-        // No record at all in Stripe or the registration sheet.
+      if (!res.ok) throw new Error(data.message || "Could not send code");
+      if (data.found === false) {
         setNoBalanceMsg(
           "We couldn't find a registration for this email. Make sure you use the same email you registered with.",
         );
       } else {
-        // Found them — show the summary screen even when the balance is $0.
-        setSummary(data as BalanceSummary);
+        setCode("");
+        setCodeError("");
+        setStep("code");
       }
     } catch (err) {
       setLookupError(
         err instanceof Error ? err.message : "Something went wrong. Please try again.",
       );
     } finally {
-      setIsLookingUp(false);
+      setIsSendingCode(false);
+    }
+  };
+
+  // Step 2 — verify the code, then reveal the balance.
+  const handleVerify = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    setCodeError("");
+    const c = code.trim();
+    if (!/^\d{6}$/.test(c)) {
+      setCodeError("Enter the 6-digit code from your email.");
+      return;
+    }
+    setIsVerifying(true);
+    try {
+      const res = await fetch("/api/balance/verify-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), code: c }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Could not verify code");
+      setToken(data.token);
+      setSummary(data.summary as BalanceSummary);
+      sessionStorage.setItem("balanceToken", data.token);
+      sessionStorage.setItem("balanceEmail", email.trim());
+    } catch (err) {
+      setCodeError(
+        err instanceof Error ? err.message : "Could not verify code.",
+      );
+    } finally {
+      setIsVerifying(false);
     }
   };
 
   // Each week is paid in its own checkout — multi-week parents check out once
-  // per week rather than in one lump sum.
+  // per week rather than in one lump sum. Authorized by the verification token.
   const handlePay = async (weekId: string) => {
-    if (!summary) return;
+    if (!token) return;
 
     setPayingWeek(weekId);
     try {
       const res = await fetch("/api/balance-checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          parentEmail: summary.parentEmail,
-          weekIds: [weekId],
-        }),
+        body: JSON.stringify({ token, weekIds: [weekId] }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -243,47 +297,113 @@ export default function PayBalance() {
             </p>
           </motion.div>
 
-          {/* Lookup card */}
+          {/* Lookup / verification card (hidden once verified) */}
+          {!summary && (
           <motion.div
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ ...spring, damping: 26, delay: 0.08 }}
           >
             <GlassCard className="p-6 mb-6">
-              <form onSubmit={handleLookup} className="space-y-4">
-                <div>
-                  <Label htmlFor="parent-email" className="text-white/90 text-sm">
-                    Parent / Guardian Email
-                  </Label>
-                  <div className="relative mt-1.5 group">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 transition-colors group-focus-within:text-sky-custom" />
-                    <Input
-                      id="parent-email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="parent@example.com"
-                      className="pl-10 bg-white/5 border-white/20 text-white placeholder:text-white/30 transition-all focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:border-sky-500/50"
-                      autoComplete="email"
-                    />
+              {step === "email" ? (
+                <form onSubmit={handleSendCode} className="space-y-4">
+                  <div>
+                    <Label htmlFor="parent-email" className="text-white/90 text-sm">
+                      Parent / Guardian Email
+                    </Label>
+                    <div className="relative mt-1.5 group">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 transition-colors group-focus-within:text-sky-custom" />
+                      <Input
+                        id="parent-email"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="parent@example.com"
+                        className="pl-10 bg-white/5 border-white/20 text-white placeholder:text-white/30 transition-all focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:border-sky-500/50"
+                        autoComplete="email"
+                      />
+                    </div>
                   </div>
-                </div>
-                <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.985 }}>
-                  <GradientButton
-                    type="submit"
-                    variant="aqua"
-                    className="w-full"
-                    disabled={isLookingUp}
-                  >
-                    {isLookingUp ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Search className="w-4 h-4 mr-2" />
-                    )}
-                    {isLookingUp ? "Checking..." : "Check Balance & Pay"}
-                  </GradientButton>
-                </motion.div>
-              </form>
+                  <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.985 }}>
+                    <GradientButton
+                      type="submit"
+                      variant="aqua"
+                      className="w-full"
+                      disabled={isSendingCode}
+                    >
+                      {isSendingCode ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Search className="w-4 h-4 mr-2" />
+                      )}
+                      {isSendingCode ? "Sending code..." : "Email me a code"}
+                    </GradientButton>
+                  </motion.div>
+                  <p className="text-white/40 text-xs text-center">
+                    We'll email a 6-digit code to confirm it's you before showing
+                    any balance.
+                  </p>
+                </form>
+              ) : (
+                <form onSubmit={handleVerify} className="space-y-4">
+                  <div>
+                    <Label htmlFor="verify-code" className="text-white/90 text-sm">
+                      Enter the code sent to{" "}
+                      <span className="text-white">{email}</span>
+                    </Label>
+                    <div className="relative mt-1.5 group">
+                      <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 transition-colors group-focus-within:text-sky-custom" />
+                      <Input
+                        id="verify-code"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        maxLength={6}
+                        value={code}
+                        onChange={(e) =>
+                          setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                        }
+                        placeholder="123456"
+                        className="pl-10 text-center tracking-[0.5em] font-semibold bg-white/5 border-white/20 text-white placeholder:text-white/30 placeholder:tracking-normal transition-all focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:border-sky-500/50"
+                      />
+                    </div>
+                  </div>
+                  <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.985 }}>
+                    <GradientButton
+                      type="submit"
+                      variant="aqua"
+                      className="w-full"
+                      disabled={isVerifying}
+                    >
+                      {isVerifying ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <ShieldCheck className="w-4 h-4 mr-2" />
+                      )}
+                      {isVerifying ? "Verifying..." : "Verify & view balance"}
+                    </GradientButton>
+                  </motion.div>
+                  <div className="flex justify-between text-xs">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStep("email");
+                        setCodeError("");
+                      }}
+                      className="text-white/50 hover:text-white/80 underline"
+                    >
+                      Change email
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSendCode()}
+                      disabled={isSendingCode}
+                      className="text-sky-custom hover:underline disabled:opacity-50"
+                    >
+                      {isSendingCode ? "Resending..." : "Resend code"}
+                    </button>
+                  </div>
+                </form>
+              )}
 
               <AnimatePresence mode="wait">
                 {lookupError && (
@@ -298,6 +418,21 @@ export default function PayBalance() {
                     <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 flex gap-2">
                       <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
                       <p className="text-red-200 text-sm">{lookupError}</p>
+                    </div>
+                  </motion.div>
+                )}
+                {codeError && (
+                  <motion.div
+                    key="codeerr"
+                    initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                    animate={{ opacity: 1, height: "auto", marginTop: 16 }}
+                    exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                    transition={{ duration: 0.22 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 flex gap-2">
+                      <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                      <p className="text-red-200 text-sm">{codeError}</p>
                     </div>
                   </motion.div>
                 )}
@@ -319,6 +454,7 @@ export default function PayBalance() {
               </AnimatePresence>
             </GlassCard>
           </motion.div>
+          )}
 
           {/* Results */}
           <AnimatePresence mode="wait">
