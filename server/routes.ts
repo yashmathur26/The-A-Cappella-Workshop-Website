@@ -20,7 +20,7 @@ import {
 } from "./referral-codes";
 import { pool, db } from "./db";
 import { pickResponseRow, resolveSheetColumns } from "./sheet-csv";
-import { computeOutstandingForEmail, toInitials } from "./balance";
+import { computeOutstandingForEmail } from "./balance";
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, {
@@ -818,8 +818,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const summary = await computeOutstandingForEmail(stripe, email);
-      if (summary.source === "none") {
-        // Nothing to protect — tell them plainly, no code sent.
+      // Only send a code to an email that maps to an ACTUAL registration — a
+      // known student name, or at least one week paid toward (history) or owed
+      // (items). A bare Stripe/sheet record with none of these isn't a real
+      // registration, so we don't send a code or reveal a (near-empty) card.
+      const hasRegistration =
+        summary.studentName.trim() !== "" ||
+        summary.items.length > 0 ||
+        summary.history.length > 0;
+      if (!hasRegistration) {
         return res.json({ found: false });
       }
 
@@ -845,8 +852,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Step 2: verify the code. On success, returns the (masked) balance summary
-  // and a short-lived token used to authorize the checkout call.
+  // Step 2: verify the code. On success, returns the FULL balance summary
+  // (including the child's full name — safe now that the caller proved they
+  // control the email) and a short-lived token used to authorize checkout.
   app.post("/api/balance/verify-code", express.json(), async (req, res) => {
     try {
       if (!stripe) {
@@ -873,14 +881,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       balanceCodes.delete(email);
-      const token = randomUUID();
-      balanceTokens.set(token, { email, expiresAt: Date.now() + TOKEN_TTL_MS });
 
       const result = await computeOutstandingForEmail(stripe, email);
-      res.json({
-        token,
-        summary: { ...result, studentName: toInitials(result.studentName) },
-      });
+      // Double-check an actual registration still exists before revealing a card.
+      const hasRegistration =
+        result.studentName.trim() !== "" ||
+        result.items.length > 0 ||
+        result.history.length > 0;
+      if (!hasRegistration) {
+        return res.json({ found: false });
+      }
+
+      const token = randomUUID();
+      balanceTokens.set(token, { email, expiresAt: Date.now() + TOKEN_TTL_MS });
+      // Full studentName — the emailed-code step proved they own this email.
+      res.json({ token, summary: result });
     } catch (error) {
       console.error("Error verifying balance code:", error);
       res.status(500).json({ message: "Failed to verify code" });
@@ -903,9 +918,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const result = await computeOutstandingForEmail(stripe, tokenEmail);
-      // Never expose the full child name — mask to initials. The full name is
-      // still used server-side for Stripe line items.
-      res.json({ ...result, studentName: toInitials(result.studentName) });
+      // Full child name is fine here: a valid token means the caller already
+      // proved (via the emailed code) that they control this email.
+      res.json(result);
     } catch (error) {
       console.error("Error fetching balance summary:", error);
       res.status(500).json({ message: "Failed to look up balance" });
