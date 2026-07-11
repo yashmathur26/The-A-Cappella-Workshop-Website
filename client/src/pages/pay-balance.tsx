@@ -1,22 +1,32 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
-import { motion, AnimatePresence, MotionConfig, type Variants } from "framer-motion";
+import {
+  motion,
+  AnimatePresence,
+  MotionConfig,
+  useAnimationControls,
+  type Variants,
+} from "framer-motion";
 import {
   Check,
   CreditCard,
   Mail,
-  Search,
+  ArrowRight,
   AlertCircle,
   CalendarDays,
   GraduationCap,
   ShieldCheck,
-  KeyRound,
   Loader2,
 } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GradientButton } from "@/components/ui/gradient-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
 import { useToast } from "@/hooks/use-toast";
 
 type BalanceItem = {
@@ -98,6 +108,11 @@ export default function PayBalance() {
   const [paidSuccess, setPaidSuccess] = useState(false);
   const { toast } = useToast();
 
+  // Guards the auto-submit so the same 6 digits aren't re-verified in a loop.
+  const autoSubmittedRef = useRef("");
+  // Drives the shake animation on the code boxes when verification fails.
+  const shakeControls = useAnimationControls();
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("paid") === "1") {
@@ -165,6 +180,12 @@ export default function PayBalance() {
     }
   };
 
+  const shakeCode = () =>
+    shakeControls.start({
+      x: [0, -9, 9, -7, 7, -4, 4, 0],
+      transition: { duration: 0.42 },
+    });
+
   // Step 2 — verify the code, then reveal the balance.
   const handleVerify = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -183,11 +204,26 @@ export default function PayBalance() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Could not verify code");
+      // Verified, but no real registration is tied to this email — send them
+      // back to the email step with a clear message instead of an empty card.
+      if (data.found === false || !data.summary) {
+        setStep("email");
+        setCode("");
+        autoSubmittedRef.current = "";
+        setNoBalanceMsg(
+          "We couldn't find a registration for this email. Make sure you use the same email you registered with.",
+        );
+        return;
+      }
       setToken(data.token);
       setSummary(data.summary as BalanceSummary);
       sessionStorage.setItem("balanceToken", data.token);
       sessionStorage.setItem("balanceEmail", email.trim());
     } catch (err) {
+      // Clear the boxes so the next attempt re-triggers auto-submit, and shake.
+      setCode("");
+      autoSubmittedRef.current = "";
+      shakeCode();
       setCodeError(
         err instanceof Error ? err.message : "Could not verify code.",
       );
@@ -195,6 +231,17 @@ export default function PayBalance() {
       setIsVerifying(false);
     }
   };
+
+  // Auto-submit once all six digits are entered (like typical verification UIs).
+  useEffect(() => {
+    if (step !== "code") return;
+    if (/^\d{6}$/.test(code) && code !== autoSubmittedRef.current && !isVerifying) {
+      autoSubmittedRef.current = code;
+      handleVerify();
+    }
+    // handleVerify/isVerifying intentionally excluded to avoid resubmit loops.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [code, step]);
 
   // Each week is paid in its own checkout — multi-week parents check out once
   // per week rather than in one lump sum. Authorized by the verification token.
@@ -300,110 +347,144 @@ export default function PayBalance() {
           {/* Lookup / verification card (hidden once verified) */}
           {!summary && (
           <motion.div
+            layout
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ ...spring, damping: 26, delay: 0.08 }}
           >
-            <GlassCard className="p-6 mb-6">
-              {step === "email" ? (
-                <form onSubmit={handleSendCode} className="space-y-4">
-                  <div>
-                    <Label htmlFor="parent-email" className="text-white/90 text-sm">
-                      Parent / Guardian Email
-                    </Label>
-                    <div className="relative mt-1.5 group">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 transition-colors group-focus-within:text-sky-custom" />
-                      <Input
-                        id="parent-email"
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="parent@example.com"
-                        className="pl-10 bg-white/5 border-white/20 text-white placeholder:text-white/30 transition-all focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:border-sky-500/50"
-                        autoComplete="email"
-                      />
+            <GlassCard className="p-6 mb-6 overflow-hidden">
+              <AnimatePresence mode="wait" initial={false}>
+                {step === "email" ? (
+                  <motion.form
+                    key="email-step"
+                    onSubmit={handleSendCode}
+                    className="space-y-4"
+                    initial={{ opacity: 0, x: -28 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -28 }}
+                    transition={{ ...spring, damping: 30 }}
+                  >
+                    <div>
+                      <Label htmlFor="parent-email" className="text-white/90 text-sm">
+                        Parent / Guardian Email
+                      </Label>
+                      <div className="relative mt-1.5 group">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 transition-colors group-focus-within:text-sky-custom" />
+                        <Input
+                          id="parent-email"
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="parent@example.com"
+                          className="pl-10 bg-white/5 border-white/20 text-white placeholder:text-white/30 transition-all focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:border-sky-500/50"
+                          autoComplete="email"
+                        />
+                      </div>
                     </div>
-                  </div>
-                  <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.985 }}>
-                    <GradientButton
-                      type="submit"
-                      variant="aqua"
-                      className="w-full"
-                      disabled={isSendingCode}
-                    >
-                      {isSendingCode ? (
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      ) : (
-                        <Search className="w-4 h-4 mr-2" />
-                      )}
-                      {isSendingCode ? "Sending code..." : "Continue"}
-                    </GradientButton>
-                  </motion.div>
-                  <p className="text-white/40 text-xs text-center">
-                    We'll email a 6-digit code to confirm it's you before showing
-                    any balance.
-                  </p>
-                </form>
-              ) : (
-                <form onSubmit={handleVerify} className="space-y-4">
-                  <div>
-                    <Label htmlFor="verify-code" className="text-white/90 text-sm">
-                      Enter the code sent to{" "}
-                      <span className="text-white">{email}</span>
-                    </Label>
-                    <div className="relative mt-1.5 group">
-                      <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 transition-colors group-focus-within:text-sky-custom" />
-                      <Input
-                        id="verify-code"
-                        inputMode="numeric"
-                        autoComplete="one-time-code"
+                    <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.985 }}>
+                      <GradientButton
+                        type="submit"
+                        variant="aqua"
+                        className="w-full"
+                        disabled={isSendingCode}
+                      >
+                        {isSendingCode ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : null}
+                        {isSendingCode ? "Sending code..." : "Continue"}
+                        {!isSendingCode && <ArrowRight className="w-4 h-4 ml-2" />}
+                      </GradientButton>
+                    </motion.div>
+                    <p className="text-white/40 text-xs text-center">
+                      We'll email a 6-digit code to confirm it's you before showing
+                      any balance.
+                    </p>
+                  </motion.form>
+                ) : (
+                  <motion.form
+                    key="code-step"
+                    onSubmit={handleVerify}
+                    className="space-y-5"
+                    initial={{ opacity: 0, x: 28 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 28 }}
+                    transition={{ ...spring, damping: 30 }}
+                  >
+                    <div className="flex flex-col items-center text-center">
+                      <motion.div
+                        initial={{ scale: 0.5, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ type: "spring", stiffness: 260, damping: 16 }}
+                        className="w-12 h-12 rounded-full bg-sky-500/15 border border-sky-400/30 flex items-center justify-center mb-3"
+                      >
+                        <Mail className="w-5 h-5 text-sky-custom" />
+                      </motion.div>
+                      <p className="text-white font-medium text-sm">
+                        Enter the 6-digit code
+                      </p>
+                      <p className="text-white/50 text-xs mt-0.5">
+                        Sent to{" "}
+                        <span className="text-white/80">{email}</span>
+                      </p>
+                    </div>
+
+                    <motion.div animate={shakeControls} className="flex justify-center">
+                      <InputOTP
                         maxLength={6}
                         value={code}
-                        onChange={(e) =>
-                          setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
-                        }
-                        placeholder="123456"
-                        className="pl-10 text-center tracking-[0.5em] font-semibold bg-white/5 border-white/20 text-white placeholder:text-white/30 placeholder:tracking-normal transition-all focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:border-sky-500/50"
-                      />
+                        onChange={(v) => setCode(v.replace(/\D/g, "").slice(0, 6))}
+                        containerClassName="justify-center"
+                        disabled={isVerifying}
+                        autoFocus
+                      >
+                        <InputOTPGroup className="gap-2 sm:gap-2.5">
+                          {[0, 1, 2, 3, 4, 5].map((i) => (
+                            <InputOTPSlot key={i} index={i} />
+                          ))}
+                        </InputOTPGroup>
+                      </InputOTP>
+                    </motion.div>
+
+                    <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.985 }}>
+                      <GradientButton
+                        type="submit"
+                        variant="aqua"
+                        className="w-full"
+                        disabled={isVerifying || code.length < 6}
+                      >
+                        {isVerifying ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <ShieldCheck className="w-4 h-4 mr-2" />
+                        )}
+                        {isVerifying ? "Verifying..." : "Verify & view balance"}
+                      </GradientButton>
+                    </motion.div>
+                    <div className="flex justify-between text-xs">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setStep("email");
+                          setCode("");
+                          autoSubmittedRef.current = "";
+                          setCodeError("");
+                        }}
+                        className="text-white/50 hover:text-white/80 underline"
+                      >
+                        Change email
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSendCode()}
+                        disabled={isSendingCode}
+                        className="text-sky-custom hover:underline disabled:opacity-50"
+                      >
+                        {isSendingCode ? "Resending..." : "Resend code"}
+                      </button>
                     </div>
-                  </div>
-                  <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.985 }}>
-                    <GradientButton
-                      type="submit"
-                      variant="aqua"
-                      className="w-full"
-                      disabled={isVerifying}
-                    >
-                      {isVerifying ? (
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      ) : (
-                        <ShieldCheck className="w-4 h-4 mr-2" />
-                      )}
-                      {isVerifying ? "Verifying..." : "Verify & view balance"}
-                    </GradientButton>
-                  </motion.div>
-                  <div className="flex justify-between text-xs">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setStep("email");
-                        setCodeError("");
-                      }}
-                      className="text-white/50 hover:text-white/80 underline"
-                    >
-                      Change email
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleSendCode()}
-                      disabled={isSendingCode}
-                      className="text-sky-custom hover:underline disabled:opacity-50"
-                    >
-                      {isSendingCode ? "Resending..." : "Resend code"}
-                    </button>
-                  </div>
-                </form>
-              )}
+                  </motion.form>
+                )}
+              </AnimatePresence>
 
               <AnimatePresence mode="wait">
                 {lookupError && (
@@ -467,20 +548,28 @@ export default function PayBalance() {
                 exit="exit"
               >
                 <GlassCard className="p-6 space-y-5">
-                  {/* Who this is for */}
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-                    {summary.studentName && (
-                      <span className="flex items-center gap-1.5 text-white/80">
-                        <GraduationCap className="w-4 h-4 text-sky-custom" />
-                        {summary.studentName}
-                      </span>
-                    )}
-                    {signupDate && (
-                      <span className="flex items-center gap-1.5 text-white/50">
-                        <CalendarDays className="w-4 h-4" />
-                        Registered {signupDate}
-                      </span>
-                    )}
+                  {/* Registration this balance belongs to */}
+                  <div className="flex items-center gap-3 p-3.5 rounded-xl bg-white/5 border border-white/10">
+                    <div className="w-11 h-11 rounded-full bg-gradient-to-br from-cyan-500/30 to-indigo-500/30 border border-white/10 flex items-center justify-center flex-shrink-0">
+                      <GraduationCap className="w-5 h-5 text-sky-custom" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-white font-semibold leading-tight truncate">
+                        {summary.studentName || "Your registration"}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-white/50 mt-1">
+                        <span className="flex items-center gap-1 min-w-0">
+                          <Mail className="w-3 h-3 flex-shrink-0" />
+                          <span className="truncate">{summary.parentEmail}</span>
+                        </span>
+                        {signupDate && (
+                          <span className="flex items-center gap-1 whitespace-nowrap">
+                            <CalendarDays className="w-3 h-3" />
+                            Registered {signupDate}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
                   {summary.hasBalance ? (

@@ -39,8 +39,11 @@ const InputOTPSlot = React.forwardRef<
     <div
       ref={ref}
       className={cn(
-        "relative flex h-10 w-10 items-center justify-center border-y border-r border-input text-sm transition-all first:rounded-l-md first:border-l last:rounded-r-md",
-        isActive && "z-10 ring-2 ring-ring ring-offset-background",
+        // Separated, self-contained boxes styled for the dark/aqua glass theme.
+        "relative flex h-14 w-11 items-center justify-center rounded-xl border border-white/15 bg-white/5 text-xl font-semibold text-white shadow-sm transition-all duration-200 sm:w-12",
+        char && "border-white/30 bg-white/[0.08]",
+        isActive &&
+          "z-10 -translate-y-0.5 border-sky-400/70 bg-sky-500/10 ring-2 ring-sky-500/40",
         className
       )}
       {...props}
@@ -48,7 +51,7 @@ const InputOTPSlot = React.forwardRef<
       {char}
       {hasFakeCaret && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className="h-4 w-px animate-caret-blink bg-foreground duration-1000" />
+          <div className="h-6 w-px animate-caret-blink bg-sky-300" />
         </div>
       )}
     </div>
