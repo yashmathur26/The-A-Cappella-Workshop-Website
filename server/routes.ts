@@ -814,22 +814,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Light resend throttle.
       const existing = balanceCodes.get(email);
       if (existing && Date.now() - existing.lastSentAt < 20_000) {
-        return res.json({ found: true, sent: true, throttled: true });
+        return res.json({ sent: true, throttled: true });
       }
 
-      const summary = await computeOutstandingForEmail(stripe, email);
-      // Only send a code to an email that maps to an ACTUAL registration — a
-      // known student name, or at least one week paid toward (history) or owed
-      // (items). A bare Stripe/sheet record with none of these isn't a real
-      // registration, so we don't send a code or reveal a (near-empty) card.
-      const hasRegistration =
-        summary.studentName.trim() !== "" ||
-        summary.items.length > 0 ||
-        summary.history.length > 0;
-      if (!hasRegistration) {
-        return res.json({ found: false });
-      }
-
+      // Always send a code to any valid email. Whether the email actually has a
+      // registration is checked AFTER the code is verified (in verify-code), so
+      // we never reveal registration status to someone who can't read the inbox.
       const code = String(Math.floor(100000 + Math.random() * 900000));
       balanceCodes.set(email, {
         code,

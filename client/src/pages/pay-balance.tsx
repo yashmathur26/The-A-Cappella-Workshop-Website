@@ -164,7 +164,7 @@ export default function PayBalance() {
       if (!res.ok) throw new Error(data.message || "Could not send code");
       if (data.found === false) {
         setNoBalanceMsg(
-          "We couldn't find a registration for this email. Make sure you use the same email you registered with.",
+          "That email isn't associated with a signup. Please use the same email you signed up with.",
         );
       } else {
         setCode("");
@@ -211,7 +211,7 @@ export default function PayBalance() {
         setCode("");
         autoSubmittedRef.current = "";
         setNoBalanceMsg(
-          "We couldn't find a registration for this email. Make sure you use the same email you registered with.",
+          "That email isn't associated with a signup. Please use the same email you signed up with.",
         );
         return;
       }
