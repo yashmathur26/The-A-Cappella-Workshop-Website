@@ -21,6 +21,29 @@ function getGmailTransport(): nodemailer.Transporter | null {
   return cachedGmailTransport;
 }
 
+// The Brevo-authenticated sending domain — mail from here is DKIM/SPF/DMARC
+// aligned and reaches the inbox.
+const AUTHENTICATED_SENDER = "noreply@theacappellaworkshop.com";
+
+// Free mailbox providers can't be DKIM-authenticated through Brevo, so a sender
+// at one of these forces Brevo onto its shared brevosend.com domain and gets
+// verification codes blocked at Yahoo / spam-filed at Gmail.
+const FREE_MAILBOX_DOMAINS = new Set([
+  "gmail.com", "googlemail.com", "yahoo.com", "ymail.com", "hotmail.com",
+  "outlook.com", "live.com", "aol.com", "icloud.com", "me.com", "msn.com",
+]);
+
+// Resolve the From address, ignoring a misconfigured free-mailbox sender (e.g. a
+// leftover BREVO_SENDER_EMAIL=...@gmail.com in the host env) so we always send
+// from the authenticated domain without needing a dashboard/env change.
+function resolveSenderEmail(): string {
+  const raw = process.env.BREVO_SENDER_EMAIL?.trim();
+  if (!raw) return AUTHENTICATED_SENDER;
+  const domain = raw.split("@")[1]?.toLowerCase() ?? "";
+  if (!domain || FREE_MAILBOX_DOMAINS.has(domain)) return AUTHENTICATED_SENDER;
+  return raw;
+}
+
 interface EmailParams {
   to: string;
   templateId: number;
@@ -66,11 +89,7 @@ export async function sendRawEmail(
   htmlContent: string,
 ): Promise<boolean> {
   const senderName = process.env.BREVO_SENDER_NAME || "The A Cappella Workshop";
-  // Send from the Brevo-authenticated domain (theacappellaworkshop.com) so mail
-  // is DKIM/SPF/DMARC-aligned and lands in the inbox. A gmail.com sender can't be
-  // authenticated, which forced Brevo onto its shared brevosend.com domain and
-  // got codes blocked at Yahoo / spam-filed at Gmail.
-  const senderEmail = process.env.BREVO_SENDER_EMAIL || "noreply@theacappellaworkshop.com";
+  const senderEmail = resolveSenderEmail();
 
   // 1) Brevo API (preferred — uses BREVO_API_KEY).
   if (API_KEY) {
