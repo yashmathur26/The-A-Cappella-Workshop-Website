@@ -954,8 +954,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const { token, weekIds, registrationIds } = req.body as {
+      const { token, itemIds, weekIds, registrationIds } = req.body as {
         token?: string;
+        itemIds?: string[]; // preferred: "<child>::<weekId>" ids from the summary
         weekIds?: string[];
         registrationIds?: string[]; // legacy field; treated as weekIds
       };
@@ -972,10 +973,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const summary = await computeOutstandingForEmail(stripe, email);
       let toPay = summary.items;
 
-      const requestedWeeks = weekIds ?? registrationIds;
-      if (Array.isArray(requestedWeeks) && requestedWeeks.length > 0) {
-        const weekSet = new Set(requestedWeeks);
-        toPay = toPay.filter((i) => weekSet.has(i.weekId));
+      // Prefer per-registration ids so paying one child's balance never sweeps in
+      // a sibling enrolled in the same week. Fall back to weekIds for old clients.
+      if (Array.isArray(itemIds) && itemIds.length > 0) {
+        const idSet = new Set(itemIds);
+        toPay = toPay.filter((i) => idSet.has(i.id));
+      } else {
+        const requestedWeeks = weekIds ?? registrationIds;
+        if (Array.isArray(requestedWeeks) && requestedWeeks.length > 0) {
+          const weekSet = new Set(requestedWeeks);
+          toPay = toPay.filter((i) => weekSet.has(i.weekId));
+        }
       }
 
       if (toPay.length === 0) {
@@ -998,11 +1006,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const balance = item.balanceDueCents;
         if (balance <= 0) continue;
 
+        const itemChild = item.studentName || childName;
         lineItems.push({
           price_data: {
             currency: "usd",
             product_data: {
-              name: `${childName} — ${item.locationName} — ${item.weekLabel} (Final Payment)`,
+              name: `${itemChild} — ${item.locationName} — ${item.weekLabel} (Final Payment)`,
               description: `Remaining balance after $${(item.depositPaidCents / 100).toFixed(2)} deposit`,
             },
             unit_amount: balance,
@@ -1013,7 +1022,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         balanceItems.push({
           registration_id: "",
           week_id: item.weekId,
-          child_name: childName,
+          child_name: itemChild,
           balance_cents: balance,
         });
       }

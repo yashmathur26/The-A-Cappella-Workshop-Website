@@ -76,6 +76,11 @@ export function classifyPayment(raw: string): "full" | "deposit" | "none" {
 }
 
 export type BalanceItem = {
+  /** Stable per-registration id ("<child>::<weekId>") — distinguishes two kids
+   *  enrolled in the same week under one parent email. Used to target checkout. */
+  id: string;
+  /** The child this registration is for (one parent may enroll several). */
+  studentName: string;
   weekId: string;
   weekLabel: string;
   locationName: string;
@@ -86,8 +91,10 @@ export type BalanceItem = {
   discountCode?: string;
 };
 
-/** A week the parent has paid something toward — their purchase record. */
+/** A single child's week the parent has paid something toward — their record. */
 export type HistoryItem = {
+  id: string;
+  studentName: string;
   weekId: string;
   weekLabel: string;
   locationName: string;
@@ -112,6 +119,18 @@ export type BalanceResult = {
   history: HistoryItem[];
   totalPaidCents: number;
 };
+
+// Normalize a child's name for keying: trim, collapse inner whitespace, lower-case.
+// So "Krish  Mathur" and "Krish Mathur" map to the same registration.
+function normalizeChildName(name?: string): string {
+  return (name ?? "").trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+// A registration is a (child, week) pair — one parent email can hold several
+// (multiple kids, and/or one kid across weeks). This key keeps them separate.
+function regKey(name: string | undefined, weekId: string): string {
+  return `${normalizeChildName(name)}::${weekId}`;
+}
 
 function safeParseArray(json: unknown): any[] {
   if (typeof json !== "string" || !json.trim()) return [];
@@ -301,11 +320,15 @@ export async function computeOutstandingForEmail(
 ): Promise<BalanceResult> {
   const email = rawEmail.trim().toLowerCase();
 
-  const paidByWeek = new Map<string, number>(); // week → ACTUAL cents paid (post-discount)
-  const depositWeeks = new Set<string>(); // week → paid as a deposit (not full)
-  const settledWeeks = new Set<string>(); // week → paid in full / balance settled
-  const codeByWeek = new Map<string, string>(); // week → discount/promo code used
-  const discountByWeek = new Map<string, number>(); // week → discount cents applied
+  // Everything is keyed by registration (child + week), NOT by week alone, so a
+  // parent who enrolls two kids in the same week gets two separate lines.
+  const paidByKey = new Map<string, number>(); // regKey → ACTUAL cents paid (post-discount)
+  const depositKeys = new Set<string>(); // regKey → paid as a deposit (not full)
+  const settledKeys = new Set<string>(); // regKey → paid in full / balance settled
+  const codeByKey = new Map<string, string>(); // regKey → discount/promo code used
+  const discountByKey = new Map<string, number>(); // regKey → discount cents applied
+  const nameByKey = new Map<string, string>(); // regKey → child display name
+  const weekByKey = new Map<string, string>(); // regKey → weekId
   let studentName = "";
   let signedUp: number | null = null;
   let sawStripe = false;
@@ -314,8 +337,13 @@ export async function computeOutstandingForEmail(
   const noteSignup = (ms: number) => {
     if (Number.isFinite(ms) && (signedUp === null || ms < signedUp)) signedUp = ms;
   };
-  const addPaid = (wk: string, cents: number) =>
-    paidByWeek.set(wk, (paidByWeek.get(wk) ?? 0) + cents);
+  const addPaid = (key: string, cents: number) =>
+    paidByKey.set(key, (paidByKey.get(key) ?? 0) + cents);
+  // Record the display name / week for a key the first time we see it.
+  const noteReg = (key: string, name: string, weekId: string) => {
+    if (name && !nameByKey.has(key)) nameByKey.set(key, name);
+    if (!weekByKey.has(key)) weekByKey.set(key, weekId);
+  };
 
   // 1) Stripe — read the ACTUAL amount charged per week (reflects discounts) ---
   const sessions = await getAllPaidSessions(stripe);
@@ -340,34 +368,40 @@ export async function computeOutstandingForEmail(
     }
 
     if (md.paymentType === "balance") {
-      // A prior balance payment settles those weeks; credit what was actually paid.
+      // A prior balance payment settles those registrations; credit what was paid.
       safeParseArray(md.balance_items_json).forEach((b, i) => {
         const wk = b?.week_id;
         if (!wk) return;
-        settledWeeks.add(wk);
-        addPaid(wk, amounts[i] ?? (Number(b.balance_cents) || 0));
+        const name = (b.child_name || md.childName || "").trim();
+        const key = regKey(name, wk);
+        noteReg(key, name, wk);
+        settledKeys.add(key);
+        addPaid(key, amounts[i] ?? (Number(b.balance_cents) || 0));
       });
     } else {
       // Initial checkout (deposit and/or full).
       const initialItems = safeParseArray(md.items_json);
-      // A discount code reduces tuition (never the deposit), so the week's real
-      // owed amount is fullPrice − discount. The discount is stored order-level
-      // and applies to one full-payment line; only attribute it when the order
-      // is a single week so we can pin it exactly. Otherwise we leave it unknown
-      // and trust the settled flag (never over-charge a discounted family).
+      // A discount code reduces tuition (never the deposit), so the real owed
+      // amount is fullPrice − discount. The discount is stored order-level and
+      // applies to one full-payment line; only attribute it when the order is a
+      // single line so we can pin it exactly. Otherwise we leave it unknown and
+      // trust the settled flag (never over-charge a discounted family).
       const orderDiscountCents = parseInt(md.discountCents ?? "", 10) || 0;
       initialItems.forEach((it, i) => {
         const wk = it?.week_id;
         if (!wk) return;
+        const name = (it.student_name || md.childName || "").trim();
+        const key = regKey(name, wk);
+        noteReg(key, name, wk);
         const isDeposit = (it.payment_type ?? "full") === "deposit";
         const amt = amounts[i] ?? (isDeposit ? DEPOSIT_CENTS : getWeekFullPriceCents(wk));
-        addPaid(wk, amt);
-        if (isDeposit) depositWeeks.add(wk);
-        else settledWeeks.add(wk);
+        addPaid(key, amt);
+        if (isDeposit) depositKeys.add(key);
+        else settledKeys.add(key);
         if (appliedCode) {
-          codeByWeek.set(wk, appliedCode);
+          codeByKey.set(key, appliedCode);
           if (orderDiscountCents > 0 && initialItems.length === 1) {
-            discountByWeek.set(wk, orderDiscountCents);
+            discountByKey.set(key, orderDiscountCents);
           }
         }
       });
@@ -386,16 +420,20 @@ export async function computeOutstandingForEmail(
     const status = classifyPayment(row.payment);
     if (status === "full") {
       for (const wk of row.weekIds) {
-        settledWeeks.add(wk);
-        if (!paidByWeek.has(wk)) paidByWeek.set(wk, getWeekFullPriceCents(wk));
+        const key = regKey(row.studentName, wk);
+        noteReg(key, row.studentName, wk);
+        settledKeys.add(key);
+        if (!paidByKey.has(key)) paidByKey.set(key, getWeekFullPriceCents(wk));
       }
     } else if (status === "deposit") {
-      // Only credit a sheet deposit when Stripe doesn't already record this week
-      // (Zelle/check amount is unknown → assume the standard $150 deposit).
+      // Only credit a sheet deposit when Stripe doesn't already record this
+      // registration (Zelle/check amount is unknown → assume the $150 deposit).
       for (const wk of row.weekIds) {
-        if (!paidByWeek.has(wk) && !settledWeeks.has(wk)) {
-          paidByWeek.set(wk, DEPOSIT_CENTS);
-          depositWeeks.add(wk);
+        const key = regKey(row.studentName, wk);
+        if (!paidByKey.has(key) && !settledKeys.has(key)) {
+          noteReg(key, row.studentName, wk);
+          paidByKey.set(key, DEPOSIT_CENTS);
+          depositKeys.add(key);
         }
       }
     }
@@ -409,25 +447,31 @@ export async function computeOutstandingForEmail(
   // so the family can pay it. Tuition owed = fullPrice − any discount applied.
   // If a discount code was used but we can't pin its amount, we trust the settled
   // flag instead of guessing, so a discounted family is never over-charged.
-  const allWeeks = new Set<string>([
-    ...Array.from(settledWeeks),
-    ...Array.from(depositWeeks),
-    ...Array.from(paidByWeek.keys()),
+  const allKeys = new Set<string>([
+    ...Array.from(settledKeys),
+    ...Array.from(depositKeys),
+    ...Array.from(paidByKey.keys()),
   ]);
-  const outstandingWeeks = new Set<string>();
+  const nameOf = (key: string) => nameByKey.get(key) ?? studentName ?? "";
+  const weekOf = (key: string) => weekByKey.get(key) ?? key.split("::").pop() ?? "";
+
+  const outstandingKeys = new Set<string>();
   const items: BalanceItem[] = [];
-  for (const weekId of Array.from(allWeeks)) {
-    const code = codeByWeek.get(weekId);
-    const discountCents = discountByWeek.get(weekId) ?? 0;
+  for (const key of Array.from(allKeys)) {
+    const code = codeByKey.get(key);
+    const discountCents = discountByKey.get(key) ?? 0;
     // Discounted but amount unknown → trust settled, don't invent a balance.
-    if (code && discountCents === 0 && settledWeeks.has(weekId)) continue;
+    if (code && discountCents === 0 && settledKeys.has(key)) continue;
+    const weekId = weekOf(key);
     const fullPriceCents = getWeekFullPriceCents(weekId);
     const owedCents = fullPriceCents - discountCents;
-    const paidCents = Math.min(paidByWeek.get(weekId) ?? 0, owedCents);
+    const paidCents = Math.min(paidByKey.get(key) ?? 0, owedCents);
     const balanceDueCents = owedCents - paidCents;
     if (balanceDueCents <= 0) continue;
-    outstandingWeeks.add(weekId);
+    outstandingKeys.add(key);
     items.push({
+      id: key,
+      studentName: nameOf(key),
       weekId,
       weekLabel: getCampWeekLabel(weekId),
       locationName: getCampLocationName(weekId),
@@ -437,29 +481,32 @@ export async function computeOutstandingForEmail(
       ...(code ? { discountCode: code } : {}),
     });
   }
-  items.sort((a, b) => a.weekId.localeCompare(b.weekId));
+  items.sort((a, b) => a.weekId.localeCompare(b.weekId) || a.studentName.localeCompare(b.studentName));
 
-  // 4) Build purchase history — every week paid toward, with the real amount ---
+  // 4) Build purchase history — every registration paid toward, real amount -----
   const history: HistoryItem[] = [];
-  for (const weekId of Array.from(allWeeks)) {
+  for (const key of Array.from(allKeys)) {
+    const weekId = weekOf(key);
     const fullPriceCents = getWeekFullPriceCents(weekId);
-    const code = codeByWeek.get(weekId);
+    const code = codeByKey.get(key);
     history.push({
+      id: key,
+      studentName: nameOf(key),
       weekId,
       weekLabel: getCampWeekLabel(weekId),
       locationName: getCampLocationName(weekId),
       fullPriceCents,
-      amountPaidCents: paidByWeek.get(weekId) ?? 0,
-      // A week still carrying an outstanding balance isn't paid in full, even if
-      // a (short) balance payment marked it settled.
+      amountPaidCents: paidByKey.get(key) ?? 0,
+      // A registration still carrying an outstanding balance isn't paid in full,
+      // even if a (short) balance payment marked it settled.
       status:
-        settledWeeks.has(weekId) && !outstandingWeeks.has(weekId)
+        settledKeys.has(key) && !outstandingKeys.has(key)
           ? "paid_in_full"
           : "deposit_paid",
       ...(code ? { discountCode: code } : {}),
     });
   }
-  history.sort((a, b) => a.weekId.localeCompare(b.weekId));
+  history.sort((a, b) => a.weekId.localeCompare(b.weekId) || a.studentName.localeCompare(b.studentName));
 
   const totalDueCents = items.reduce((sum, i) => sum + i.balanceDueCents, 0);
   const totalPaidCents = history.reduce((sum, h) => sum + h.amountPaidCents, 0);

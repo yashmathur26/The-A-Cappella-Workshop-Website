@@ -30,6 +30,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 type BalanceItem = {
+  id: string;
+  studentName: string;
   weekId: string;
   weekLabel: string;
   locationName: string;
@@ -40,6 +42,8 @@ type BalanceItem = {
 };
 
 type HistoryItem = {
+  id: string;
+  studentName: string;
   weekId: string;
   weekLabel: string;
   locationName: string;
@@ -103,7 +107,7 @@ export default function PayBalance() {
   const [summary, setSummary] = useState<BalanceSummary | null>(null);
   const [isSendingCode, setIsSendingCode] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
-  const [payingWeek, setPayingWeek] = useState<string | null>(null);
+  const [payingId, setPayingId] = useState<string | null>(null);
   const [lookupError, setLookupError] = useState("");
   const [codeError, setCodeError] = useState("");
   const [noBalanceMsg, setNoBalanceMsg] = useState("");
@@ -300,15 +304,15 @@ export default function PayBalance() {
 
   // Each week is paid in its own checkout — multi-week parents check out once
   // per week rather than in one lump sum. Authorized by the verification token.
-  const handlePay = async (weekId: string) => {
+  const handlePay = async (item: BalanceItem) => {
     if (!token) return;
 
-    setPayingWeek(weekId);
+    setPayingId(item.id);
     try {
       const res = await fetch("/api/balance-checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, weekIds: [weekId] }),
+        body: JSON.stringify({ token, itemIds: [item.id] }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -326,7 +330,7 @@ export default function PayBalance() {
           err instanceof Error ? err.message : "Failed to start checkout",
         variant: "destructive",
       });
-      setPayingWeek(null);
+      setPayingId(null);
     }
   };
 
@@ -661,12 +665,17 @@ export default function PayBalance() {
                       >
                         {summary.items.map((item) => (
                           <motion.div
-                            key={item.weekId}
+                            key={item.id}
                             variants={rowItem}
                             className="p-4 rounded-xl bg-white/5 border border-white/10"
                           >
                             <div className="flex justify-between items-start gap-3 mb-3">
                               <div>
+                                {item.studentName && (
+                                  <p className="text-sky-custom text-xs font-semibold mb-0.5">
+                                    {item.studentName}
+                                  </p>
+                                )}
                                 <p className="text-white font-medium">
                                   {item.locationName} — {item.weekLabel}
                                 </p>
@@ -688,15 +697,15 @@ export default function PayBalance() {
                               <GradientButton
                                 variant="aqua"
                                 className="w-full"
-                                onClick={() => handlePay(item.weekId)}
-                                disabled={payingWeek !== null}
+                                onClick={() => handlePay(item)}
+                                disabled={payingId !== null}
                               >
-                                {payingWeek === item.weekId ? (
+                                {payingId === item.id ? (
                                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                                 ) : (
                                   <CreditCard className="w-4 h-4 mr-2" />
                                 )}
-                                {payingWeek === item.weekId
+                                {payingId === item.id
                                   ? "Redirecting to checkout..."
                                   : `Pay ${formatDollars(item.balanceDueCents)} + fee`}
                               </GradientButton>
@@ -765,12 +774,17 @@ export default function PayBalance() {
                           >
                             {summary.history.map((h) => (
                               <motion.div
-                                key={h.weekId}
+                                key={h.id}
                                 variants={rowItem}
                                 className="p-4 rounded-xl bg-white/5 border border-white/10 transition-colors hover:bg-white/[0.08]"
                               >
                                 <div className="flex justify-between items-start gap-3">
                                   <div>
+                                    {h.studentName && (
+                                      <p className="text-sky-custom text-xs font-semibold mb-0.5">
+                                        {h.studentName}
+                                      </p>
+                                    )}
                                     <p className="text-white font-medium">
                                       {h.locationName} — {h.weekLabel}
                                     </p>
