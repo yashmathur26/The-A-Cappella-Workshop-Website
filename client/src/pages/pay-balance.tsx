@@ -36,6 +36,7 @@ type BalanceItem = {
   fullPriceCents: number;
   depositPaidCents: number;
   balanceDueCents: number;
+  discountCode?: string;
 };
 
 type HistoryItem = {
@@ -45,6 +46,7 @@ type HistoryItem = {
   fullPriceCents: number;
   amountPaidCents: number;
   status: "paid_in_full" | "deposit_paid";
+  discountCode?: string;
 };
 
 type BalanceSummary = {
@@ -106,6 +108,8 @@ export default function PayBalance() {
   const [codeError, setCodeError] = useState("");
   const [noBalanceMsg, setNoBalanceMsg] = useState("");
   const [paidSuccess, setPaidSuccess] = useState(false);
+  // Admin bypass: /pay-balance?admin=<KEY> skips email verification.
+  const [adminKey, setAdminKey] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Guards the auto-submit so the same 6 digits aren't re-verified in a loop.
@@ -118,6 +122,29 @@ export default function PayBalance() {
     if (params.get("paid") === "1") {
       setPaidSuccess(true);
       window.history.replaceState({}, "", "/pay-balance");
+      return;
+    }
+    // Admin bypass mode — no code required. Optionally auto-load an email.
+    const admin = params.get("admin");
+    if (admin) {
+      setAdminKey(admin);
+      const emailParam = params.get("email");
+      if (emailParam) {
+        setEmail(emailParam);
+        (async () => {
+          try {
+            const res = await fetch(
+              `/api/balance/admin-summary?key=${encodeURIComponent(admin)}&email=${encodeURIComponent(emailParam)}`,
+            );
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || "Admin lookup failed");
+            setToken(data.token);
+            setSummary(data.summary as BalanceSummary);
+          } catch (err) {
+            setLookupError(err instanceof Error ? err.message : "Admin lookup failed");
+          }
+        })();
+      }
       return;
     }
     // Resume a still-valid verified session (e.g. to pay another week after
@@ -142,6 +169,34 @@ export default function PayBalance() {
       })();
     }
   }, []);
+
+  // Admin bypass — look up any email's balance directly, no code.
+  const handleAdminLookup = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    setLookupError("");
+    setNoBalanceMsg("");
+    const trimmed = email.trim();
+    if (!trimmed) {
+      setLookupError("Please enter an email to look up.");
+      return;
+    }
+    setIsSendingCode(true);
+    try {
+      const res = await fetch(
+        `/api/balance/admin-summary?key=${encodeURIComponent(adminKey ?? "")}&email=${encodeURIComponent(trimmed)}`,
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Admin lookup failed");
+      setToken(data.token);
+      setSummary(data.summary as BalanceSummary);
+    } catch (err) {
+      setLookupError(
+        err instanceof Error ? err.message : "Admin lookup failed.",
+      );
+    } finally {
+      setIsSendingCode(false);
+    }
+  };
 
   // Step 1 — email a 6-digit verification code.
   const handleSendCode = async (e?: React.FormEvent) => {
@@ -357,7 +412,7 @@ export default function PayBalance() {
                 {step === "email" ? (
                   <motion.form
                     key="email-step"
-                    onSubmit={handleSendCode}
+                    onSubmit={adminKey ? handleAdminLookup : handleSendCode}
                     className="space-y-4"
                     initial={{ opacity: 0, x: -28 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -391,13 +446,20 @@ export default function PayBalance() {
                         {isSendingCode ? (
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                         ) : null}
-                        {isSendingCode ? "Sending code..." : "Continue"}
+                        {isSendingCode
+                          ? adminKey
+                            ? "Looking up..."
+                            : "Sending code..."
+                          : adminKey
+                            ? "View balance (admin)"
+                            : "Continue"}
                         {!isSendingCode && <ArrowRight className="w-4 h-4 ml-2" />}
                       </GradientButton>
                     </motion.div>
                     <p className="text-white/40 text-xs text-center">
-                      We'll email a 6-digit code to confirm it's you before showing
-                      any balance.
+                      {adminKey
+                        ? "Admin mode — verification bypassed. Enter any parent email."
+                        : "We'll email a 6-digit code to confirm it's you before showing any balance."}
                     </p>
                   </motion.form>
                 ) : (
@@ -610,8 +672,13 @@ export default function PayBalance() {
                                 </p>
                                 <p className="text-white/40 text-xs mt-1 tabular-nums">
                                   {formatDollars(item.fullPriceCents)} tuition −{" "}
-                                  {formatDollars(item.depositPaidCents)} deposit paid
+                                  {formatDollars(item.depositPaidCents)} paid
                                 </p>
+                                {item.discountCode && (
+                                  <span className="inline-block mt-1.5 text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                                    Discount “{item.discountCode}” applied
+                                  </span>
+                                )}
                               </div>
                               <p className="text-lg font-bold whitespace-nowrap tabular-nums bg-gradient-to-r from-cyan-300 to-sky-400 bg-clip-text text-transparent">
                                 {formatDollars(item.balanceDueCents)}
@@ -721,6 +788,11 @@ export default function PayBalance() {
                                         ? "Paid in full"
                                         : "Deposit paid"}
                                     </span>
+                                    {h.discountCode && (
+                                      <span className="inline-block ml-1.5 mt-1.5 text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                                        “{h.discountCode}” applied
+                                      </span>
+                                    )}
                                   </div>
                                   <p className="text-lg font-bold text-teal-custom whitespace-nowrap tabular-nums">
                                     {formatDollars(h.amountPaidCents)}

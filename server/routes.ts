@@ -892,6 +892,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin bypass: look up any email's balance without the code step. Gated by a
+  // secret ADMIN_BALANCE_KEY (set in the environment); the admin link is
+  // /pay-balance?admin=<ADMIN_BALANCE_KEY>. Also issues a token so the admin can
+  // start a checkout if needed.
+  app.get("/api/balance/admin-summary", async (req, res) => {
+    try {
+      if (!stripe) {
+        return res.status(501).json({ message: "Balance lookup is unavailable (Stripe not configured)." });
+      }
+      const adminKey = process.env.ADMIN_BALANCE_KEY;
+      const key = typeof req.query.key === "string" ? req.query.key : "";
+      if (!adminKey || key !== adminKey) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const email = typeof req.query.email === "string" ? req.query.email.trim().toLowerCase() : "";
+      if (!EMAIL_RE.test(email)) {
+        return res.status(400).json({ message: "Please provide a valid email" });
+      }
+      const result = await computeOutstandingForEmail(stripe, email);
+      const token = randomUUID();
+      balanceTokens.set(token, { email, expiresAt: Date.now() + TOKEN_TTL_MS });
+      res.json({ token, summary: result });
+    } catch (error) {
+      console.error("Error in admin balance summary:", error);
+      res.status(500).json({ message: "Failed to look up balance" });
+    }
+  });
+
   // Outstanding deposit balances for a parent email (used by /pay-balance page).
   // Requires a valid verification token (see /api/balance/verify-code) so child
   // info and amounts are never exposed to an unverified caller.

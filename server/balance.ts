@@ -82,6 +82,8 @@ export type BalanceItem = {
   fullPriceCents: number;
   depositPaidCents: number;
   balanceDueCents: number;
+  /** Discount/promo code applied to this week's payment, if any. */
+  discountCode?: string;
 };
 
 /** A week the parent has paid something toward — their purchase record. */
@@ -92,6 +94,8 @@ export type HistoryItem = {
   fullPriceCents: number;
   amountPaidCents: number;
   status: "paid_in_full" | "deposit_paid";
+  /** Discount/promo code applied to this week's payment, if any. */
+  discountCode?: string;
 };
 
 export type BalanceResult = {
@@ -134,6 +138,22 @@ async function getAllPaidSessions(stripe: Stripe): Promise<Stripe.Checkout.Sessi
     startingAfter = resp.data[resp.data.length - 1].id;
   }
   return all.filter((s) => s.payment_status === "paid");
+}
+
+// The actual cents charged for each non-fee line item, in the same order as the
+// session's items_json / balance_items_json — so amounts reflect any discount
+// (e.g. a $1 "DOLLAR" code) rather than the sticker price. Excludes the
+// "Processing Fee" line. Returns [] if it can't be fetched (caller falls back).
+async function getNonFeeLineAmounts(stripe: Stripe, sessionId: string): Promise<number[]> {
+  try {
+    const li = await stripe.checkout.sessions.listLineItems(sessionId, { limit: 100 });
+    return li.data
+      .filter((l) => !/processing fee/i.test(l.description ?? ""))
+      .map((l) => l.amount_total ?? 0);
+  } catch (err) {
+    console.warn(`[balance] could not fetch line items for ${sessionId}:`, err);
+    return [];
+  }
 }
 
 function sessionEmail(s: Stripe.Checkout.Session): string {
@@ -240,8 +260,10 @@ export async function computeOutstandingForEmail(
 ): Promise<BalanceResult> {
   const email = rawEmail.trim().toLowerCase();
 
-  const depositByWeek = new Map<string, number>(); // week → cents paid as deposit
+  const paidByWeek = new Map<string, number>(); // week → ACTUAL cents paid (post-discount)
+  const depositWeeks = new Set<string>(); // week → paid as a deposit (not full)
   const settledWeeks = new Set<string>(); // week → paid in full / balance settled
+  const codeByWeek = new Map<string, string>(); // week → discount/promo code used
   let studentName = "";
   let signedUp: number | null = null;
   let sawStripe = false;
@@ -250,8 +272,10 @@ export async function computeOutstandingForEmail(
   const noteSignup = (ms: number) => {
     if (Number.isFinite(ms) && (signedUp === null || ms < signedUp)) signedUp = ms;
   };
+  const addPaid = (wk: string, cents: number) =>
+    paidByWeek.set(wk, (paidByWeek.get(wk) ?? 0) + cents);
 
-  // 1) Stripe --------------------------------------------------------------
+  // 1) Stripe — read the ACTUAL amount charged per week (reflects discounts) ---
   const sessions = await getAllPaidSessions(stripe);
   for (const s of sessions) {
     if (sessionEmail(s) !== email) continue;
@@ -259,23 +283,31 @@ export async function computeOutstandingForEmail(
     const md = s.metadata ?? {};
     if (md.childName && !studentName) studentName = md.childName;
     if (typeof s.created === "number") noteSignup(s.created * 1000);
+    const appliedCode = (md.appliedCode || md.promoCode || md.referralName || "").trim();
+
+    // Actual per-line amounts (excludes the processing fee), in metadata order.
+    const amounts = await getNonFeeLineAmounts(stripe, s.id);
 
     if (md.paymentType === "balance") {
-      // A prior balance payment settles those weeks.
-      for (const b of safeParseArray(md.balance_items_json)) {
-        if (b?.week_id) settledWeeks.add(b.week_id);
-      }
+      // A prior balance payment settles those weeks; credit what was actually paid.
+      safeParseArray(md.balance_items_json).forEach((b, i) => {
+        const wk = b?.week_id;
+        if (!wk) return;
+        settledWeeks.add(wk);
+        addPaid(wk, amounts[i] ?? (Number(b.balance_cents) || 0));
+      });
     } else {
       // Initial checkout (deposit and/or full).
-      for (const it of safeParseArray(md.items_json)) {
+      safeParseArray(md.items_json).forEach((it, i) => {
         const wk = it?.week_id;
-        if (!wk) continue;
-        if ((it.payment_type ?? "full") === "deposit") {
-          depositByWeek.set(wk, (depositByWeek.get(wk) ?? 0) + DEPOSIT_CENTS);
-        } else {
-          settledWeeks.add(wk); // paid in full at registration
-        }
-      }
+        if (!wk) return;
+        const isDeposit = (it.payment_type ?? "full") === "deposit";
+        const amt = amounts[i] ?? (isDeposit ? DEPOSIT_CENTS : getWeekFullPriceCents(wk));
+        addPaid(wk, amt);
+        if (isDeposit) depositWeeks.add(wk);
+        else settledWeeks.add(wk);
+        if (appliedCode) codeByWeek.set(wk, appliedCode);
+      });
     }
   }
 
@@ -290,25 +322,32 @@ export async function computeOutstandingForEmail(
 
     const status = classifyPayment(row.payment);
     if (status === "full") {
-      for (const wk of row.weekIds) settledWeeks.add(wk);
-    } else if (status === "deposit") {
-      // Only credit a sheet deposit when Stripe doesn't already record one for
-      // this week, so overlapping records aren't double-counted.
       for (const wk of row.weekIds) {
-        if (!depositByWeek.has(wk)) depositByWeek.set(wk, DEPOSIT_CENTS);
+        settledWeeks.add(wk);
+        if (!paidByWeek.has(wk)) paidByWeek.set(wk, getWeekFullPriceCents(wk));
+      }
+    } else if (status === "deposit") {
+      // Only credit a sheet deposit when Stripe doesn't already record this week
+      // (Zelle/check amount is unknown → assume the standard $150 deposit).
+      for (const wk of row.weekIds) {
+        if (!paidByWeek.has(wk) && !settledWeeks.has(wk)) {
+          paidByWeek.set(wk, DEPOSIT_CENTS);
+          depositWeeks.add(wk);
+        }
       }
     }
     // NOT PAID / blank / anything else → nothing owed on the balance page.
   }
 
-  // 3) Build outstanding items --------------------------------------------
+  // 3) Build outstanding items (deposit weeks not yet fully paid) -----------
   const items: BalanceItem[] = [];
-  for (const [weekId, paidRaw] of Array.from(depositByWeek.entries())) {
+  for (const weekId of Array.from(depositWeeks)) {
     if (settledWeeks.has(weekId)) continue;
     const fullPriceCents = getWeekFullPriceCents(weekId);
-    const depositPaidCents = Math.min(paidRaw, fullPriceCents);
+    const depositPaidCents = Math.min(paidByWeek.get(weekId) ?? 0, fullPriceCents);
     const balanceDueCents = fullPriceCents - depositPaidCents;
     if (balanceDueCents <= 0) continue;
+    const code = codeByWeek.get(weekId);
     items.push({
       weekId,
       weekLabel: getCampWeekLabel(weekId),
@@ -316,38 +355,30 @@ export async function computeOutstandingForEmail(
       fullPriceCents,
       depositPaidCents,
       balanceDueCents,
+      ...(code ? { discountCode: code } : {}),
     });
   }
   items.sort((a, b) => a.weekId.localeCompare(b.weekId));
 
-  // 4) Build purchase history — every week paid toward, full or deposit --------
+  // 4) Build purchase history — every week paid toward, with the real amount ---
   const allWeeks = new Set<string>([
     ...Array.from(settledWeeks),
-    ...Array.from(depositByWeek.keys()),
+    ...Array.from(depositWeeks),
+    ...Array.from(paidByWeek.keys()),
   ]);
   const history: HistoryItem[] = [];
   for (const weekId of Array.from(allWeeks)) {
     const fullPriceCents = getWeekFullPriceCents(weekId);
-    if (settledWeeks.has(weekId)) {
-      history.push({
-        weekId,
-        weekLabel: getCampWeekLabel(weekId),
-        locationName: getCampLocationName(weekId),
-        fullPriceCents,
-        amountPaidCents: fullPriceCents,
-        status: "paid_in_full",
-      });
-    } else {
-      const amountPaidCents = Math.min(depositByWeek.get(weekId) ?? 0, fullPriceCents);
-      history.push({
-        weekId,
-        weekLabel: getCampWeekLabel(weekId),
-        locationName: getCampLocationName(weekId),
-        fullPriceCents,
-        amountPaidCents,
-        status: "deposit_paid",
-      });
-    }
+    const code = codeByWeek.get(weekId);
+    history.push({
+      weekId,
+      weekLabel: getCampWeekLabel(weekId),
+      locationName: getCampLocationName(weekId),
+      fullPriceCents,
+      amountPaidCents: paidByWeek.get(weekId) ?? 0,
+      status: settledWeeks.has(weekId) ? "paid_in_full" : "deposit_paid",
+      ...(code ? { discountCode: code } : {}),
+    });
   }
   history.sort((a, b) => a.weekId.localeCompare(b.weekId));
 
