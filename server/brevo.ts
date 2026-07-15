@@ -66,7 +66,11 @@ export async function sendRawEmail(
   htmlContent: string,
 ): Promise<boolean> {
   const senderName = process.env.BREVO_SENDER_NAME || "The A Cappella Workshop";
-  const senderEmail = process.env.BREVO_SENDER_EMAIL || "theacappellaworkshop@gmail.com";
+  // Send from the Brevo-authenticated domain (theacappellaworkshop.com) so mail
+  // is DKIM/SPF/DMARC-aligned and lands in the inbox. A gmail.com sender can't be
+  // authenticated, which forced Brevo onto its shared brevosend.com domain and
+  // got codes blocked at Yahoo / spam-filed at Gmail.
+  const senderEmail = process.env.BREVO_SENDER_EMAIL || "noreply@theacappellaworkshop.com";
 
   // 1) Brevo API (preferred — uses BREVO_API_KEY).
   if (API_KEY) {
