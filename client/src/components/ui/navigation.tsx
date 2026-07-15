@@ -130,15 +130,6 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
                     Newton
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link 
-                    href="/wayland"
-                    className={`cursor-pointer hover:bg-gray-800 flex items-center ${currentLocation === 'wayland' ? 'bg-purple-900/50' : ''}`}
-                  >
-                    <MapPin className="w-4 h-4 mr-2" />
-                    Wayland
-                  </Link>
-                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
             
