@@ -305,6 +305,7 @@ export async function computeOutstandingForEmail(
   const depositWeeks = new Set<string>(); // week → paid as a deposit (not full)
   const settledWeeks = new Set<string>(); // week → paid in full / balance settled
   const codeByWeek = new Map<string, string>(); // week → discount/promo code used
+  const discountByWeek = new Map<string, number>(); // week → discount cents applied
   let studentName = "";
   let signedUp: number | null = null;
   let sawStripe = false;
@@ -348,7 +349,14 @@ export async function computeOutstandingForEmail(
       });
     } else {
       // Initial checkout (deposit and/or full).
-      safeParseArray(md.items_json).forEach((it, i) => {
+      const initialItems = safeParseArray(md.items_json);
+      // A discount code reduces tuition (never the deposit), so the week's real
+      // owed amount is fullPrice − discount. The discount is stored order-level
+      // and applies to one full-payment line; only attribute it when the order
+      // is a single week so we can pin it exactly. Otherwise we leave it unknown
+      // and trust the settled flag (never over-charge a discounted family).
+      const orderDiscountCents = parseInt(md.discountCents ?? "", 10) || 0;
+      initialItems.forEach((it, i) => {
         const wk = it?.week_id;
         if (!wk) return;
         const isDeposit = (it.payment_type ?? "full") === "deposit";
@@ -356,7 +364,12 @@ export async function computeOutstandingForEmail(
         addPaid(wk, amt);
         if (isDeposit) depositWeeks.add(wk);
         else settledWeeks.add(wk);
-        if (appliedCode) codeByWeek.set(wk, appliedCode);
+        if (appliedCode) {
+          codeByWeek.set(wk, appliedCode);
+          if (orderDiscountCents > 0 && initialItems.length === 1) {
+            discountByWeek.set(wk, orderDiscountCents);
+          }
+        }
       });
     }
   }
@@ -389,21 +402,37 @@ export async function computeOutstandingForEmail(
     // NOT PAID / blank / anything else → nothing owed on the balance page.
   }
 
-  // 3) Build outstanding items (deposit weeks not yet fully paid) -----------
+  // 3) Build outstanding items — any week whose actual payments fall short of the
+  // tuition owed still owes the difference. This is driven off amounts PAID, not
+  // a settled flag: a refund (netted above) or an underpaid balance can leave a
+  // "settled" week short (see the ashokn@ case), and that shortfall must resurface
+  // so the family can pay it. Tuition owed = fullPrice − any discount applied.
+  // If a discount code was used but we can't pin its amount, we trust the settled
+  // flag instead of guessing, so a discounted family is never over-charged.
+  const allWeeks = new Set<string>([
+    ...Array.from(settledWeeks),
+    ...Array.from(depositWeeks),
+    ...Array.from(paidByWeek.keys()),
+  ]);
+  const outstandingWeeks = new Set<string>();
   const items: BalanceItem[] = [];
-  for (const weekId of Array.from(depositWeeks)) {
-    if (settledWeeks.has(weekId)) continue;
-    const fullPriceCents = getWeekFullPriceCents(weekId);
-    const depositPaidCents = Math.min(paidByWeek.get(weekId) ?? 0, fullPriceCents);
-    const balanceDueCents = fullPriceCents - depositPaidCents;
-    if (balanceDueCents <= 0) continue;
+  for (const weekId of Array.from(allWeeks)) {
     const code = codeByWeek.get(weekId);
+    const discountCents = discountByWeek.get(weekId) ?? 0;
+    // Discounted but amount unknown → trust settled, don't invent a balance.
+    if (code && discountCents === 0 && settledWeeks.has(weekId)) continue;
+    const fullPriceCents = getWeekFullPriceCents(weekId);
+    const owedCents = fullPriceCents - discountCents;
+    const paidCents = Math.min(paidByWeek.get(weekId) ?? 0, owedCents);
+    const balanceDueCents = owedCents - paidCents;
+    if (balanceDueCents <= 0) continue;
+    outstandingWeeks.add(weekId);
     items.push({
       weekId,
       weekLabel: getCampWeekLabel(weekId),
       locationName: getCampLocationName(weekId),
       fullPriceCents,
-      depositPaidCents,
+      depositPaidCents: paidCents,
       balanceDueCents,
       ...(code ? { discountCode: code } : {}),
     });
@@ -411,11 +440,6 @@ export async function computeOutstandingForEmail(
   items.sort((a, b) => a.weekId.localeCompare(b.weekId));
 
   // 4) Build purchase history — every week paid toward, with the real amount ---
-  const allWeeks = new Set<string>([
-    ...Array.from(settledWeeks),
-    ...Array.from(depositWeeks),
-    ...Array.from(paidByWeek.keys()),
-  ]);
   const history: HistoryItem[] = [];
   for (const weekId of Array.from(allWeeks)) {
     const fullPriceCents = getWeekFullPriceCents(weekId);
@@ -426,7 +450,12 @@ export async function computeOutstandingForEmail(
       locationName: getCampLocationName(weekId),
       fullPriceCents,
       amountPaidCents: paidByWeek.get(weekId) ?? 0,
-      status: settledWeeks.has(weekId) ? "paid_in_full" : "deposit_paid",
+      // A week still carrying an outstanding balance isn't paid in full, even if
+      // a (short) balance payment marked it settled.
+      status:
+        settledWeeks.has(weekId) && !outstandingWeeks.has(weekId)
+          ? "paid_in_full"
+          : "deposit_paid",
       ...(code ? { discountCode: code } : {}),
     });
   }
