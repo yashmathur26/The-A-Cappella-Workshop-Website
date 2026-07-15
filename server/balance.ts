@@ -120,10 +120,18 @@ export type BalanceResult = {
   totalPaidCents: number;
 };
 
-// Normalize a child's name for keying: trim, collapse inner whitespace, lower-case.
-// So "Krish  Mathur" and "Krish Mathur" map to the same registration.
+// Normalize a child's name for keying: drop apostrophes/periods, collapse inner
+// whitespace, lower-case. So "Krish  Mathur" == "Krish Mathur" and
+// "Beatrice O'Donnell" == "Beatrice ODonnell" map to one registration. We only
+// strip punctuation that never distinguishes two real kids — NOT letters, so a
+// genuine typo like "Adela" vs "Adlea" still stays separate (and gets fixed at
+// the source) rather than risk merging real siblings.
 function normalizeChildName(name?: string): string {
-  return (name ?? "").trim().replace(/\s+/g, " ").toLowerCase();
+  return (name ?? "")
+    .trim()
+    .replace(/['’`.]/g, "")
+    .replace(/\s+/g, " ")
+    .toLowerCase();
 }
 
 // A registration is a (child, week) pair — one parent email can hold several
