@@ -140,6 +140,35 @@ function regKey(name: string | undefined, weekId: string): string {
   return `${normalizeChildName(name)}::${weekId}`;
 }
 
+// True when b is a with exactly one pair of ADJACENT characters swapped, e.g.
+// "adlea"↔"adela". A transposition is an unambiguous typo — real, different names
+// essentially never differ by only a swap — so this won't merge real siblings
+// (e.g. "ava"/"ada" or "jon"/"joan" are substitutions/insertions, not swaps).
+function isSingleTransposition(a: string, b: string): boolean {
+  if (a.length !== b.length || a.length < 4) return false;
+  const diff: number[] = [];
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) diff.push(i);
+  return (
+    diff.length === 2 &&
+    diff[1] === diff[0] + 1 &&
+    a[diff[0]] === b[diff[1]] &&
+    a[diff[1]] === b[diff[0]]
+  );
+}
+
+// Are two already-normalized child names the same kid, spelled differently? We
+// only accept unambiguous typos: identical after normalization (which already
+// strips punctuation/whitespace/case, so "O'Donnell"=="ODonnell"), or a single
+// adjacent letter transposition. Deliberately does NOT accept arbitrary edits,
+// because siblings share a surname and would then look near-identical. Used only
+// to reconcile a manual sheet spelling against a real Stripe payment — never to
+// merge two independent Stripe payments — so real siblings are never combined.
+function namesLikelySame(a: string, b: string): boolean {
+  if (!a || !b) return false;
+  if (a === b) return true;
+  return isSingleTransposition(a, b);
+}
+
 function safeParseArray(json: unknown): any[] {
   if (typeof json !== "string" || !json.trim()) return [];
   try {
@@ -337,6 +366,7 @@ export async function computeOutstandingForEmail(
   const discountByKey = new Map<string, number>(); // regKey → discount cents applied
   const nameByKey = new Map<string, string>(); // regKey → child display name
   const weekByKey = new Map<string, string>(); // regKey → weekId
+  const stripeKeys = new Set<string>(); // regKeys backed by a real Stripe payment
   let studentName = "";
   let signedUp: number | null = null;
   let sawStripe = false;
@@ -383,6 +413,7 @@ export async function computeOutstandingForEmail(
         const name = (b.child_name || md.childName || "").trim();
         const key = regKey(name, wk);
         noteReg(key, name, wk);
+        stripeKeys.add(key);
         settledKeys.add(key);
         addPaid(key, amounts[i] ?? (Number(b.balance_cents) || 0));
       });
@@ -401,6 +432,7 @@ export async function computeOutstandingForEmail(
         const name = (it.student_name || md.childName || "").trim();
         const key = regKey(name, wk);
         noteReg(key, name, wk);
+        stripeKeys.add(key);
         const isDeposit = (it.payment_type ?? "full") === "deposit";
         const amt = amounts[i] ?? (isDeposit ? DEPOSIT_CENTS : getWeekFullPriceCents(wk));
         addPaid(key, amt);
@@ -417,6 +449,24 @@ export async function computeOutstandingForEmail(
   }
 
   // 2) Tracker sheet (Zelle/check + master list) ---------------------------
+  // Reconcile a sheet registration against the Stripe payments already loaded: if
+  // the exact (child, week) isn't a known Stripe payment but a near-identically
+  // spelled child paid for that same week on Stripe, it's the same kid with a
+  // typo'd sheet spelling (e.g. "Adela" vs "Adlea", "O'Donnell" vs "ODonnell") —
+  // attach to the Stripe registration instead of inventing a phantom one. We only
+  // match sheet→Stripe, so two real siblings (each a distinct Stripe payment) are
+  // never merged.
+  const resolveSheetKey = (name: string, wk: string): string => {
+    const exact = regKey(name, wk);
+    if (stripeKeys.has(exact) || paidByKey.has(exact)) return exact;
+    const target = normalizeChildName(name);
+    for (const k of Array.from(stripeKeys)) {
+      if (weekByKey.get(k) !== wk) continue;
+      if (namesLikelySame(target, k.split("::")[0] ?? "")) return k;
+    }
+    return exact;
+  };
+
   const sheetRows = await getSheetRows();
   for (const row of sheetRows) {
     if (!row.emails.includes(email)) continue;
@@ -428,7 +478,7 @@ export async function computeOutstandingForEmail(
     const status = classifyPayment(row.payment);
     if (status === "full") {
       for (const wk of row.weekIds) {
-        const key = regKey(row.studentName, wk);
+        const key = resolveSheetKey(row.studentName, wk);
         noteReg(key, row.studentName, wk);
         settledKeys.add(key);
         if (!paidByKey.has(key)) paidByKey.set(key, getWeekFullPriceCents(wk));
@@ -437,7 +487,7 @@ export async function computeOutstandingForEmail(
       // Only credit a sheet deposit when Stripe doesn't already record this
       // registration (Zelle/check amount is unknown → assume the $150 deposit).
       for (const wk of row.weekIds) {
-        const key = regKey(row.studentName, wk);
+        const key = resolveSheetKey(row.studentName, wk);
         if (!paidByKey.has(key) && !settledKeys.has(key)) {
           noteReg(key, row.studentName, wk);
           paidByKey.set(key, DEPOSIT_CENTS);
