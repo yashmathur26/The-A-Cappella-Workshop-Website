@@ -156,6 +156,47 @@ async function getNonFeeLineAmounts(stripe: Stripe, sessionId: string): Promise<
   }
 }
 
+// How many cents were refunded on a session's payment (0 if none). A Stripe
+// refund leaves the Checkout Session's payment_status as "paid" and records the
+// refund only on the underlying charge — so this is the ONLY reliable signal
+// that money was given back. Without it, a refunded deposit keeps counting as
+// paid and the balance page under-charges the family (see the ashokn@ case).
+async function getSessionRefundedCents(
+  stripe: Stripe,
+  session: Stripe.Checkout.Session,
+): Promise<number> {
+  const pi = session.payment_intent;
+  const piId = typeof pi === "string" ? pi : pi?.id;
+  if (!piId) return 0;
+  try {
+    const charges = await stripe.charges.list({ payment_intent: piId, limit: 10 });
+    return charges.data.reduce((sum, c) => sum + (c.amount_refunded ?? 0), 0);
+  } catch (err) {
+    console.warn(`[balance] could not fetch refunds for ${session.id}:`, err);
+    return 0;
+  }
+}
+
+// Non-fee (tuition) line amounts reduced by whatever was refunded. Refunds apply
+// to the whole charge, so we assume the processing-fee portion comes back first
+// and only reduce tuition once the refund exceeds the fee; any remaining refund
+// is spread across the tuition lines proportionally. A full refund zeroes them.
+async function refundAdjustedLineAmounts(
+  stripe: Stripe,
+  session: Stripe.Checkout.Session,
+  nonFeeAmounts: number[],
+): Promise<number[]> {
+  const grossTuition = nonFeeAmounts.reduce((a, b) => a + b, 0);
+  if (grossTuition <= 0) return nonFeeAmounts;
+  const refunded = await getSessionRefundedCents(stripe, session);
+  if (refunded <= 0) return nonFeeAmounts;
+  const feeCents = Math.max(0, (session.amount_total ?? grossTuition) - grossTuition);
+  const refundedTuition = Math.min(grossTuition, Math.max(0, refunded - feeCents));
+  if (refundedTuition <= 0) return nonFeeAmounts;
+  const keep = (grossTuition - refundedTuition) / grossTuition;
+  return nonFeeAmounts.map((a) => Math.round(a * keep));
+}
+
 function sessionEmail(s: Stripe.Checkout.Session): string {
   return (
     s.customer_details?.email ||
@@ -285,8 +326,17 @@ export async function computeOutstandingForEmail(
     if (typeof s.created === "number") noteSignup(s.created * 1000);
     const appliedCode = (md.appliedCode || md.promoCode || md.referralName || "").trim();
 
-    // Actual per-line amounts (excludes the processing fee), in metadata order.
-    const amounts = await getNonFeeLineAmounts(stripe, s.id);
+    // Actual per-line amounts (excludes the processing fee), in metadata order,
+    // netted against any refund so refunded money is never counted as paid.
+    const grossAmounts = await getNonFeeLineAmounts(stripe, s.id);
+    const amounts = await refundAdjustedLineAmounts(stripe, s, grossAmounts);
+
+    // Fully refunded (e.g. an accidental duplicate deposit you refunded): treat
+    // the session as if it never happened so it can't inflate the amount paid or
+    // mark a week as settled.
+    if (grossAmounts.some((a) => a > 0) && amounts.every((a) => a === 0)) {
+      continue;
+    }
 
     if (md.paymentType === "balance") {
       // A prior balance payment settles those weeks; credit what was actually paid.
