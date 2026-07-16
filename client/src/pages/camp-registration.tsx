@@ -114,6 +114,11 @@ export default function Register() {
   const WEEKS = locationData[currentLocation].weeks;
   const locationPricing = locationData[currentLocation].pricing;
 
+  // Weeks closed to new signups: shown with a "Full" badge and a waitlist note
+  // instead of payment options. Add a week id (e.g. "lex-wk2") to close it;
+  // remove it to reopen. Empty = every week is open.
+  const FULL_WEEK_IDS: string[] = [];
+
 
   useEffect(() => {
     setCart(CartManager.getCart());
@@ -893,7 +898,7 @@ export default function Register() {
                 animate="show"
               >
                 {WEEKS.map((week, index) => {
-                  const isFull = currentLocation === 'lexington' && week.id === 'lex-wk2';
+                  const isFull = FULL_WEEK_IDS.includes(week.id);
                   return (
                   <InteractiveCard key={week.id} variants={riseItem}>
                   <GlassCard
