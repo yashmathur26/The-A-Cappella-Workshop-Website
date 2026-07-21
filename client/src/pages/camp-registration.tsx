@@ -117,7 +117,7 @@ export default function Register() {
   // Weeks closed to new signups: shown with a "Full" badge and a waitlist note
   // instead of payment options. Add a week id (e.g. "lex-wk2") to close it;
   // remove it to reopen. Empty = every week is open.
-  const FULL_WEEK_IDS: string[] = [];
+  const FULL_WEEK_IDS: string[] = ['lex-wk2'];
 
 
   useEffect(() => {
