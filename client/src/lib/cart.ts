@@ -26,13 +26,21 @@ export class CartManager {
   
   // Promo codes and their discounts (percentage off)
   private static readonly PROMO_CODES = {
-    'EARLYBIRD': 0.10 // 10% discount
+    'EARLYBIRD': 0.10, // 10% discount
+    'EXTRA': 0.50, // 50% off Aug 10–14 & Aug 24–28 weeks only
   };
+
+  // Weeks eligible for the EXTRA promo (Lexington Aug 10–14 and Aug 24–28)
+  private static readonly EXTRA_WEEK_IDS = new Set(['lex-wk3', 'lex-wk5']);
 
   // Fixed-price promo codes: final price per week in dollars
   private static readonly FIXED_PRICE_PROMOS: Record<string, number> = {
     'DOLLAR': 1 // $1 per week
   };
+
+  static isExtraEligibleWeek(weekId: string): boolean {
+    return this.EXTRA_WEEK_IDS.has(weekId);
+  }
 
   static getCart(): CartItem[] {
     if (typeof window === 'undefined') return [];
@@ -193,6 +201,18 @@ export class CartManager {
       const discountedFull = fullPaymentSubtotal * (1 - discount);
       return Math.round((discountedFull + depositSubtotal) * 100) / 100;
     }
+
+    // EXTRA: 50% off only Aug 10–14 (lex-wk3) and Aug 24–28 (lex-wk5)
+    if (promoCode === 'EXTRA') {
+      const discount = this.PROMO_CODES['EXTRA'] || 0;
+      const total = cart.reduce((sum, item) => {
+        const price = this.isExtraEligibleWeek(item.weekId)
+          ? item.price * (1 - discount)
+          : item.price;
+        return sum + price;
+      }, 0);
+      return Math.round(total * 100) / 100;
+    }
     
     const subtotal = cart.reduce((total, item) => total + item.price, 0);
     const discount = this.getDiscount();
@@ -224,6 +244,11 @@ export class CartManager {
       const allFullPayments = cart.every(item => item.paymentType === 'full');
       return allFullPayments ? discount : 0;
     }
+
+    // EXTRA uses per-item pricing in getCartTotal / getDiscountAmount (not a flat rate)
+    if (promoCode === 'EXTRA') {
+      return 0;
+    }
     
     return discount || 0;
   }
@@ -251,6 +276,16 @@ export class CartManager {
       const fullPaymentSubtotal = fullPaymentItems.reduce((total, item) => total + item.price, 0);
       const discount = this.PROMO_CODES['EARLYBIRD'] || 0;
       return Math.round(fullPaymentSubtotal * discount * 100) / 100;
+    }
+
+    // EXTRA: 50% off only eligible weeks
+    if (promoCode === 'EXTRA') {
+      const cart = this.getCartItems();
+      const discount = this.PROMO_CODES['EXTRA'] || 0;
+      const eligibleSubtotal = cart
+        .filter(item => this.isExtraEligibleWeek(item.weekId))
+        .reduce((total, item) => total + item.price, 0);
+      return Math.round(eligibleSubtotal * discount * 100) / 100;
     }
     
     const subtotal = this.getCartSubtotal();

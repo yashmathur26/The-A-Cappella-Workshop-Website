@@ -205,7 +205,8 @@ export function LocationProvider({ children }: { children: ReactNode }) {
   // Load saved location on mount and apply theme
   useEffect(() => {
     const saved = localStorage.getItem('acapella-location') as Location;
-    if (saved && (saved === 'lexington' || saved === 'newton-wellesley' || saved === 'wayland')) {
+    // Public locations only — Newton remains available via /newton routes but is not restored from storage
+    if (saved === 'lexington' || saved === 'wayland') {
       setCurrentLocation(saved);
     }
   }, []);

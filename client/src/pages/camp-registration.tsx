@@ -344,12 +344,20 @@ export default function Register() {
           return;
         }
       }
+
+      const appliedCode = CartManager.getPromoCode();
       setPromoError("");
-      setPromoCode(CartManager.getPromoCode());
+      setPromoCode(appliedCode);
       setCart(CartManager.getCart());
+      const saved = CartManager.getDiscountAmount();
       toast({
         title: "Promo code applied!",
-        description: `You saved $${CartManager.getDiscountAmount()} with code ${promoCode.toUpperCase()}`,
+        description:
+          appliedCode === 'EXTRA'
+            ? saved > 0
+              ? `EXTRA: 50% off Aug 10–14 & Aug 24–28 — you saved $${saved}`
+              : "EXTRA applied — add the Aug 10–14 or Aug 24–28 week to get 50% off"
+            : `You saved $${saved} with code ${appliedCode}`,
       });
       return;
     }
@@ -607,6 +615,14 @@ export default function Register() {
           return {
             ...item,
             price: discountedPrice,
+            weekLabel: item.label,
+          };
+        }
+        // EXTRA: 50% off Aug 10–14 and Aug 24–28 weeks only
+        if (promoCode === 'EXTRA' && CartManager.isExtraEligibleWeek(item.weekId)) {
+          return {
+            ...item,
+            price: item.price * 0.5,
             weekLabel: item.label,
           };
         }

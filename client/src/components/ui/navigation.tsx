@@ -123,11 +123,11 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link 
-                    href="/newton"
-                    className={`cursor-pointer hover:bg-gray-800 flex items-center ${currentLocation === 'newton-wellesley' ? 'bg-emerald-900/50' : ''}`}
+                    href="/wayland"
+                    className={`cursor-pointer hover:bg-gray-800 flex items-center ${currentLocation === 'wayland' ? 'bg-purple-900/50' : ''}`}
                   >
                     <MapPin className="w-4 h-4 mr-2" />
-                    Newton
+                    Wayland
                   </Link>
                 </DropdownMenuItem>
               </DropdownMenuContent>

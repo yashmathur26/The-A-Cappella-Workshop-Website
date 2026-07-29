@@ -78,12 +78,12 @@ export default function Home() {
                     Lexington
                   </Link>
                 )}
-                {currentLocation !== 'newton-wellesley' && (
+                {currentLocation !== 'wayland' && (
                   <Link 
-                    href="/newton"
-                    className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white px-6 py-3 rounded-full font-medium transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-emerald-500/25 text-center flex items-center justify-center"
+                    href="/wayland"
+                    className="bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 text-white px-6 py-3 rounded-full font-medium transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25 text-center flex items-center justify-center"
                   >
-                    Newton
+                    Wayland
                   </Link>
                 )}
               </div>
