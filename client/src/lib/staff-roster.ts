@@ -66,6 +66,7 @@ const FIRST: Record<string, string> = {
 // a photo, names.json (built from their filename) takes precedence.
 const MANUAL_NAMES: Record<string, string> = {
   shriya: "Shriya Jha",
+  krish: "Krish Mathur",
   lucas: "Lucas Waller",
   ella: "Ella Harrower",
   maggie: "Maggie Radcliffe",
