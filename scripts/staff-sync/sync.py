@@ -80,7 +80,11 @@ ALIASES = {
 
 # Optional manual crop overrides for edge cases the face detector handles poorly.
 # key -> (face_center_x_frac, face_center_y_frac, square_side_frac_of_min_dim)
-OVERRIDES = {}
+OVERRIDES = {
+    # Anaya's only photo is a distant, mid-song shot with a mic stand across her
+    # face — face-detection frames it badly, so pin the crop manually.
+    "anaya": (0.42, 0.18, 0.36),
+}
 
 
 def log(*a):
