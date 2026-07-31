@@ -20,3 +20,4 @@ scripts/staff-sync/.venv/
 scripts/staff-sync/staging/
 scripts/staff-sync/sync.log
 scripts/staff-sync/state.json
+scripts/staff-sync/__pycache__/
