@@ -67,59 +67,61 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
 
   return (
     <nav className="sticky top-0 z-50 glass-card border-b border-white/10">
-      <div className="max-w-7xl mx-auto px-4 py-3">
-        <div className="flex items-center justify-between">
-          {/* Logo and Brand */}
-          <Link href={getHomeUrl()} className="flex items-center space-x-3 flex-shrink-0">
-            <img 
-              src={shopLogo} 
-              alt="The A Cappella Workshop Logo" 
-              className="w-10 h-10 rounded-full object-cover logo-no-white"
+      <div className="max-w-7xl mx-auto px-5 lg:px-8">
+        {/* Balanced 3-zone bar: logo left · centered links · actions right.
+            Fixed ~64px height with cohesive (not stretched) link spacing. */}
+        <div className="flex md:grid md:grid-cols-[1fr_auto_1fr] items-center justify-between h-16 gap-4">
+          {/* Logo (left) */}
+          <Link href={getHomeUrl()} className="flex items-center gap-3 justify-self-start min-w-0">
+            <img
+              src={shopLogo}
+              alt="The A Cappella Workshop Logo"
+              className="w-9 h-9 rounded-full object-cover logo-no-white shrink-0"
             />
-            <h1 className="text-xl font-bold text-white brand-text whitespace-nowrap">The A Cappella Workshop</h1>
+            <span className="text-base lg:text-lg font-bold text-white brand-text whitespace-nowrap">The A Cappella Workshop</span>
           </Link>
-          
-          {/* Desktop nav + actions spread evenly across the remaining width so
-              there are no weird gaps (logo left, everything distributed after). */}
-          <div className="hidden md:flex items-center justify-between flex-1 ml-8 lg:ml-14">
+
+          {/* Primary nav (centered) */}
+          <div className="hidden md:flex items-center gap-6 lg:gap-9 justify-self-center">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`nav-link text-white/80 hover:text-white transition-colors relative ${
+                className={`nav-link text-sm text-white/75 hover:text-white transition-colors relative ${
                   isActive(link.href) ? 'active' : ''
                 }`}
               >
                 {link.label}
               </Link>
             ))}
-
-            <div className="flex items-center gap-4">
-              <Link
-                href={getRegistrationUrl()}
-                className="btn-gradient px-5 py-2 rounded-full text-white font-medium hover:text-white text-sm whitespace-nowrap"
-              >
-                Register Now
-              </Link>
-
-              <Link href={getRegistrationUrl()} className="relative">
-                <ShoppingCart className="text-white/80 hover:text-white cursor-pointer" size={18} />
-                {currentCartCount > 0 && (
-                  <span className="cart-badge absolute -top-2 -right-2 text-xs text-white rounded-full w-4 h-4 flex items-center justify-center">
-                    {currentCartCount}
-                  </span>
-                )}
-              </Link>
-            </div>
           </div>
-          
-          {/* Mobile Menu Button */}
-          <button
-            className="md:hidden text-white"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-          >
-            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
+
+          {/* Actions (right) */}
+          <div className="flex items-center gap-4 justify-self-end">
+            <Link
+              href={getRegistrationUrl()}
+              className="hidden md:inline-flex btn-gradient px-5 py-2 rounded-full text-white font-medium hover:text-white text-sm whitespace-nowrap"
+            >
+              Register Now
+            </Link>
+
+            <Link href={getRegistrationUrl()} className="hidden md:block relative">
+              <ShoppingCart className="text-white/80 hover:text-white cursor-pointer" size={18} />
+              {currentCartCount > 0 && (
+                <span className="cart-badge absolute -top-2 -right-2 text-xs text-white rounded-full w-4 h-4 flex items-center justify-center">
+                  {currentCartCount}
+                </span>
+              )}
+            </Link>
+
+            {/* Mobile menu button */}
+            <button
+              className="md:hidden text-white"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+            >
+              {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
         </div>
 
         {/* Mobile Menu */}
