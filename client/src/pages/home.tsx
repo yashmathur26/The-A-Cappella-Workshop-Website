@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import type { CSSProperties } from 'react';
 import { Link } from 'wouter';
 import { Phone, Mail, MapPin, ArrowRight, ArrowUpRight } from 'lucide-react';
 import { GlassCard } from '@/components/ui/glass-card';
@@ -16,16 +17,15 @@ import moment2 from "@gallery/home/m2.jpg";
 import moment3 from "@gallery/home/m3.jpg";
 import moment4 from "@gallery/home/m4.jpg";
 
-// A few real teacher/TA faces for the staff teaser (unique, photo only).
+// stagger index helper for CSS var
+const s = (i: number): CSSProperties => ({ ['--i' as string]: i } as CSSProperties);
+
 function teaserFaces() {
   const seen = new Set<string>();
   const out: { key: string; name: string; photo?: string }[] = [];
   for (const wk of ROSTER) {
     for (const p of [...wk.teachers, ...wk.tas]) {
-      if (p.photo && !seen.has(p.key)) {
-        seen.add(p.key);
-        out.push(p);
-      }
+      if (p.photo && !seen.has(p.key)) { seen.add(p.key); out.push(p); }
     }
   }
   return out;
@@ -46,7 +46,7 @@ export default function Home() {
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((e) => { if (e.isIntersecting) e.target.classList.add('visible'); });
     }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
-    document.querySelectorAll('.reveal-in').forEach((el) => observer.observe(el));
+    document.querySelectorAll('.reveal-in, .reveal-stagger').forEach((el) => observer.observe(el));
     return () => observer.disconnect();
   }, [currentLocation]);
 
@@ -67,14 +67,21 @@ export default function Home() {
       <section className="relative overflow-hidden">
         <div className="absolute inset-0">
           <img src={heroImg} alt="A Cappella Workshop campers performing" className="w-full h-full object-cover object-center" />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0b1220]/80 via-[#0b1220]/78 to-[#0b1220]" />
-          <div className="absolute inset-0 bg-gradient-to-tr from-indigo-custom/25 via-transparent to-teal-custom/20" />
+          {/* strong legibility scrim (inline = bulletproof); fades into page bg */}
+          <div
+            className="absolute inset-0"
+            style={{ background: 'linear-gradient(180deg, rgba(7,12,22,0.72) 0%, rgba(7,12,22,0.82) 34%, rgba(9,15,32,0.93) 76%, #090f20 100%)' }}
+          />
+          <div
+            className="absolute inset-0"
+            style={{ background: 'radial-gradient(85% 65% at 50% 40%, rgba(9,16,38,0.45), transparent 72%)' }}
+          />
         </div>
 
         <div className="relative z-10 max-w-4xl mx-auto px-6 pt-20 pb-16 lg:pt-28 lg:pb-24 text-center">
-          <div className="reveal-in">
-            <Eyebrow>Summer 2026 · Lexington, Massachusetts</Eyebrow>
-            <h1 className="mt-5 text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.02] text-white text-balance">
+          <div className="reveal-stagger">
+            <div style={s(0)}><Eyebrow>Summer 2026 · Lexington, Massachusetts</Eyebrow></div>
+            <h1 style={s(1)} className="mt-5 text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.02] text-white text-balance text-shadow-hero">
               {isLex ? (
                 <><span className="gradient-text">Lexington</span> A&nbsp;Cappella Workshop</>
               ) : currentLocation === 'newton-wellesley' ? (
@@ -83,18 +90,15 @@ export default function Home() {
                 <><span className="bg-gradient-to-r from-purple-300 to-violet-300 bg-clip-text text-transparent">Wayland</span> A&nbsp;Cappella Workshop</>
               )}
             </h1>
-            <p className="mt-6 text-lg lg:text-xl text-white/80 max-w-2xl mx-auto text-pretty">
+            <p style={s(2)} className="mt-6 text-lg lg:text-xl text-white/85 max-w-2xl mx-auto text-pretty text-shadow-hero">
               {locationData[currentLocation].heroSubtitle}
             </p>
-            <div className="mt-9 flex flex-col sm:flex-row gap-3 justify-center items-center">
+            <div style={s(3)} className="mt-9 flex flex-col sm:flex-row gap-3 justify-center items-center">
               <Link href={getRegistrationUrl()} className="w-full sm:w-auto flex justify-center">
                 <GradientButton size="lg" variant={currentLocation === 'wayland' ? 'purple' : 'primary'}>Register Now</GradientButton>
               </Link>
               {isLex && (
-                <Link
-                  href="/staff"
-                  className="group w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full font-medium text-white/90 border border-white/15 hover:bg-white/5 transition-colors"
-                >
+                <Link href="/staff" className="group w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full font-medium text-white border border-white/20 bg-white/5 hover:bg-white/10 transition-colors">
                   Meet the teachers
                   <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" />
                 </Link>
@@ -102,12 +106,11 @@ export default function Home() {
             </div>
           </div>
 
-          {/* stat row */}
-          <div className="mt-16 grid grid-cols-2 sm:grid-cols-4 gap-px rounded-2xl overflow-hidden ring-1 ring-inset ring-white/10 bg-white/5 reveal-in">
-            {stats.map((s) => (
-              <div key={s.label} className="bg-[#0b1220]/40 px-4 py-5 text-center backdrop-blur-sm">
-                <p className="text-xl lg:text-2xl font-bold text-white tracking-tight">{s.value}</p>
-                <p className="mt-1 text-[11px] uppercase tracking-wider text-white/50">{s.label}</p>
+          <div className="mt-16 grid grid-cols-2 sm:grid-cols-4 gap-px rounded-2xl overflow-hidden ring-1 ring-inset ring-white/10 reveal-stagger">
+            {stats.map((st, i) => (
+              <div key={st.label} style={s(i)} className="bg-white/[0.05] backdrop-blur-md px-4 py-5 text-center">
+                <p className="text-xl lg:text-2xl font-bold text-white tracking-tight">{st.value}</p>
+                <p className="mt-1 text-[11px] uppercase tracking-wider text-white/60">{st.label}</p>
               </div>
             ))}
           </div>
@@ -134,8 +137,8 @@ export default function Home() {
           </div>
           <div className="reveal-in order-1 lg:order-2">
             <div className="relative">
-              <img src={aboutImg} alt="Students rehearsing at the workshop" className="w-full aspect-[4/3] object-cover rounded-3xl ring-1 ring-inset ring-white/10" />
-              <div className="absolute -bottom-4 -left-4 hidden sm:block rounded-2xl px-5 py-4 glass-card">
+              <img src={aboutImg} alt="Students rehearsing at the workshop" className="blend-edges w-full aspect-[4/3] object-cover" />
+              <div className="absolute bottom-2 left-2 sm:bottom-4 sm:left-4 rounded-2xl px-5 py-4 glass-card">
                 <p className="text-2xl font-bold gradient-text leading-none">Summer 2026</p>
                 <p className="mt-1 text-xs text-white/60">Registration open</p>
               </div>
@@ -144,7 +147,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ============================= MOMENTS (Lexington photos) ============================= */}
+      {/* ============================= MOMENTS ============================= */}
       {isLex && (
         <section className="py-8 lg:py-12">
           <div className="max-w-6xl mx-auto px-6">
@@ -157,11 +160,11 @@ export default function Home() {
                 View gallery <ArrowUpRight size={16} />
               </Link>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 auto-rows-[150px] sm:auto-rows-[200px] reveal-in">
-              <img src={moment1} alt="Camp performance" loading="lazy" className="col-span-2 row-span-2 w-full h-full object-cover rounded-2xl ring-1 ring-inset ring-white/10" />
-              <img src={moment2} alt="Students singing" loading="lazy" className="w-full h-full object-cover rounded-2xl ring-1 ring-inset ring-white/10" />
-              <img src={moment3} alt="Group rehearsal" loading="lazy" className="w-full h-full object-cover rounded-2xl ring-1 ring-inset ring-white/10" />
-              <img src={moment4} alt="Workshop discussion" loading="lazy" className="col-span-2 w-full h-full object-cover rounded-2xl ring-1 ring-inset ring-white/10" />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-5 auto-rows-[150px] sm:auto-rows-[200px] reveal-stagger">
+              <img style={s(0)} src={moment1} alt="Camp performance" loading="lazy" className="blend-edges lift col-span-2 row-span-2 w-full h-full object-cover" />
+              <img style={s(1)} src={moment2} alt="Students singing" loading="lazy" className="blend-edges lift w-full h-full object-cover" />
+              <img style={s(2)} src={moment3} alt="Group rehearsal" loading="lazy" className="blend-edges lift w-full h-full object-cover" />
+              <img style={s(3)} src={moment4} alt="Workshop discussion" loading="lazy" className="blend-edges lift col-span-2 w-full h-full object-cover" />
             </div>
           </div>
         </section>
@@ -175,9 +178,9 @@ export default function Home() {
             <h2 className={`mt-3 text-3xl lg:text-4xl font-bold ${accentTitle}`}>Weeks Running</h2>
             <p className="mt-3 text-white/60">Each session runs Monday–Friday, 9:00 AM – 4:00 PM.</p>
           </div>
-          <div className="space-y-3 reveal-in">
+          <div className="space-y-3 reveal-stagger">
             {weeks.map((week, i) => (
-              <div key={week.id} className="group flex items-center gap-5 p-5 rounded-2xl staff-card transition-colors hover:bg-white/[0.06]">
+              <div key={week.id} style={s(i)} className="group flex items-center gap-5 p-5 rounded-2xl staff-card lift">
                 <div className="shrink-0 w-12 h-12 rounded-xl flex items-center justify-center bg-sky-custom/10 border border-sky-custom/20 text-sky-custom font-bold tabular-nums">
                   {i + 1}
                 </div>
@@ -189,10 +192,7 @@ export default function Home() {
                     </p>
                   )}
                 </div>
-                <Link
-                  href={getRegistrationUrl()}
-                  className="shrink-0 inline-flex items-center gap-1.5 text-sm font-medium text-sky-custom opacity-0 group-hover:opacity-100 transition-opacity"
-                >
+                <Link href={getRegistrationUrl()} className="shrink-0 inline-flex items-center gap-1.5 text-sm font-medium text-sky-custom opacity-0 group-hover:opacity-100 transition-opacity">
                   Register <ArrowRight size={14} />
                 </Link>
               </div>
@@ -201,7 +201,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ============================= TEACHERS TEASER (Lexington) ============================= */}
+      {/* ============================= TEACHERS TEASER ============================= */}
       {isLex && faces.length > 0 && (
         <section className="py-8 lg:py-12">
           <div className="max-w-4xl mx-auto px-6">
@@ -213,26 +213,17 @@ export default function Home() {
               <div className="mt-7 flex justify-center">
                 <div className="flex -space-x-3">
                   {faces.slice(0, 7).map((p) => (
-                    <img
-                      key={p.key}
-                      src={p.photo}
-                      alt={p.name}
-                      loading="lazy"
-                      className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover ring-2 ring-[#12233f]"
-                    />
+                    <img key={p.key} src={p.photo} alt={p.name} loading="lazy" className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover ring-2 ring-[#0d1830]" />
                   ))}
                   {extraFaces > 0 && (
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full ring-2 ring-[#12233f] bg-sky-custom/15 text-sky-custom flex items-center justify-center text-sm font-semibold">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full ring-2 ring-[#0d1830] bg-sky-custom/15 text-sky-custom flex items-center justify-center text-sm font-semibold">
                       +{extraFaces}
                     </div>
                   )}
                 </div>
               </div>
               <div className="mt-8">
-                <Link
-                  href="/staff"
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-medium text-white border border-white/15 hover:bg-white/5 transition-colors"
-                >
+                <Link href="/staff" className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-medium text-white border border-white/15 hover:bg-white/5 transition-colors">
                   Meet all teachers &amp; TAs <ArrowRight size={16} />
                 </Link>
               </div>
@@ -329,10 +320,10 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-6">
           <div className="relative overflow-hidden rounded-3xl reveal-in">
             <img src={ctaImg} alt="" aria-hidden className="absolute inset-0 w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#0b1220]/92 via-[#0b1220]/85 to-[#0f3b47]/80" />
+            <div className="absolute inset-0" style={{ background: 'linear-gradient(100deg, rgba(9,15,32,0.94) 0%, rgba(9,15,32,0.86) 45%, rgba(12,26,54,0.72) 100%)' }} />
             <div className="relative z-10 px-8 py-16 lg:px-16 lg:py-20 text-center">
-              <h2 className="text-3xl lg:text-5xl font-bold tracking-tight text-white text-balance">Ready to sing?</h2>
-              <p className="mt-4 text-lg text-white/80 max-w-xl mx-auto text-pretty">Join us for an unforgettable week of music, friendship, and growth.</p>
+              <h2 className="text-3xl lg:text-5xl font-bold tracking-tight text-white text-balance text-shadow-hero">Ready to sing?</h2>
+              <p className="mt-4 text-lg text-white/85 max-w-xl mx-auto text-pretty text-shadow-hero">Join us for an unforgettable week of music, friendship, and growth.</p>
               <div className="mt-8 flex justify-center">
                 <Link href={getRegistrationUrl()} className="w-full sm:w-auto flex justify-center">
                   <GradientButton size="lg" variant={currentLocation === 'wayland' ? 'purple' : 'primary'}>Register Now</GradientButton>

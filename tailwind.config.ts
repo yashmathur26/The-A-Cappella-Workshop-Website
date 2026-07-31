@@ -61,6 +61,14 @@ export default {
           border: "var(--sidebar-border)",
           ring: "var(--sidebar-ring)",
         },
+        // Brand accents (were used site-wide but never registered — so their
+        // base utilities silently dropped in production). Inline HSL + the alpha
+        // placeholder so text-/bg-/border-/from-*-custom AND their /opacity
+        // variants all generate. Values mirror the CSS vars in index.css.
+        navy: "hsl(217 33% 8% / <alpha-value>)",
+        "indigo-custom": "hsl(227 75% 51% / <alpha-value>)",
+        "sky-custom": "hsl(199 89% 48% / <alpha-value>)",
+        "teal-custom": "hsl(174 72% 56% / <alpha-value>)",
       },
       fontFamily: {
         sans: ["var(--font-sans)"],
