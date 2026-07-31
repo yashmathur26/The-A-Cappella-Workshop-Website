@@ -79,9 +79,9 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
             <h1 className="text-xl font-bold text-white brand-text whitespace-nowrap">The A Cappella Workshop</h1>
           </Link>
           
-          {/* Desktop nav + actions grouped on the right (no center gap where the
-              location switcher used to be) */}
-          <div className="hidden md:flex items-center gap-7 lg:gap-8">
+          {/* Desktop nav + actions spread evenly across the remaining width so
+              there are no weird gaps (logo left, everything distributed after). */}
+          <div className="hidden md:flex items-center justify-between flex-1 ml-8 lg:ml-14">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
@@ -94,7 +94,7 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
               </Link>
             ))}
 
-            <div className="flex items-center gap-4 pl-1">
+            <div className="flex items-center gap-4">
               <Link
                 href={getRegistrationUrl()}
                 className="btn-gradient px-5 py-2 rounded-full text-white font-medium hover:text-white text-sm whitespace-nowrap"

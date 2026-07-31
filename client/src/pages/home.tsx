@@ -81,7 +81,7 @@ export default function Home() {
         <div className="relative z-10 max-w-4xl mx-auto px-6 pt-20 pb-16 lg:pt-28 lg:pb-24 text-center">
           <div className="reveal-stagger">
             <div style={s(0)}><Eyebrow>Summer 2026 · Lexington, Massachusetts</Eyebrow></div>
-            <h1 style={s(1)} className="mt-5 text-[2.75rem] leading-[1.08] sm:text-6xl sm:leading-[1.04] lg:text-7xl font-bold tracking-tight text-white text-balance drop-legible">
+            <h1 style={s(1)} className="mt-5 text-[2.75rem] leading-[1.18] sm:text-6xl sm:leading-[1.15] lg:text-7xl lg:leading-[1.12] font-bold tracking-tight text-white text-balance drop-legible">
               {isLex ? (
                 <><span className="gradient-text">Lexington</span> A&nbsp;Cappella Workshop</>
               ) : currentLocation === 'newton-wellesley' ? (
