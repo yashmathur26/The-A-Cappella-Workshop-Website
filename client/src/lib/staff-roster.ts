@@ -61,11 +61,22 @@ const FIRST: Record<string, string> = {
   sofia: "Sofia", elliot: "Elliot", rowan: "Rowan",
 };
 
+// Full names supplied manually for people who haven't uploaded a photo (so
+// names.json has no entry yet). From the staff roster doc. Once someone uploads
+// a photo, names.json (built from their filename) takes precedence.
+const MANUAL_NAMES: Record<string, string> = {
+  shriya: "Shriya Jha",
+  lucas: "Lucas Waller",
+  ella: "Ella Harrower",
+  maggie: "Maggie Radcliffe",
+  izzi: "Izzi Schuman-Olivier",
+};
+
 /** Build a person from their key, resolving current name + photo. */
 function p(key: string): StaffMember {
   return {
     key,
-    name: FULL_NAMES[key] ?? FIRST[key] ?? key,
+    name: FULL_NAMES[key] ?? MANUAL_NAMES[key] ?? FIRST[key] ?? key,
     photo: PHOTOS[key],
   };
 }
