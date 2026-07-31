@@ -79,8 +79,9 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
             <h1 className="text-xl font-bold text-white brand-text whitespace-nowrap">The A Cappella Workshop</h1>
           </Link>
           
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8 flex-1 justify-center">
+          {/* Desktop nav + actions grouped on the right (no center gap where the
+              location switcher used to be) */}
+          <div className="hidden md:flex items-center gap-7 lg:gap-8">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
@@ -92,25 +93,24 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
                 {link.label}
               </Link>
             ))}
-          </div>
 
-          {/* Right Side Actions */}
-          <div className="hidden md:flex items-center space-x-3 flex-shrink-0">
-            <Link
-              href={getRegistrationUrl()}
-              className="btn-gradient px-4 py-2 rounded-full text-white font-medium hover:text-white text-sm whitespace-nowrap"
-            >
-              Register Now
-            </Link>
-            
-            <Link href={getRegistrationUrl()} className="relative">
-              <ShoppingCart className="text-white/80 hover:text-white cursor-pointer" size={18} />
-              {currentCartCount > 0 && (
-                <span className="cart-badge absolute -top-2 -right-2 text-xs text-white rounded-full w-4 h-4 flex items-center justify-center">
-                  {currentCartCount}
-                </span>
-              )}
-            </Link>
+            <div className="flex items-center gap-4 pl-1">
+              <Link
+                href={getRegistrationUrl()}
+                className="btn-gradient px-5 py-2 rounded-full text-white font-medium hover:text-white text-sm whitespace-nowrap"
+              >
+                Register Now
+              </Link>
+
+              <Link href={getRegistrationUrl()} className="relative">
+                <ShoppingCart className="text-white/80 hover:text-white cursor-pointer" size={18} />
+                {currentCartCount > 0 && (
+                  <span className="cart-badge absolute -top-2 -right-2 text-xs text-white rounded-full w-4 h-4 flex items-center justify-center">
+                    {currentCartCount}
+                  </span>
+                )}
+              </Link>
+            </div>
           </div>
           
           {/* Mobile Menu Button */}

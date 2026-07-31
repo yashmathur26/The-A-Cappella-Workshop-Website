@@ -81,7 +81,7 @@ export default function Home() {
         <div className="relative z-10 max-w-4xl mx-auto px-6 pt-20 pb-16 lg:pt-28 lg:pb-24 text-center">
           <div className="reveal-stagger">
             <div style={s(0)}><Eyebrow>Summer 2026 · Lexington, Massachusetts</Eyebrow></div>
-            <h1 style={s(1)} className="mt-5 text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.02] text-white text-balance text-shadow-hero">
+            <h1 style={s(1)} className="mt-5 text-[2.75rem] leading-[1.08] sm:text-6xl sm:leading-[1.04] lg:text-7xl font-bold tracking-tight text-white text-balance drop-legible">
               {isLex ? (
                 <><span className="gradient-text">Lexington</span> A&nbsp;Cappella Workshop</>
               ) : currentLocation === 'newton-wellesley' ? (
@@ -93,12 +93,18 @@ export default function Home() {
             <p style={s(2)} className="mt-6 text-lg lg:text-xl text-white/85 max-w-2xl mx-auto text-pretty text-shadow-hero">
               {locationData[currentLocation].heroSubtitle}
             </p>
-            <div style={s(3)} className="mt-9 flex flex-col sm:flex-row gap-3 justify-center items-center">
+            <div style={s(3)} className="mt-10 flex flex-col sm:flex-row gap-4 sm:gap-3 justify-center items-center">
               <Link href={getRegistrationUrl()} className="w-full sm:w-auto flex justify-center">
-                <GradientButton size="lg" variant={currentLocation === 'wayland' ? 'purple' : 'primary'}>Register Now</GradientButton>
+                <GradientButton
+                  size="lg"
+                  variant={currentLocation === 'wayland' ? 'purple' : 'primary'}
+                  className="w-full sm:w-auto py-5 text-xl sm:py-4 sm:text-lg shadow-xl shadow-sky-500/25"
+                >
+                  Register Now
+                </GradientButton>
               </Link>
               {isLex && (
-                <Link href="/staff" className="group w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full font-medium text-white border border-white/20 bg-white/5 hover:bg-white/10 transition-colors">
+                <Link href="/staff" className="hidden sm:inline-flex group items-center justify-center gap-2 px-6 py-3 rounded-full font-medium text-white border border-white/20 bg-white/5 hover:bg-white/10 transition-colors">
                   Meet the teachers
                   <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" />
                 </Link>
@@ -106,7 +112,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="mt-16 grid grid-cols-2 sm:grid-cols-4 gap-px rounded-2xl overflow-hidden ring-1 ring-inset ring-white/10 reveal-stagger">
+          <div className="mt-14 hidden sm:grid grid-cols-2 sm:grid-cols-4 gap-px rounded-2xl overflow-hidden ring-1 ring-inset ring-white/10 reveal-stagger">
             {stats.map((st, i) => (
               <div key={st.label} style={s(i)} className="bg-white/[0.05] backdrop-blur-md px-4 py-5 text-center">
                 <p className="text-xl lg:text-2xl font-bold text-white tracking-tight">{st.value}</p>
@@ -180,7 +186,12 @@ export default function Home() {
           </div>
           <div className="space-y-3 reveal-stagger">
             {weeks.map((week, i) => (
-              <div key={week.id} style={s(i)} className="group flex items-center gap-5 p-5 rounded-2xl staff-card lift">
+              <Link
+                key={week.id}
+                href={`${getRegistrationUrl()}#week-${week.id}`}
+                style={s(i)}
+                className="group flex items-center gap-5 p-5 rounded-2xl staff-card lift cursor-pointer"
+              >
                 <div className="shrink-0 w-12 h-12 rounded-xl flex items-center justify-center bg-sky-custom/10 border border-sky-custom/20 text-sky-custom font-bold tabular-nums">
                   {i + 1}
                 </div>
@@ -192,10 +203,10 @@ export default function Home() {
                     </p>
                   )}
                 </div>
-                <Link href={getRegistrationUrl()} className="shrink-0 inline-flex items-center gap-1.5 text-sm font-medium text-sky-custom opacity-0 group-hover:opacity-100 transition-opacity">
+                <span className="shrink-0 inline-flex items-center gap-1.5 text-sm font-medium text-sky-custom transition-transform group-hover:translate-x-0.5">
                   Register <ArrowRight size={14} />
-                </Link>
-              </div>
+                </span>
+              </Link>
             ))}
           </div>
         </div>

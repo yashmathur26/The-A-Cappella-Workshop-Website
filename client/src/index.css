@@ -183,18 +183,25 @@ body.location-wayland {
       inset 0 1px 0 rgba(255, 255, 255, 0.1);
   }
 
-  /* Gradient text — static, confident sky→teal wash (no perpetual shimmer). */
+  /* Gradient text — bright, confident sky→cyan wash (static, no shimmer). */
   .gradient-text {
     background: linear-gradient(
       100deg,
-      #7cc4fb,
-      #22d3ee 45%,
-      #2dd4bf 100%
+      #93d6ff,
+      #38bdf8 42%,
+      #2fe3d3 100%
     );
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
     padding-bottom: 0.1em;
+  }
+
+  /* Legibility for gradient/white headings over photos. Uses drop-shadow (a
+     filter) rather than text-shadow so it never bleeds through gradient-clipped
+     text and darkens it. */
+  .drop-legible {
+    filter: drop-shadow(0 2px 12px rgba(0, 0, 0, 0.55));
   }
 
   /* Purple gradient text for Wayland - light/whitish purple */
@@ -559,14 +566,14 @@ body.location-wayland {
   border-color: rgba(167, 139, 250, 0.3) !important;
 }
 
-  /* Scroll reveal — entrance only, crafted ease-out (anime.js motion principles:
-     purposeful, <700ms, custom ease-out, never a perpetual loop). */
+  /* Scroll reveal — springy entrance that echoes the checkout's framer-motion
+     spring (slight overshoot on the way in). Entrance only, never a loop. */
   .reveal-in {
     opacity: 0;
-    transform: translateY(26px);
+    transform: translateY(32px) scale(0.985);
     transition:
-      opacity 0.65s cubic-bezier(0.23, 1, 0.32, 1),
-      transform 0.65s cubic-bezier(0.23, 1, 0.32, 1);
+      opacity 0.6s cubic-bezier(0.23, 1, 0.32, 1),
+      transform 0.7s cubic-bezier(0.34, 1.35, 0.5, 1);
   }
 
   .reveal-in.visible {
@@ -577,15 +584,25 @@ body.location-wayland {
   /* Stagger children of a revealed container (set --i via inline style). */
   .reveal-stagger > * {
     opacity: 0;
-    transform: translateY(22px);
+    transform: translateY(28px) scale(0.985);
     transition:
-      opacity 0.6s cubic-bezier(0.23, 1, 0.32, 1),
-      transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
-    transition-delay: calc(var(--i, 0) * 70ms);
+      opacity 0.55s cubic-bezier(0.23, 1, 0.32, 1),
+      transform 0.65s cubic-bezier(0.34, 1.35, 0.5, 1);
+    transition-delay: calc(var(--i, 0) * 80ms);
   }
   .reveal-stagger.visible > * {
     opacity: 1;
     transform: none;
+  }
+
+  /* Brief highlight pulse when you jump to a specific week from the home page. */
+  .week-flash {
+    border-radius: 1.25rem;
+    animation: weekFlash 1.3s ease-out 1;
+  }
+  @keyframes weekFlash {
+    0% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.55); }
+    100% { box-shadow: 0 0 0 16px rgba(56, 189, 248, 0); }
   }
 
   /* Feather image edges so photos melt into the background instead of sitting

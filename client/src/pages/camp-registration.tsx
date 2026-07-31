@@ -115,6 +115,22 @@ export default function Register() {
   const WEEKS = locationData[currentLocation].weeks;
   const locationPricing = locationData[currentLocation].pricing;
 
+  // Deep-link: /camp-registration#week-<id> (from the home "Weeks Running"
+  // list) scrolls to and briefly highlights that week's card.
+  useEffect(() => {
+    const m = window.location.hash.match(/^#week-(.+)$/);
+    if (!m) return;
+    const id = `week-${m[1]}`;
+    const t = setTimeout(() => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('week-flash');
+      setTimeout(() => el.classList.remove('week-flash'), 1400);
+    }, 350);
+    return () => clearTimeout(t);
+  }, []);
+
   // Weeks closed to new signups: shown with a "Full" badge and a waitlist note
   // instead of payment options. Add a week id (e.g. "lex-wk2") to close it;
   // remove it to reopen. Empty = every week is open.
@@ -918,7 +934,8 @@ export default function Register() {
                 {WEEKS.map((week, index) => {
                   const isFull = FULL_WEEK_IDS.includes(week.id);
                   return (
-                  <InteractiveCard key={week.id} variants={riseItem}>
+                  <div key={week.id} id={`week-${week.id}`} className="scroll-mt-28">
+                  <InteractiveCard variants={riseItem}>
                   <GlassCard
                     className={`p-6 week-card ${CartManager.isInCart(week.id) ? 'selected' : ''}`}
                   >
@@ -1008,6 +1025,7 @@ export default function Register() {
                     )}
                   </GlassCard>
                   </InteractiveCard>
+                  </div>
                   );
                 })}
               </motion.div>
