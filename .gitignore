@@ -12,3 +12,11 @@ cloudflared
 # Local secrets (Replit Secrets do not download with the repo)
 .env
 .env.*
+
+# Staff photo sync — machine-local venv, downloads, logs, run state.
+# (The processed photos in "Website Pictures Lexington/staff" and names.json
+#  ARE committed; only these local artifacts are ignored.)
+scripts/staff-sync/.venv/
+scripts/staff-sync/staging/
+scripts/staff-sync/sync.log
+scripts/staff-sync/state.json

@@ -14,6 +14,7 @@ import About from "@/pages/about";
 import FAQ from "@/pages/faq";
 import Gallery from "@/pages/gallery";
 import CampRegistration from "@/pages/camp-registration";
+import Staff from "@/pages/staff";
 import PayBalance from "@/pages/pay-balance";
 import Status from "@/pages/status";
 import NotFound from "@/pages/not-found";
@@ -93,6 +94,8 @@ function Router() {
         <Route path="/about" component={About} />
         <Route path="/faq" component={FAQ} />
         <Route path="/gallery" component={Gallery} />
+        <Route path="/staff" component={Staff} />
+        <Route path="/teachers" component={Staff} />
         <Route path="/camp-registration" component={CampRegistration} />
         <Route path="/register" component={CampRegistration} />
         <Route path="/pay-balance" component={PayBalance} />

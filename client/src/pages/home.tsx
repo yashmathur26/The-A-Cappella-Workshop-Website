@@ -70,20 +70,14 @@ export default function Home() {
                 <GradientButton size="lg" variant={currentLocation === 'wayland' ? 'purple' : 'primary'}>Register Now</GradientButton>
               </Link>
               <div className="flex gap-3 flex-wrap justify-center items-center w-full sm:w-auto">
+                {/* Cross-location links: only relevant on the (now-dormant)
+                    non-Lexington pages, which are no longer linked publicly. */}
                 {currentLocation !== 'lexington' && (
-                  <Link 
+                  <Link
                     href="/"
                     className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-3 rounded-full font-medium transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-blue-500/25 text-center flex items-center justify-center"
                   >
                     Lexington
-                  </Link>
-                )}
-                {currentLocation !== 'wayland' && (
-                  <Link 
-                    href="/wayland"
-                    className="bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 text-white px-6 py-3 rounded-full font-medium transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-purple-500/25 text-center flex items-center justify-center"
-                  >
-                    Wayland
                   </Link>
                 )}
               </div>

@@ -35,7 +35,7 @@
   --teal-custom: hsl(174, 72%, 56%);
   
   
-  --font-sans: system-ui, -apple-system, 'Segoe UI', 'Roboto', 'Ubuntu', sans-serif;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', 'Roboto', 'Ubuntu', sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: Menlo, monospace;
   --radius: 1.3rem;
@@ -48,6 +48,10 @@
 
   body {
     @apply font-sans antialiased text-foreground;
+    /* Crisper type rendering — macOS renders heavy without this. */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
     /* Flowing "aurora" gradient — two drifting color blobs over a deep base. */
     background:
       radial-gradient(1100px 720px at 18% 12%, rgba(56, 189, 248, 0.16), transparent 60%),
@@ -93,6 +97,58 @@ body.location-wayland {
 
   html {
     scroll-behavior: smooth;
+  }
+
+  /* --- Typographic polish (site-wide) ---------------------------------
+     Balanced headings + tighter optical tracking on large type read as
+     "designed" rather than "document"; pretty-wrapped body kills orphans. */
+  h1, h2, h3 {
+    text-wrap: balance;
+    letter-spacing: -0.02em;
+  }
+  h4, h5, h6 {
+    text-wrap: balance;
+    letter-spacing: -0.01em;
+  }
+  p {
+    text-wrap: pretty;
+  }
+
+  /* Consistent, visible keyboard focus across every interactive element. */
+  a:focus-visible,
+  button:focus-visible,
+  [role="button"]:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Dynamic figures (prices, counts) shouldn't cause layout shift. */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Lightweight "glass-like" card WITHOUT backdrop-filter — the blur is the
+     main scroll-jank source when many cards composite over the animated
+     background. A subtle gradient + border reads similarly for a fraction of
+     the cost. */
+  .staff-card {
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.06),
+      rgba(255, 255, 255, 0.03)
+    );
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+  }
+
+  /* Skip rendering off-screen sections; reserve height to keep scrollbar sane. */
+  .cv-auto {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 620px;
   }
 
   /* Reduce section spacing */

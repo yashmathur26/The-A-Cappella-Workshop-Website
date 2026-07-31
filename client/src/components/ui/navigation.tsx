@@ -1,15 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'wouter';
-import { ShoppingCart, Menu, X, MapPin, ChevronDown } from 'lucide-react';
+import { ShoppingCart, Menu, X } from 'lucide-react';
 import { CartManager } from '@/lib/cart';
-import { Button } from '@/components/ui/button';
 import { useLocation as useLocationContext } from '@/contexts/LocationContext';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import shopLogo from "@assets/Screenshot_2025-12-23_at_10.11.39_PM_1766545901890.png";
 
 interface NavigationProps {
@@ -20,7 +13,7 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
   const [location] = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [currentCartCount, setCurrentCartCount] = useState(cartCount);
-  const { currentLocation, setLocation: setAppLocation, locationData } = useLocationContext();
+  const { currentLocation } = useLocationContext();
 
   useEffect(() => {
     // Force a fresh cart count on mount
@@ -67,8 +60,9 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
   const navLinks = [
     { href: getHomeUrl(), label: 'Home' },
     { href: '/about', label: 'About Us' },
-    { href: '/faq', label: 'FAQ' },
+    { href: '/staff', label: 'Teachers & TAs' },
     { href: '/gallery', label: 'Gallery' },
+    { href: '/faq', label: 'FAQ' },
   ];
 
   return (
@@ -102,37 +96,6 @@ export function Navigation({ cartCount = 0 }: NavigationProps) {
 
           {/* Right Side Actions */}
           <div className="hidden md:flex items-center space-x-3 flex-shrink-0">
-            {/* Location Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20 text-sm whitespace-nowrap">
-                  <MapPin className="w-4 h-4 mr-1" />
-                  {locationData[currentLocation].name}
-                  <ChevronDown className="w-4 h-4 ml-1" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="bg-gray-900 border-gray-700 text-white">
-                <DropdownMenuItem asChild>
-                  <Link 
-                    href="/"
-                    className={`cursor-pointer hover:bg-gray-800 flex items-center ${currentLocation === 'lexington' ? 'bg-blue-900/50' : ''}`}
-                  >
-                    <MapPin className="w-4 h-4 mr-2" />
-                    Lexington
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link 
-                    href="/wayland"
-                    className={`cursor-pointer hover:bg-gray-800 flex items-center ${currentLocation === 'wayland' ? 'bg-purple-900/50' : ''}`}
-                  >
-                    <MapPin className="w-4 h-4 mr-2" />
-                    Wayland
-                  </Link>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            
             <Link
               href={getRegistrationUrl()}
               className="btn-gradient px-4 py-2 rounded-full text-white font-medium hover:text-white text-sm whitespace-nowrap"
