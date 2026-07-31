@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { GlassCard } from '@/components/ui/glass-card';
+import { Eyebrow } from '@/components/ui/eyebrow';
 import { useLocation } from '@/contexts/LocationContext';
 
 export default function FAQ() {
@@ -15,7 +16,7 @@ export default function FAQ() {
         <div>
           <h4 className="font-semibold mb-3 text-white text-lg">Who is the workshop for?</h4>
           <p className="text-white text-base">
-            The A Cappella Workshop is designed for rising 6th, 7th, 8th, and 9th graders who are passionate about singing and want to explore the exciting world of a cappella performance. Whether you\'re a seasoned choir member or just beginning your musical journey, our program welcomes all skill levels!
+            The A Cappella Workshop is designed for rising 6th, 7th, 8th, and 9th graders who are passionate about singing and want to explore the exciting world of a cappella performance. Whether you're a seasoned choir member or just beginning your musical journey, our program welcomes all skill levels!
           </p>
         </div>
       )
@@ -83,7 +84,7 @@ export default function FAQ() {
       content: (
         <div>
           <p className="text-white text-base">
-            Students spend the week learning the various aspects of a cappella performance. The first day of the workshop centers around group bonding between students and staff, vocal range testing, and song selection, setting the stage for a fun and successful week! From there, students learn, rehearse, and workshop repertoire for the Friday showcase, rotate through skill specific "tracks" (beatboxing, a cappella arranging, music theory, songwriting, and more), and prepare short mock solos to receive supportive, helpful feedback from our experienced teachers. We\'re always amazed by the growth and leadership students show by Friday!
+            Students spend the week learning the various aspects of a cappella performance. The first day of the workshop centers around group bonding between students and staff, vocal range testing, and song selection, setting the stage for a fun and successful week! From there, students learn, rehearse, and workshop repertoire for the Friday showcase, rotate through skill specific "tracks" (beatboxing, a cappella arranging, music theory, songwriting, and more), and prepare short mock solos to receive supportive, helpful feedback from our experienced teachers. We're always amazed by the growth and leadership students show by Friday!
           </p>
         </div>
       )
@@ -159,17 +160,20 @@ export default function FAQ() {
 
   return (
     <div className="min-h-screen">
-      <div className="max-w-4xl mx-auto px-6 py-8">
-        <h1 className={`text-4xl lg:text-5xl font-bold text-center mb-8 ${currentLocation === 'wayland' ? 'gradient-text-purple' : currentLocation === 'newton-wellesley' ? 'gradient-text-green' : 'gradient-text'}`}>Frequently Asked Questions</h1>
-        
-        <div className="space-y-4">
+      <div className="max-w-3xl mx-auto px-6 py-12 lg:py-16">
+        <header className="text-center mb-10">
+          <Eyebrow>Questions &amp; Answers</Eyebrow>
+          <h1 className={`mt-3 text-4xl lg:text-5xl font-bold tracking-tight ${currentLocation === 'wayland' ? 'gradient-text-purple' : currentLocation === 'newton-wellesley' ? 'gradient-text-green' : 'gradient-text'}`}>Frequently Asked Questions</h1>
+        </header>
+
+        <div className="space-y-3">
           {FAQ_SECTIONS.map((section) => (
             <GlassCard key={section.id} className="overflow-hidden">
               <div 
-                className="flex justify-between items-center p-6 cursor-pointer hover:bg-white/5 transition-colors"
+                className="flex justify-between items-center gap-4 p-5 sm:p-6 cursor-pointer hover:bg-white/5 transition-colors"
                 onClick={() => toggleSection(section.id)}
               >
-                <h3 className="text-2xl font-semibold text-white">{section.title}</h3>
+                <h3 className="text-lg sm:text-xl font-semibold text-white">{section.title}</h3>
                 <ChevronDown 
                   className={`text-white transition-all duration-500 ease-out ${
                     openSection === section.id ? `rotate-180 ${currentLocation === 'wayland' ? 'text-purple-400' : currentLocation === 'newton-wellesley' ? 'text-emerald-400' : 'text-sky-custom'}` : 'text-white/70'

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { GlassCard } from '@/components/ui/glass-card';
+import { Eyebrow } from '@/components/ui/eyebrow';
 import { Play, Video, Camera } from 'lucide-react';
 import { useLocation } from '@/contexts/LocationContext';
 
@@ -109,15 +110,16 @@ export default function Gallery() {
   }, []);
 
   return (
-    <div className="min-h-screen pt-20">
+    <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="py-8 lg:py-12">
-        <div className="max-w-6xl mx-auto px-6">
+      <section className="pt-12 lg:pt-16 pb-6">
+        <div className="max-w-5xl mx-auto px-6">
           <div className="text-center reveal-in">
-            <h1 className="text-4xl lg:text-6xl font-bold mb-6 leading-tight text-white">
-              Gallery & <span className={currentLocation === 'wayland' ? 'gradient-text-purple' : currentLocation === 'newton-wellesley' ? 'gradient-text-green' : 'gradient-text'}>Videos</span>
+            <Eyebrow>Photos &amp; Video</Eyebrow>
+            <h1 className="mt-3 text-4xl lg:text-5xl font-bold tracking-tight leading-tight text-white">
+              Gallery &amp; <span className={currentLocation === 'wayland' ? 'gradient-text-purple' : currentLocation === 'newton-wellesley' ? 'gradient-text-green' : 'gradient-text'}>Videos</span>
             </h1>
-            <p className="text-xl lg:text-2xl text-white/80 mb-8 max-w-3xl mx-auto">
+            <p className="mt-4 text-lg text-white/70 max-w-2xl mx-auto text-pretty">
               Experience the magic of The A Cappella Workshop through our collection of videos, performances, and memorable moments.
             </p>
           </div>

@@ -1,9 +1,6 @@
 import { Mail, Instagram, Linkedin, Facebook } from 'lucide-react';
-import { useLocation } from '@/contexts/LocationContext';
 
 export function Footer() {
-  const { currentLocation } = useLocation();
-
   const socialLinks = [
     {
       name: 'Email',
@@ -32,15 +29,9 @@ export function Footer() {
   ];
 
   return (
-    <footer className={`mt-auto py-8 border-t ${
-      currentLocation === 'wayland' 
-        ? 'border-purple-500/20' 
-        : currentLocation === 'newton-wellesley'
-        ? 'border-emerald-500/20'
-        : 'border-sky-500/20'
-    }`}>
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-8">
+    <footer className="mt-auto py-10 border-t border-white/8">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-6">
           {socialLinks.map((social) => {
             const Icon = social.icon;
             return (
@@ -49,28 +40,16 @@ export function Footer() {
                 href={social.href}
                 target={social.name !== 'Email' ? '_blank' : undefined}
                 rel={social.name !== 'Email' ? 'noopener noreferrer' : undefined}
-                className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-all hover:scale-105 ${
-                  currentLocation === 'wayland'
-                    ? 'text-purple-300 hover:text-purple-200 hover:bg-purple-500/10'
-                    : currentLocation === 'newton-wellesley'
-                    ? 'text-emerald-300 hover:text-emerald-200 hover:bg-emerald-500/10'
-                    : 'text-sky-300 hover:text-sky-200 hover:bg-sky-500/10'
-                }`}
+                className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-white/55 hover:text-white hover:bg-white/5 transition-colors"
               >
-                <Icon size={20} />
+                <Icon size={17} />
                 <span className="text-sm font-medium">{social.label}</span>
               </a>
             );
           })}
         </div>
         <div className="mt-6 text-center">
-          <p className={`text-sm ${
-            currentLocation === 'wayland'
-              ? 'text-purple-300/70'
-              : currentLocation === 'newton-wellesley'
-              ? 'text-emerald-300/70'
-              : 'text-sky-300/70'
-          }`}>
+          <p className="text-xs text-white/40">
             © {new Date().getFullYear()} The A Cappella Workshop. All rights reserved.
           </p>
         </div>

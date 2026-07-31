@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { GlassCard } from '@/components/ui/glass-card';
+import { Eyebrow } from '@/components/ui/eyebrow';
 import { STAFF_BIOS } from '@/lib/constants';
 import { useLocation } from '@/contexts/LocationContext';
 import { Users, GraduationCap, Star } from 'lucide-react';
@@ -16,113 +17,108 @@ const ADAM_STAFF = [
   }
 ];
 
+const FEATURES = [
+  {
+    icon: Users,
+    title: "Teacher-guided rehearsal and performance",
+    body: "Build confidence and explore musicality, vocal technique, and leadership.",
+  },
+  {
+    icon: GraduationCap,
+    title: "Skills that last",
+    body: "Beatboxing, music theory, arranging, songwriting, and solo singing technique to grow students into stronger musicians.",
+  },
+  {
+    icon: Star,
+    title: "End-of-week performance",
+    body: "Families, friends, and community members invited on Friday to celebrate students' work and musical journey.",
+  },
+];
+
 export default function About() {
   const { currentLocation } = useLocation();
-  
+
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('visible');
-        }
+        if (entry.isIntersecting) entry.target.classList.add('visible');
       });
-    }, {
-      threshold: 0.1,
-      rootMargin: '0px 0px -50px 0px'
-    });
+    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
 
-    document.querySelectorAll('.reveal-in').forEach(el => {
-      observer.observe(el);
-    });
-
+    document.querySelectorAll('.reveal-in').forEach(el => observer.observe(el));
     return () => observer.disconnect();
   }, []);
 
+  const accentTitle = currentLocation === 'wayland' ? 'gradient-text-purple' : currentLocation === 'newton-wellesley' ? 'gradient-text-green' : 'gradient-text';
+  const isLeadershipPlural = !(currentLocation === 'newton-wellesley' || currentLocation === 'wayland');
+
   return (
     <div className="min-h-screen">
-      <div className="max-w-4xl mx-auto px-6 py-8">
-        <h1 className={`text-4xl lg:text-5xl font-bold text-center mb-8 ${currentLocation === 'wayland' ? 'gradient-text-purple' : currentLocation === 'newton-wellesley' ? 'gradient-text-green' : 'gradient-text'}`}>About The A Cappella Workshop{currentLocation === 'newton-wellesley' ? ' - Newton' : currentLocation === 'wayland' ? ' - Wayland' : ''}</h1>
-        
-        {/* What is section */}
-        <section className="mb-3">
-          <GlassCard className="p-8 lg:p-12 reveal-in">
-            <h2 className={`text-2xl lg:text-3xl font-bold mb-6 ${currentLocation === 'wayland' ? 'text-purple-400' : currentLocation === 'newton-wellesley' ? 'text-emerald-400' : 'text-teal-custom'}`}>What is The A Cappella Workshop?</h2>
-            <p className="text-lg text-white/90 leading-relaxed">
-              Founded in 2015 by a group of Lexington High School students, The A Cappella Workshop (The 'Shop) is a beloved community program where rising 6th-9th grade students dive into the world of a cappella through large group performances while exploring musicality, vocal technique, music theory, and more! Our environment is friendly and high-energy and guides students through learning how to listen, blend, keep time, lead, and perform with confidence. Taught by exceptional student teachers from local high school a cappella programs, The 'Shop guides both beginners and experienced singers through a week of making music, learning new skills, and having fun. Each week ends with a performance for families, friends, and community members to showcase the students' work. Secure your spot for summer 2026 TODAY!
-            </p>
-          </GlassCard>
+      <div className="max-w-4xl mx-auto px-6 py-12 lg:py-16">
+        {/* Page header */}
+        <header className="text-center mb-14 reveal-in">
+          <Eyebrow>About Us</Eyebrow>
+          <h1 className={`mt-3 text-4xl lg:text-5xl font-bold tracking-tight ${accentTitle}`}>
+            About The A Cappella Workshop{currentLocation === 'newton-wellesley' ? ' — Newton' : currentLocation === 'wayland' ? ' — Wayland' : ''}
+          </h1>
+        </header>
+
+        {/* What is */}
+        <section className="mb-16 reveal-in">
+          <Eyebrow>About The 'Shop</Eyebrow>
+          <h2 className="mt-3 text-2xl lg:text-3xl font-bold text-white">What is The A Cappella Workshop?</h2>
+          <p className="mt-5 text-lg leading-relaxed text-white/80 text-pretty">
+            Founded in 2015 by a group of Lexington High School students, The A Cappella Workshop (The 'Shop) is a beloved community program where rising 6th-9th grade students dive into the world of a cappella through large group performances while exploring musicality, vocal technique, music theory, and more! Our environment is friendly and high-energy and guides students through learning how to listen, blend, keep time, lead, and perform with confidence. Taught by exceptional student teachers from local high school a cappella programs, The 'Shop guides both beginners and experienced singers through a week of making music, learning new skills, and having fun. Each week ends with a performance for families, friends, and community members to showcase the students' work. Secure your spot for summer 2026 TODAY!
+          </p>
         </section>
 
         {/* What Makes Us Special */}
-        <section className="mb-6">
-          <h2 className={`text-3xl lg:text-4xl font-bold text-center mb-12 ${currentLocation === 'wayland' ? 'gradient-text-purple' : currentLocation === 'newton-wellesley' ? 'gradient-text-green' : 'gradient-text'}`}>What Makes Us Special</h2>
-            <div className="grid md:grid-cols-3 gap-8">
-              <GlassCard className="p-8 reveal-in animate-slide-up relative group overflow-hidden" hover>
-                <div className="absolute top-0 right-0 w-32 h-32 rounded-full -translate-y-16 translate-x-16 group-hover:scale-150 transition-transform duration-700 bg-gradient-to-br from-indigo-custom/20 to-sky-custom/20"></div>
-                <div className="relative z-10">
-                  <div className="w-20 h-20 rounded-full flex items-center justify-center mb-8 animate-float shadow-lg bg-gradient-to-br from-indigo-custom to-sky-custom shadow-indigo-custom/30">
-                    <Users className="text-white" size={36} />
-                  </div>
-                  <h3 className="text-2xl font-bold mb-6 transition-colors duration-300 text-teal-custom group-hover:text-sky-custom">Teacher-guided rehearsal and performance</h3>
-                  <p className="text-white/90 leading-relaxed">Build confidence and explore musicality, vocal technique, and leadership.</p>
+        <section className="mb-16">
+          <div className="text-center mb-10 reveal-in">
+            <Eyebrow>Why The 'Shop</Eyebrow>
+            <h2 className={`mt-3 text-3xl lg:text-4xl font-bold ${accentTitle}`}>What Makes Us Special</h2>
+          </div>
+          <div className="grid md:grid-cols-3 gap-5">
+            {FEATURES.map(({ icon: Icon, title, body }) => (
+              <GlassCard key={title} className="p-7 reveal-in" hover>
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-5 bg-sky-custom/10 border border-sky-custom/20 text-sky-custom">
+                  <Icon size={22} />
                 </div>
+                <h3 className="text-lg font-semibold text-white mb-2 text-balance">{title}</h3>
+                <p className="text-white/70 leading-relaxed text-sm">{body}</p>
               </GlassCard>
-              
-              <GlassCard className="p-8 reveal-in animate-slide-up relative group overflow-hidden" hover>
-                <div className="absolute top-0 right-0 w-32 h-32 rounded-full -translate-y-16 translate-x-16 group-hover:scale-150 transition-transform duration-700 bg-gradient-to-br from-sky-custom/20 to-teal-custom/20"></div>
-                <div className="relative z-10">
-                  <div className="w-20 h-20 rounded-full flex items-center justify-center mb-8 animate-pulse-soft shadow-lg bg-gradient-to-br from-sky-custom to-teal-custom shadow-sky-custom/30">
-                    <GraduationCap className="text-white" size={36} />
-                  </div>
-                  <h3 className="text-2xl font-bold mb-6 transition-colors duration-300 text-sky-custom group-hover:text-teal-custom">Skills that last</h3>
-                  <p className="text-white/90 leading-relaxed">Beatboxing, music theory, arranging, songwriting, and solo singing technique to grow students into stronger musicians.</p>
-                </div>
-              </GlassCard>
-              
-              <GlassCard className="p-8 reveal-in animate-slide-up relative group overflow-hidden" hover>
-                <div className="absolute top-0 right-0 w-32 h-32 rounded-full -translate-y-16 translate-x-16 group-hover:scale-150 transition-transform duration-700 bg-gradient-to-br from-teal-custom/20 to-indigo-custom/20"></div>
-                <div className="relative z-10">
-                  <div className="w-20 h-20 rounded-full flex items-center justify-center mb-8 animate-float shadow-lg bg-gradient-to-br from-teal-custom to-indigo-custom shadow-teal-custom/30">
-                    <Star className="text-white" size={36} />
-                  </div>
-                  <h3 className="text-2xl font-bold mb-6 transition-colors duration-300 text-indigo-custom group-hover:text-teal-custom">End-of-week performance</h3>
-                  <p className="text-white/90 leading-relaxed">Families, friends, and community members invited on Friday to celebrate students' work and musical journey.</p>
-                </div>
-              </GlassCard>
-            </div>
-          </section>
+            ))}
+          </div>
+        </section>
 
         {/* Our Program */}
-        <section className="mb-6">
-          <GlassCard className="p-8 lg:p-12 reveal-in">
-            <h2 className={`text-2xl lg:text-3xl font-bold mb-6 ${currentLocation === 'wayland' ? 'text-violet-400' : currentLocation === 'newton-wellesley' ? 'text-green-400' : 'text-sky-custom'}`}>
-              Our Program
-            </h2>
-            <p className="text-lg text-white/90 leading-relaxed">
-              The first day of the workshop centers around group bonding between students and staff, vocal range testing, and song selection, setting the stage for a fun and successful week! From there, students learn, rehearse, and workshop repertoire for the Friday showcase, rotate through skill specific "tracks" (beatboxing, a cappella arranging, music theory, songwriting, and more), and prepare short mock solos to receive supportive, helpful feedback from our experienced teachers.
-            </p>
-          </GlassCard>
+        <section className="mb-16 reveal-in">
+          <Eyebrow>How the Week Works</Eyebrow>
+          <h2 className="mt-3 text-2xl lg:text-3xl font-bold text-white">Our Program</h2>
+          <p className="mt-5 text-lg leading-relaxed text-white/80 text-pretty">
+            The first day of the workshop centers around group bonding between students and staff, vocal range testing, and song selection, setting the stage for a fun and successful week! From there, students learn, rehearse, and workshop repertoire for the Friday showcase, rotate through skill specific "tracks" (beatboxing, a cappella arranging, music theory, songwriting, and more), and prepare short mock solos to receive supportive, helpful feedback from our experienced teachers.
+          </p>
         </section>
 
         {/* Meet the Leadership */}
         <section>
-          <h2 className={`text-2xl lg:text-3xl font-bold text-center mb-6 ${currentLocation === 'wayland' ? 'gradient-text-purple' : currentLocation === 'newton-wellesley' ? 'gradient-text-green' : 'gradient-text'}`}>{(currentLocation === 'newton-wellesley' || currentLocation === 'wayland') ? 'Meet the President' : 'Meet the Co-Presidents'}</h2>
-          <div className="space-y-8">
-            {((currentLocation === 'newton-wellesley' || currentLocation === 'wayland') ? ADAM_STAFF : STAFF_BIOS).map((staff) => (
-              <GlassCard key={staff.id} className="p-8 reveal-in" hover>
-                <div className="flex flex-col lg:flex-row gap-8 items-start">
-                  <div className="w-32 h-32 rounded-2xl overflow-hidden mx-auto lg:mx-0 flex-shrink-0">
-                    <img 
-                      src={staff.imageUrl}
-                      alt={`${staff.name} headshot`}
-                      className={`w-full h-full object-cover ${staff.imageClassName || ''}`}
-                    />
-                  </div>
+          <div className="text-center mb-10 reveal-in">
+            <Eyebrow>Leadership</Eyebrow>
+            <h2 className={`mt-3 text-3xl lg:text-4xl font-bold ${accentTitle}`}>{isLeadershipPlural ? 'Meet the Co-Presidents' : 'Meet the President'}</h2>
+          </div>
+          <div className="space-y-5">
+            {(isLeadershipPlural ? STAFF_BIOS : ADAM_STAFF).map((staff) => (
+              <GlassCard key={staff.id} className="p-7 reveal-in">
+                <div className="flex flex-col sm:flex-row gap-6 items-start">
+                  <img
+                    src={staff.imageUrl}
+                    alt={`${staff.name} headshot`}
+                    className={`w-28 h-28 rounded-2xl object-cover ring-1 ring-inset ring-white/10 mx-auto sm:mx-0 flex-shrink-0 ${staff.imageClassName || ''}`}
+                  />
                   <div className="flex-1">
-                    <h3 className={`text-xl font-bold mb-2 ${currentLocation === 'wayland' ? 'text-purple-400' : currentLocation === 'newton-wellesley' ? 'text-emerald-400' : 'text-sky-custom'}`}>{staff.name} — {staff.title}</h3>
-                    <p className="text-white/90 leading-relaxed">
-                      {staff.bio}
-                    </p>
+                    <h3 className="text-lg font-bold text-white">{staff.name}</h3>
+                    <p className={`text-sm font-medium mb-3 ${currentLocation === 'wayland' ? 'text-purple-300' : currentLocation === 'newton-wellesley' ? 'text-emerald-300' : 'text-sky-custom'}`}>{staff.title}</p>
+                    <p className="text-white/75 leading-relaxed text-pretty">{staff.bio}</p>
                   </div>
                 </div>
               </GlassCard>

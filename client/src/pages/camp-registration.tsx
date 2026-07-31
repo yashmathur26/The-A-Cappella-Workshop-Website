@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { GlassCard } from '@/components/ui/glass-card';
+import { Eyebrow } from '@/components/ui/eyebrow';
 import { InteractiveCard } from '@/components/ui/interactive-card';
 import { AddToCartButton } from '@/components/ui/add-to-cart-button';
 import { AnimatedCheck } from '@/components/ui/animated-check';
@@ -821,11 +822,12 @@ export default function Register() {
   return (
     <div className="min-h-screen pb-24 lg:pb-0">
       <div className="max-w-7xl mx-auto px-6 py-20 flex flex-col items-center lg:items-stretch">
+        <Eyebrow className="text-center w-full mb-3">Summer 2026 · Lexington</Eyebrow>
         <motion.h1
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...springy, damping: 24 }}
-          className={`text-4xl lg:text-5xl font-bold text-center mb-8 w-full ${currentLocation === 'wayland' ? 'gradient-text-purple' : 'gradient-text'}`}
+          className={`text-4xl lg:text-5xl font-bold text-center mb-8 w-full tracking-tight ${currentLocation === 'wayland' ? 'gradient-text-purple' : 'gradient-text'}`}
         >
           Register for Summer 2026
         </motion.h1>
