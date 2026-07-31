@@ -14,7 +14,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Tag, X, AlertTriangle, MapPin, ShoppingCart, CheckCircle2 } from "lucide-react";
+import { Tag, X, AlertTriangle, MapPin, ShoppingCart, CheckCircle2, Loader2, CreditCard, FileText } from "lucide-react";
 import { useLocation } from '@/contexts/LocationContext';
 import { isReferralCode } from '@shared/referral-codes';
 import { PromoReferralCodeField } from '@/components/PromoReferralCodeField';
@@ -902,14 +902,14 @@ export default function Register() {
           <h2 className={`text-xl font-bold mb-4 text-center lg:text-left ${currentLocation === 'wayland' ? 'text-purple-400' : currentLocation === 'newton-wellesley' ? 'text-emerald-400' : 'text-sky-custom'}`}>Payment Options</h2>
           <div className="space-y-3 text-white/90">
             <div className="flex items-start space-x-3">
-              <span className="text-teal-custom font-bold">💳</span>
+              <CreditCard className="w-5 h-5 text-teal-custom shrink-0 mt-0.5" />
               <div>
                 <p className="font-semibold">Pay in Full (${locationData[currentLocation].pricing.full}/week)</p>
-                <p className="text-sm text-white/70">Complete payment today — no additional fees or invoices</p>
+                <p className="text-sm text-white/70">Complete payment today, with no additional fees or invoices.</p>
               </div>
             </div>
             <div className="flex items-start space-x-3">
-              <span className="text-sky-custom font-bold">📄</span>
+              <FileText className="w-5 h-5 text-sky-custom shrink-0 mt-0.5" />
               <div>
                 <p className="font-semibold">Pay Deposit (${locationData[currentLocation].pricing.deposit}/week)</p>
                 <p className="text-sm text-white/70">Secure your spot with a non-refundable deposit. We'll email you an invoice for the remaining ${locationData[currentLocation].pricing.full - locationData[currentLocation].pricing.deposit} prior to the start of the program.</p>
@@ -923,7 +923,7 @@ export default function Register() {
           <div className="lg:col-span-2 space-y-8 lg:space-y-12 w-full">
             {/* Step 1: Choose Weeks */}
             <section className="w-full">
-              <h2 className="text-2xl font-bold mb-4 text-white text-center lg:text-left">Step 1 — Choose Your Week(s)</h2>
+              <h2 className="text-2xl font-bold mb-4 text-white text-center lg:text-left">Step 1: Choose Your Week(s)</h2>
               <p className="text-white/80 mb-6 text-center lg:text-left">Select your preferred weeks and payment option.</p>
               <motion.div
                 className="grid gap-6 w-full"
@@ -1045,7 +1045,7 @@ export default function Register() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1], delay: 0.1 }}
                 >
-                  Step 2 — Complete Registration Form
+                  Step 2: Complete Registration Form
                 </motion.h2>
 
                 {/* Form Submission Status */}
@@ -1053,9 +1053,9 @@ export default function Register() {
                   <div className="flex items-center space-x-3">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center ${formSubmitted ? 'bg-green-500/30 lg:bg-green-500/20' : 'bg-blue-500/20'}`}>
                       {formSubmitted ? (
-                        <span className="text-green-400 text-xl">✓</span>
+                        <CheckCircle2 className="w-5 h-5 text-green-400" />
                       ) : (
-                        <span className="text-blue-400 text-xl">📝</span>
+                        <FileText className="w-5 h-5 text-blue-400" />
                       )}
                     </div>
                     <div className="flex-1">
@@ -1165,7 +1165,9 @@ export default function Register() {
                             disabled={isLoading}
                             data-testid="button-checkout-form"
                           >
-                            {isLoading ? 'Processing...' : `Proceed to Checkout — $${cartTotal.toFixed(2)}`}
+                            {isLoading ? (
+                              <span className="inline-flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Processing…</span>
+                            ) : `Proceed to Checkout · $${cartTotal.toFixed(2)}`}
                           </Button>
                         </>
                       ) : (
@@ -1367,8 +1369,10 @@ export default function Register() {
                       disabled={cart.length === 0 || isLoading || !formSubmitted}
                       data-testid="button-checkout"
                     >
-                      {isLoading ? 'Processing...' : 
-                       !formSubmitted ? '⏳ Complete Form First' :
+                      {isLoading ? (
+                        <span className="inline-flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Processing…</span>
+                      ) :
+                       !formSubmitted ? 'Complete Form First' :
                        !parentEmail.trim() || !childName.trim() ? 'Enter Contact Info' :
                        'Proceed to Checkout'}
                     </Button>

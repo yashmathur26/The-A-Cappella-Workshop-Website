@@ -40,7 +40,7 @@ export default function Status() {
               <div className="w-24 h-24 rounded-full bg-gradient-to-br from-teal-custom to-sky-custom flex items-center justify-center mx-auto mb-6">
                 <Check className="text-white" size={48} />
               </div>
-              <h1 className="text-3xl font-bold mb-6 text-teal-custom">Thank you for signing up! ✅</h1>
+              <h1 className="text-3xl font-bold mb-6 text-teal-custom">Thank you for signing up!</h1>
               <p className="text-white/90 mb-6 text-lg">Your registration has been successfully completed and your payment has been processed.</p>
               
               {/* Receipt and Future Information Section */}

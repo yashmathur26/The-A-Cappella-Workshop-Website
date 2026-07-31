@@ -38,7 +38,9 @@
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', 'Roboto', 'Ubuntu', sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: Menlo, monospace;
-  --radius: 1.3rem;
+  /* Radius scale — 2 values: md (0.75rem) for controls/cards via shadcn tokens,
+     plus rounded-2xl (1rem) for larger surfaces and rounded-full for pills. */
+  --radius: 0.75rem;
 }
 
 @layer base {
@@ -291,8 +293,8 @@ body.location-wayland {
   }
 
   .card-hover:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    transform: translateY(-3px);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
   }
 
   /* Side drawer for cart */
@@ -386,8 +388,7 @@ body.location-wayland {
 
   /* Cart badge animation */
   .cart-badge {
-    background: linear-gradient(45deg, #dc2626, #ef4444);
-    animation: pulse 2s infinite;
+    background: #ef4444;
   }
 
 /* Newton Green Theme Overrides */
@@ -620,7 +621,7 @@ body.location-wayland {
     will-change: transform;
   }
   .lift:hover {
-    transform: translateY(-4px);
+    transform: translateY(-3px);
   }
 
   /* Legibility for text sitting over photography. */

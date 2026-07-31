@@ -11,7 +11,7 @@ const s = (i: number): CSSProperties => ({ ["--i" as string]: i } as CSSProperti
 function TeacherCell({ person, i }: { person: StaffMember; i: number }) {
   return (
     <div style={s(i)} className="group flex flex-col items-center text-center w-32 sm:w-40">
-      <div className="transition-transform duration-300 ease-out group-hover:-translate-y-1.5 group-hover:scale-[1.05]">
+      <div className="transition-transform duration-300 ease-out group-hover:-translate-y-1">
         <StaffAvatar name={person.name} photo={person.photo} variant="teacher" />
       </div>
       <p className="mt-3 text-base sm:text-lg font-semibold text-white text-balance transition-colors group-hover:text-sky-custom">
@@ -27,7 +27,7 @@ function TeacherCell({ person, i }: { person: StaffMember; i: number }) {
 function TaCell({ person, i }: { person: StaffMember; i: number }) {
   return (
     <div style={s(i)} className="group flex flex-col items-center text-center w-24 sm:w-28">
-      <div className="transition-transform duration-300 ease-out group-hover:-translate-y-1 group-hover:scale-[1.06]">
+      <div className="transition-transform duration-300 ease-out group-hover:-translate-y-0.5">
         <StaffAvatar name={person.name} photo={person.photo} variant="ta" />
       </div>
       <p className="mt-2.5 text-sm font-medium text-white/90 text-balance transition-colors group-hover:text-white">
