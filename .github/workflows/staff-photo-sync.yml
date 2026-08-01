@@ -39,7 +39,7 @@ jobs:
 
       - name: Install dependencies
         if: env.STOP != '1'
-        run: pip install Pillow pillow-heif gdown opencv-python-headless numpy
+        run: pip install Pillow pillow-heif gdown "opencv-python-headless==4.10.0.84" numpy
 
       - name: Run sync
         if: env.STOP != '1'
