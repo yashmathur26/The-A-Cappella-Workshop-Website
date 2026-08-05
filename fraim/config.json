@@ -1,0 +1,32 @@
+{
+  "project": {
+    "name": "The A Cappella Workshop",
+    "industry": "Education / youth music camp"
+  },
+  "repository": {
+    "provider": "github",
+    "owner": "yashmathur26",
+    "name": "The-A-Cappella-Workshop-Website",
+    "url": "https://github.com/yashmathur26/The-A-Cappella-Workshop-Website",
+    "defaultBranch": "main"
+  },
+  "issueTracking": {
+    "provider": "github",
+    "owner": "yashmathur26",
+    "name": "The-A-Cappella-Workshop-Website",
+    "branchPattern": "issue-{issueNumber}-{slug}"
+  },
+  "mode": "integrated",
+  "customizations": {
+    "architectureDoc": "replit.md",
+    "designSystem": {
+      "path": "client/src/components/ui",
+      "brand": "The A Cappella Workshop"
+    },
+    "validation": {
+      "buildCommand": "npm run build",
+      "testSuiteCommand": "npm run check",
+      "smokeTestCommand": "npm run verify:sheets"
+    }
+  }
+}

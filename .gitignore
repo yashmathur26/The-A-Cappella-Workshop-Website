@@ -8,6 +8,7 @@ vite.config.ts.*
 # Local state and binaries
 .local/
 cloudflared
+.playwright-mcp/
 
 # Local secrets (Replit Secrets do not download with the repo)
 .env
