@@ -7,6 +7,7 @@ import { AddToCartButton } from '@/components/ui/add-to-cart-button';
 import { AnimatedCheck } from '@/components/ui/animated-check';
 import { GradientButton } from '@/components/ui/gradient-button';
 import { CartManager, type CartItem } from '@/lib/cart';
+import { getWeekStatus } from '@/lib/camp-weeks';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation as useWouterLocation } from 'wouter';
@@ -239,6 +240,15 @@ export default function Register() {
     if (week) {
       const result = CartManager.addToCart(weekId, paymentType, week, locationData[currentLocation].name);
       
+      if (!result.success && result.error === 'week_closed') {
+        toast({
+          title: "Week no longer available",
+          description: `${week.label} has already started. Please choose one of the remaining weeks.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
       if (!result.success && result.error === 'location_mismatch') {
         toast({
           title: "Different Location in Cart",
@@ -264,6 +274,17 @@ export default function Register() {
     CartManager.clearCart();
     setCart([]);
     window.dispatchEvent(new Event('cartUpdated'));
+  };
+
+  // Promo codes are validated in the browser, so a rejected one leaves no
+  // server-side trace. Report it (fire-and-forget) so failed code attempts can
+  // be looked up in the server logs when a family says their code didn't work.
+  const logCodeAttempt = (code: string, reason: string) => {
+    fetch('/api/log-code-attempt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, reason, parentEmail: parentEmail.trim() || undefined }),
+    }).catch(() => {});
   };
 
   const handlePromoCodeSubmit = async () => {
@@ -347,15 +368,17 @@ export default function Register() {
         const expiryDate = new Date('2026-02-15T23:59:59');
         if (today > expiryDate) {
           setPromoError("EARLYBIRD promo code has expired. It was only valid until February 15, 2026.");
+          logCodeAttempt(promoCode.trim(), 'expired');
           CartManager.clearAppliedCode();
           setCart(CartManager.getCart());
           return;
         }
-        
+
         const cart = CartManager.getCartItems();
         const hasDepositItems = cart.some(item => item.paymentType === 'deposit');
         if (hasDepositItems) {
           setPromoError("EARLYBIRD discount only applies to full payments. Remove deposit items to use this code.");
+          logCodeAttempt(promoCode.trim(), 'deposit_only_cart');
           CartManager.clearAppliedCode();
           setCart(CartManager.getCart());
           return;
@@ -385,11 +408,14 @@ export default function Register() {
       const expiryDate = new Date('2026-02-15T23:59:59');
       if (today > expiryDate) {
         setPromoError("EARLYBIRD promo code has expired. It was only valid until February 15, 2026.");
+        logCodeAttempt(promoCode.trim(), 'expired');
       } else {
         setPromoError("Invalid promo/referral code");
+        logCodeAttempt(promoCode.trim(), 'not_found');
       }
     } else {
       setPromoError("Invalid promo/referral code");
+      logCodeAttempt(promoCode.trim(), 'not_found');
     }
     } finally {
       setIsApplyingCode(false);
@@ -932,17 +958,27 @@ export default function Register() {
                 animate="show"
               >
                 {WEEKS.map((week, index) => {
-                  const isFull = FULL_WEEK_IDS.includes(week.id);
+                  // A week that has already started is closed by date, whatever
+                  // its capacity — that check comes first.
+                  const weekStatus = getWeekStatus(week.id);
+                  const isClosed = weekStatus !== 'upcoming';
+                  const isFull = !isClosed && FULL_WEEK_IDS.includes(week.id);
                   return (
                   <div key={week.id} id={`week-${week.id}`} className="scroll-mt-28">
                   <InteractiveCard variants={riseItem}>
                   <GlassCard
-                    className={`p-6 week-card ${CartManager.isInCart(week.id) ? 'selected' : ''}`}
+                    className={`p-6 week-card ${CartManager.isInCart(week.id) ? 'selected' : ''} ${isClosed ? 'opacity-60 saturate-[0.25]' : ''}`}
+                    aria-disabled={isClosed || undefined}
                   >
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-xl font-bold text-white">Week {index + 1}: <span className="font-normal">{week.label}</span></h3>
+                          <h3 className={`text-xl font-bold ${isClosed ? 'text-white/60' : 'text-white'}`}>Week {index + 1}: <span className="font-normal">{week.label}</span></h3>
+                          {isClosed && (
+                            <span className="px-2.5 py-1 text-xs font-bold bg-white/10 text-white/60 border border-white/20 rounded-full uppercase tracking-wide">
+                              {weekStatus === 'in-progress' ? 'In session' : 'Completed'}
+                            </span>
+                          )}
                           {isFull && (
                             <span className="px-2.5 py-1 text-xs font-bold bg-red-500/20 text-red-300 border border-red-500/40 rounded-full uppercase tracking-wide">
                               Full
@@ -961,7 +997,22 @@ export default function Register() {
                     </div>
                     
                     {/* Payment Options */}
-                    {isFull ? (
+                    {isClosed ? (
+                      <div className="rounded-lg border border-white/10 bg-white/5 p-5 text-center">
+                        <p className="text-white/70 font-semibold mb-1">
+                          {weekStatus === 'in-progress'
+                            ? 'This week is already in session'
+                            : 'This week has finished'}
+                        </p>
+                        <p className="text-white/50 text-sm">
+                          Registration is closed. Pick one of the remaining weeks, or email{' '}
+                          <a href="mailto:theacappellaworkshop@gmail.com" className="text-sky-custom underline">
+                            theacappellaworkshop@gmail.com
+                          </a>{' '}
+                          with any questions.
+                        </p>
+                      </div>
+                    ) : isFull ? (
                       <div className="rounded-lg border border-white/10 bg-white/5 p-5 text-center">
                         <p className="text-white font-semibold mb-1">This week is full</p>
                         <p className="text-white/60 text-sm">

@@ -523,6 +523,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Record a code the browser rejected on its own (promo codes like EARLYBIRD
+  // are validated client-side and never reach the server otherwise, so a
+  // customer reporting "my code didn't work" would leave no trace at all).
+  // Fire-and-forget: always 204, never blocks the customer.
+  app.post("/api/log-code-attempt", express.json(), (req, res) => {
+    const code = String(req.body?.code ?? "").trim().slice(0, 64);
+    const reason = String(req.body?.reason ?? "rejected").slice(0, 64);
+    const email = String(req.body?.parentEmail ?? "").trim().toLowerCase().slice(0, 254);
+    if (code) {
+      console.log(`[promo] attempt code="${code}" -> ${reason}${email ? ` (${email})` : ""}`);
+    }
+    res.status(204).end();
+  });
+
   // Validate parent/staff referral code (usage cap + discount)
   app.post("/api/validate-referral-code", express.json(), async (req, res) => {
     try {
@@ -532,6 +546,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const result = await validateReferralCode(String(code));
+      // Leaves a trail for "my promo code didn't work" reports — nothing else
+      // records code attempts, and a rejected code never reaches Stripe or the DB.
+      console.log(
+        `[promo] attempt code="${String(code).trim()}" -> ${
+          result.valid ? `valid ($${result.discountDollars} off, ${result.usesRemaining} left)` : result.reason
+        }`,
+      );
       if (!result.valid) {
         const definition = lookupReferralCode(String(code));
         const messages: Record<string, string> = {

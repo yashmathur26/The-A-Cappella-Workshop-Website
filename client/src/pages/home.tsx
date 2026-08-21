@@ -7,6 +7,7 @@ import { GradientButton } from '@/components/ui/gradient-button';
 import { Eyebrow } from '@/components/ui/eyebrow';
 import { useLocation } from '@/contexts/LocationContext';
 import { ROSTER } from '@/lib/staff-roster';
+import { getWeekStatus } from '@/lib/camp-weeks';
 
 // Web-optimized camp photography (see Website Pictures Lexington/home).
 import heroImg from "@gallery/home/hero.jpg";
@@ -185,29 +186,64 @@ export default function Home() {
             <p className="mt-3 text-white/60">Each session runs Monday–Friday, 9:00 AM – 4:00 PM.</p>
           </div>
           <div className="space-y-3 reveal-stagger">
-            {weeks.map((week, i) => (
-              <Link
-                key={week.id}
-                href={`${getRegistrationUrl()}#week-${week.id}`}
-                style={s(i)}
-                className="group flex items-center gap-5 p-5 rounded-2xl staff-card lift cursor-pointer"
-              >
-                <div className="shrink-0 w-12 h-12 rounded-xl flex items-center justify-center bg-sky-custom/10 border border-sky-custom/20 text-sky-custom font-bold tabular-nums">
-                  {i + 1}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-lg font-semibold text-white tabular-nums">{week.label}</p>
-                  {week.venue && (
-                    <p className="mt-0.5 text-sm text-white/55 flex items-center gap-1.5">
-                      <MapPin size={13} className="text-white/40" /> {week.venue.name}
+            {weeks.map((week, i) => {
+              // Weeks that have already started are shown greyed out and are
+              // not links — only remaining weeks route to registration.
+              const status = getWeekStatus(week.id);
+              const isClosed = status !== 'upcoming';
+
+              const body = (
+                <>
+                  <div
+                    className={`shrink-0 w-12 h-12 rounded-xl flex items-center justify-center font-bold tabular-nums ${
+                      isClosed
+                        ? 'bg-white/5 border border-white/10 text-white/40'
+                        : 'bg-sky-custom/10 border border-sky-custom/20 text-sky-custom'
+                    }`}
+                  >
+                    {i + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-lg font-semibold tabular-nums ${isClosed ? 'text-white/45' : 'text-white'}`}>
+                      {week.label}
                     </p>
+                    {week.venue && (
+                      <p className={`mt-0.5 text-sm flex items-center gap-1.5 ${isClosed ? 'text-white/35' : 'text-white/55'}`}>
+                        <MapPin size={13} className={isClosed ? 'text-white/25' : 'text-white/40'} /> {week.venue.name}
+                      </p>
+                    )}
+                  </div>
+                  {isClosed ? (
+                    <span className="shrink-0 text-sm font-medium text-white/40">
+                      {status === 'in-progress' ? 'In session' : 'Completed'}
+                    </span>
+                  ) : (
+                    <span className="shrink-0 inline-flex items-center gap-1.5 text-sm font-medium text-sky-custom transition-transform group-hover:translate-x-0.5">
+                      Register <ArrowRight size={14} />
+                    </span>
                   )}
+                </>
+              );
+
+              return isClosed ? (
+                <div
+                  key={week.id}
+                  style={s(i)}
+                  className="flex items-center gap-5 p-5 rounded-2xl staff-card opacity-60"
+                >
+                  {body}
                 </div>
-                <span className="shrink-0 inline-flex items-center gap-1.5 text-sm font-medium text-sky-custom transition-transform group-hover:translate-x-0.5">
-                  Register <ArrowRight size={14} />
-                </span>
-              </Link>
-            ))}
+              ) : (
+                <Link
+                  key={week.id}
+                  href={`${getRegistrationUrl()}#week-${week.id}`}
+                  style={s(i)}
+                  className="group flex items-center gap-5 p-5 rounded-2xl staff-card lift cursor-pointer"
+                >
+                  {body}
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>

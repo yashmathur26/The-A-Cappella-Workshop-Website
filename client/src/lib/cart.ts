@@ -1,4 +1,5 @@
 import { isReferralCode } from '@shared/referral-codes';
+import { isWeekClosed } from './camp-weeks';
 
 export interface CartItem {
   weekId: string;
@@ -55,11 +56,11 @@ export class CartManager {
         return [];
       }
       // Validate new format
-      if (Array.isArray(parsed) && parsed.every(item => 
-        item && typeof item === 'object' && 
+      if (Array.isArray(parsed) && parsed.every(item =>
+        item && typeof item === 'object' &&
         'weekId' in item && 'paymentType' in item && 'price' in item
       )) {
-        return parsed;
+        return this.dropClosedWeeks(parsed);
       }
       // Invalid format, clear it
       localStorage.removeItem(this.STORAGE_KEY);
@@ -68,6 +69,21 @@ export class CartManager {
       localStorage.removeItem(this.STORAGE_KEY);
       return [];
     }
+  }
+
+  /**
+   * Drop weeks that have already started from a stored cart. A cart lives in
+   * localStorage indefinitely, so without this a family could return weeks
+   * later and check out a session that has already run.
+   * Writes the pruned list straight back (no cartUpdated event — this runs
+   * inside reads, and dispatching here would re-enter React renders).
+   */
+  private static dropClosedWeeks(items: CartItem[]): CartItem[] {
+    const open = items.filter(item => !isWeekClosed(item.weekId));
+    if (open.length !== items.length && typeof window !== 'undefined') {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(open));
+    }
+    return open;
   }
 
   static setCart(items: CartItem[]): void {
@@ -95,7 +111,12 @@ export class CartManager {
 
   static addToCart(weekId: string, paymentType: 'full' | 'deposit', week: any, location?: string, studentId?: string, studentName?: string): { success: boolean; error?: string; currentLocation?: string } {
     const cart = this.getCart();
-    
+
+    // Weeks that have already started are closed to new signups.
+    if (isWeekClosed(weekId)) {
+      return { success: false, error: 'week_closed' };
+    }
+
     // Check if cart has items from a different location
     if (location && cart.length > 0) {
       const cartLocation = cart[0].location;
