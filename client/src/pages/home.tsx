@@ -37,6 +37,16 @@ export default function Home() {
   const isLex = currentLocation === 'lexington';
   const weeks = locationData[currentLocation].weeks;
 
+  // Remaining weeks first, finished ones after. `number` preserves each week's
+  // original position so the badge still reads "3" for the third week of the
+  // summer; sort() is stable, so calendar order holds within each group.
+  const orderedWeeks = weeks
+    .map((week, index) => ({ week, number: index + 1 }))
+    .sort((a, b) =>
+      Number(getWeekStatus(a.week.id) !== 'upcoming') -
+      Number(getWeekStatus(b.week.id) !== 'upcoming'),
+    );
+
   const getRegistrationUrl = () => {
     if (currentLocation === 'newton-wellesley') return '/newton/register';
     if (currentLocation === 'wayland') return '/wayland/register';
@@ -186,7 +196,7 @@ export default function Home() {
             <p className="mt-3 text-white/60">Each session runs Monday–Friday, 9:00 AM – 4:00 PM.</p>
           </div>
           <div className="space-y-3 reveal-stagger">
-            {weeks.map((week, i) => {
+            {orderedWeeks.map(({ week, number }, i) => {
               // Weeks that have already started are shown greyed out and are
               // not links — only remaining weeks route to registration.
               const status = getWeekStatus(week.id);
@@ -201,7 +211,7 @@ export default function Home() {
                         : 'bg-sky-custom/10 border border-sky-custom/20 text-sky-custom'
                     }`}
                   >
-                    {i + 1}
+                    {number}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className={`text-lg font-semibold tabular-nums ${isClosed ? 'text-white/45' : 'text-white'}`}>

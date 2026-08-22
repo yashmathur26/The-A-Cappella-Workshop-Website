@@ -116,6 +116,17 @@ export default function Register() {
   const WEEKS = locationData[currentLocation].weeks;
   const locationPricing = locationData[currentLocation].pricing;
 
+  // Weeks still open for signup float to the top; finished ones sink to the
+  // bottom. `number` keeps each week's original position ("Week 3" stays
+  // Week 3 even when it's listed first) — sort() is stable, so weeks within
+  // each group stay in calendar order.
+  const ORDERED_WEEKS = WEEKS
+    .map((week, index) => ({ week, number: index + 1 }))
+    .sort((a, b) =>
+      Number(getWeekStatus(a.week.id) !== 'upcoming') -
+      Number(getWeekStatus(b.week.id) !== 'upcoming'),
+    );
+
   // Deep-link: /camp-registration#week-<id> (from the home "Weeks Running"
   // list) scrolls to and briefly highlights that week's card.
   useEffect(() => {
@@ -957,7 +968,7 @@ export default function Register() {
                 initial="hidden"
                 animate="show"
               >
-                {WEEKS.map((week, index) => {
+                {ORDERED_WEEKS.map(({ week, number }) => {
                   // A week that has already started is closed by date, whatever
                   // its capacity — that check comes first.
                   const weekStatus = getWeekStatus(week.id);
@@ -973,7 +984,7 @@ export default function Register() {
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className={`text-xl font-bold ${isClosed ? 'text-white/60' : 'text-white'}`}>Week {index + 1}: <span className="font-normal">{week.label}</span></h3>
+                          <h3 className={`text-xl font-bold ${isClosed ? 'text-white/60' : 'text-white'}`}>Week {number}: <span className="font-normal">{week.label}</span></h3>
                           {isClosed && (
                             <span className="px-2.5 py-1 text-xs font-bold bg-white/10 text-white/60 border border-white/20 rounded-full uppercase tracking-wide">
                               {weekStatus === 'in-progress' ? 'In session' : 'Completed'}
